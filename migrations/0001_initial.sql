@@ -18,16 +18,12 @@ CREATE TABLE IF NOT EXISTS campaigns (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Applicant table (simple: instagram + preferred time)
+-- Applicant table (instagram + preferred time only)
 CREATE TABLE IF NOT EXISTS applications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   campaign_id INTEGER NOT NULL,
   campaign_title TEXT,
   place_name TEXT,
-  applicant_name TEXT NOT NULL,
-  nationality TEXT NOT NULL,
-  email TEXT NOT NULL,
-  phone TEXT,
   instagram TEXT NOT NULL,
   preferred_time TEXT NOT NULL,
   message TEXT,

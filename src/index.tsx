@@ -74,16 +74,16 @@ app.get('/api/places/photo', async (c) => {
 app.post('/api/apply', async (c) => {
   try {
     const body = await c.req.json()
-    const { campaign_id, name, nationality, email, phone, instagram, preferred_time, message } = body
+    const { campaign_id, instagram, preferred_time, message } = body
 
-    if (!campaign_id || !name || !nationality || !email || !instagram || !preferred_time) {
+    if (!campaign_id || !instagram || !preferred_time) {
       return c.json({ success: false, error: 'Please fill in all required fields.' }, 400)
     }
 
-    // duplicate check
+    // duplicate check by instagram
     const existing = await c.env.DB.prepare(
-      'SELECT id FROM applications WHERE campaign_id = ? AND email = ?'
-    ).bind(campaign_id, email).first()
+      'SELECT id FROM applications WHERE campaign_id = ? AND instagram = ?'
+    ).bind(campaign_id, instagram).first()
     if (existing) return c.json({ success: false, error: 'You have already applied to this campaign.' }, 400)
 
     const campaign: any = await c.env.DB.prepare(
@@ -95,9 +95,9 @@ app.post('/api/apply', async (c) => {
     }
 
     await c.env.DB.prepare(
-      `INSERT INTO applications (campaign_id, campaign_title, place_name, applicant_name, nationality, email, phone, instagram, preferred_time, message)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(campaign_id, campaign.title, campaign.place_name, name, nationality, email, phone || '', instagram, preferred_time, message || '').run()
+      `INSERT INTO applications (campaign_id, campaign_title, place_name, instagram, preferred_time, message)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).bind(campaign_id, campaign.title, campaign.place_name, instagram, preferred_time, message || '').run()
 
     await c.env.DB.prepare(
       'UPDATE campaigns SET current_participants = current_participants + 1 WHERE id = ?'
@@ -782,16 +782,15 @@ function adminDashboardHTML(): string {
         <table class="w-full text-sm">
           <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
-              <th class="text-left px-4 py-3">Applicant</th>
+              <th class="text-left px-4 py-3">Instagram</th>
               <th class="text-left px-4 py-3 hidden sm:table-cell">Campaign</th>
-              <th class="text-left px-4 py-3 hidden md:table-cell">Instagram</th>
               <th class="text-left px-4 py-3 hidden md:table-cell">Preferred Time</th>
               <th class="text-left px-4 py-3">Status</th>
               <th class="text-center px-4 py-3">Action</th>
             </tr>
           </thead>
           <tbody id="appsTable" class="divide-y divide-gray-50">
-            <tr><td colspan="6" class="text-center py-10 text-gray-400 text-xs">Loading...</td></tr>
+            <tr><td colspan="5" class="text-center py-10 text-gray-400 text-xs">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -954,7 +953,7 @@ async function loadStats() {
 // ── Applicants ────────────────────────────────
 async function loadApps() {
   const tb = document.getElementById('appsTable')
-  tb.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-xs text-gray-400">Loading...</td></tr>'
+  tb.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-xs text-gray-400">Loading...</td></tr>'
   const cid = document.getElementById('fCamp').value
   const st  = document.getElementById('fStatus').value
   let url = '/api/admin/applications?'
@@ -962,21 +961,17 @@ async function loadApps() {
   if (st)  url += 'status=' + st
   const { success, data } = await (await fetch(url, { headers: H })).json()
   if (!success || !data.length) {
-    tb.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-xs text-gray-400">No applicants found</td></tr>'
+    tb.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-xs text-gray-400">No applicants found</td></tr>'
     return
   }
   tb.innerHTML = data.map(a => \`
     <tr class="hover:bg-gray-50 transition-colors">
       <td class="px-4 py-3">
-        <p class="font-medium text-sm text-gray-900">\${a.applicant_name}</p>
-        <p class="text-xs text-gray-400">\${a.nationality}</p>
+        \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-sm text-pink-500 font-semibold hover:underline">@\${a.instagram}</a>\` : '<span class="text-xs text-gray-300">—</span>'}
       </td>
       <td class="px-4 py-3 hidden sm:table-cell">
         <p class="text-xs text-gray-700">\${a.place_name || ''}</p>
         <p class="text-xs text-gray-400">\${a.campaign_title || ''}</p>
-      </td>
-      <td class="px-4 py-3 hidden md:table-cell">
-        \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-xs text-pink-500 hover:underline">@\${a.instagram}</a>\` : '<span class="text-xs text-gray-300">—</span>'}
       </td>
       <td class="px-4 py-3 hidden md:table-cell">
         <p class="text-xs text-gray-600">\${a.preferred_time || '—'}</p>
@@ -1003,17 +998,11 @@ function openAppDetail(a) {
       <button onclick="document.getElementById('appModal').classList.remove('active')" class="text-gray-300 hover:text-gray-500"><i class="fas fa-times"></i></button>
     </div>
     <div class="space-y-3 text-sm">
-      <div class="grid grid-cols-2 gap-3">
-        <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400 mb-0.5">Name</p><p class="font-semibold">\${a.applicant_name}</p></div>
-        <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400 mb-0.5">Nationality</p><p class="font-semibold">\${a.nationality}</p></div>
-        <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400 mb-0.5">Email</p><p class="font-semibold text-blue-600 text-xs break-all">\${a.email}</p></div>
-        <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400 mb-0.5">Phone</p><p class="font-semibold text-xs">\${a.phone || '—'}</p></div>
-      </div>
-      <div class="bg-pink-50 rounded-xl p-3 flex items-center gap-3">
-        <i class="fab fa-instagram text-pink-500 text-lg"></i>
+      <div class="bg-pink-50 rounded-xl p-4 flex items-center gap-3">
+        <i class="fab fa-instagram text-pink-500 text-2xl"></i>
         <div>
-          <p class="text-xs text-gray-400">Instagram</p>
-          \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="font-semibold text-pink-600 hover:underline">@\${a.instagram}</a>\` : '<p class="text-gray-400 text-xs">—</p>'}
+          <p class="text-xs text-gray-400 mb-0.5">Instagram</p>
+          \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="font-bold text-pink-600 text-base hover:underline">@\${a.instagram}</a>\` : '<p class="text-gray-400 text-xs">—</p>'}
         </div>
       </div>
       <div class="bg-blue-50 rounded-xl p-3">
