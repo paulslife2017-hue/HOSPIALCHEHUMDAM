@@ -5,48 +5,20 @@ import { serveStatic } from 'hono/cloudflare-workers'
 type Bindings = {
   DB: D1Database
   GOOGLE_PLACES_API_KEY: string
-  ADMIN_PASSWORD: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
 
 app.use('/api/*', cors())
 app.use('/static/*', serveStatic({ root: './' }))
+app.get('/favicon.ico', (c) => new Response(null, { status: 204 }))
 
-// favicon 처리
-app.get('/favicon.ico', (c) => {
-  return new Response(null, { status: 204 })
-})
+// ── Pages ────────────────────────────────────
+app.get('/', (c) => c.html(mainPageHTML()))
+app.get('/admin', (c) => c.html(adminLoginHTML()))
+app.get('/admin/dashboard', (c) => c.html(adminDashboardHTML()))
 
-// ─────────────────────────────────────────────
-// 메인 페이지
-// ─────────────────────────────────────────────
-app.get('/', (c) => {
-  return c.html(mainPageHTML())
-})
-
-// ─────────────────────────────────────────────
-// 체험단 상세 페이지
-// ─────────────────────────────────────────────
-app.get('/campaign/:id', (c) => {
-  const id = c.req.param('id')
-  return c.html(campaignDetailHTML(id))
-})
-
-// ─────────────────────────────────────────────
-// 관리자 페이지
-// ─────────────────────────────────────────────
-app.get('/admin', (c) => {
-  return c.html(adminLoginHTML())
-})
-
-app.get('/admin/dashboard', (c) => {
-  return c.html(adminDashboardHTML())
-})
-
-// ─────────────────────────────────────────────
-// API: 캠페인 목록
-// ─────────────────────────────────────────────
+// ── API: Campaigns ───────────────────────────
 app.get('/api/campaigns', async (c) => {
   try {
     const { results } = await c.env.DB.prepare(
@@ -60,10 +32,9 @@ app.get('/api/campaigns', async (c) => {
 
 app.get('/api/campaigns/:id', async (c) => {
   try {
-    const id = c.req.param('id')
     const campaign = await c.env.DB.prepare(
       'SELECT * FROM campaigns WHERE id = ?'
-    ).bind(id).first()
+    ).bind(c.req.param('id')).first()
     if (!campaign) return c.json({ success: false, error: 'Not found' }, 404)
     return c.json({ success: true, data: campaign })
   } catch (e: any) {
@@ -71,41 +42,16 @@ app.get('/api/campaigns/:id', async (c) => {
   }
 })
 
-// ─────────────────────────────────────────────
-// API: Google Places 검색 (프록시)
-// ─────────────────────────────────────────────
+// ── API: Google Places proxy ─────────────────
 app.get('/api/places/search', async (c) => {
   const query = c.req.query('q')
   if (!query) return c.json({ success: false, error: 'Query required' }, 400)
-
-  const apiKey = c.env.GOOGLE_PLACES_API_KEY
-  if (!apiKey) {
-    return c.json({
-      success: false,
-      error: 'Google Places API key not configured. Please set GOOGLE_PLACES_API_KEY in .dev.vars'
-    }, 500)
-  }
-
-  try {
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}&language=ko`
-    const resp = await fetch(url)
-    const data: any = await resp.json()
-    return c.json({ success: true, data })
-  } catch (e: any) {
-    return c.json({ success: false, error: e.message }, 500)
-  }
-})
-
-app.get('/api/places/details/:placeId', async (c) => {
-  const placeId = c.req.param('placeId')
   const apiKey = c.env.GOOGLE_PLACES_API_KEY
   if (!apiKey) return c.json({ success: false, error: 'API key not configured' }, 500)
-
   try {
-    const fields = 'name,rating,formatted_address,photos,types,reviews,formatted_phone_number,website,opening_hours'
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${apiKey}&language=ko`
-    const resp = await fetch(url)
-    const data: any = await resp.json()
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}&language=en`
+    const res = await fetch(url)
+    const data = await res.json()
     return c.json({ success: true, data })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
@@ -114,101 +60,83 @@ app.get('/api/places/details/:placeId', async (c) => {
 
 app.get('/api/places/photo', async (c) => {
   const ref = c.req.query('ref')
-  const maxWidth = c.req.query('maxwidth') || '600'
   const apiKey = c.env.GOOGLE_PLACES_API_KEY
   if (!apiKey || !ref) return c.json({ success: false, error: 'Missing params' }, 400)
-
-  const url = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photo_reference=${ref}&key=${apiKey}`
-  const resp = await fetch(url)
-  const buffer = await resp.arrayBuffer()
-  const contentType = resp.headers.get('content-type') || 'image/jpeg'
-  return new Response(buffer, {
-    headers: { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=86400' }
+  const url = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${ref}&key=${apiKey}`
+  const res = await fetch(url)
+  const buf = await res.arrayBuffer()
+  return new Response(buf, {
+    headers: { 'Content-Type': res.headers.get('content-type') || 'image/jpeg', 'Cache-Control': 'public, max-age=86400' }
   })
 })
 
-// ─────────────────────────────────────────────
-// API: 지원 제출
-// ─────────────────────────────────────────────
+// ── API: Apply ───────────────────────────────
 app.post('/api/apply', async (c) => {
   try {
     const body = await c.req.json()
-    const { campaign_id, name, nationality, email, phone, instagram, youtube, followers, message } = body
+    const { campaign_id, name, nationality, email, phone, instagram, preferred_time, message } = body
 
-    if (!campaign_id || !name || !nationality || !email) {
-      return c.json({ success: false, error: '필수 항목을 모두 입력해주세요.' }, 400)
+    if (!campaign_id || !name || !nationality || !email || !instagram || !preferred_time) {
+      return c.json({ success: false, error: 'Please fill in all required fields.' }, 400)
     }
 
-    // 중복 지원 체크
+    // duplicate check
     const existing = await c.env.DB.prepare(
       'SELECT id FROM applications WHERE campaign_id = ? AND email = ?'
     ).bind(campaign_id, email).first()
-    if (existing) {
-      return c.json({ success: false, error: '이미 이 캠페인에 지원하셨습니다.' }, 400)
-    }
+    if (existing) return c.json({ success: false, error: 'You have already applied to this campaign.' }, 400)
 
-    // 캠페인 정보 가져오기
     const campaign: any = await c.env.DB.prepare(
       'SELECT * FROM campaigns WHERE id = ?'
     ).bind(campaign_id).first()
-    if (!campaign) return c.json({ success: false, error: 'Campaign not found' }, 404)
-
-    // 정원 초과 체크
+    if (!campaign) return c.json({ success: false, error: 'Campaign not found.' }, 404)
     if (campaign.current_participants >= campaign.max_participants) {
-      return c.json({ success: false, error: '모집이 마감되었습니다.' }, 400)
+      return c.json({ success: false, error: 'This campaign is now full.' }, 400)
     }
 
     await c.env.DB.prepare(
-      `INSERT INTO applications (campaign_id, campaign_title, place_name, applicant_name, nationality, email, phone, instagram, youtube, followers, message)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(campaign_id, campaign.title, campaign.place_name, name, nationality, email, phone || '', instagram || '', youtube || '', followers || 0, message || '').run()
+      `INSERT INTO applications (campaign_id, campaign_title, place_name, applicant_name, nationality, email, phone, instagram, preferred_time, message)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(campaign_id, campaign.title, campaign.place_name, name, nationality, email, phone || '', instagram, preferred_time, message || '').run()
 
     await c.env.DB.prepare(
       'UPDATE campaigns SET current_participants = current_participants + 1 WHERE id = ?'
     ).bind(campaign_id).run()
 
-    return c.json({ success: true, message: '지원이 완료되었습니다! 검토 후 연락드리겠습니다.' })
+    return c.json({ success: true, message: 'Application submitted! We will contact you soon.' })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-// ─────────────────────────────────────────────
-// API: 관리자 로그인
-// ─────────────────────────────────────────────
+// ── API: Admin login ─────────────────────────
 app.post('/api/admin/login', async (c) => {
   try {
     const { username, password } = await c.req.json()
-    const admin: any = await c.env.DB.prepare(
+    const admin = await c.env.DB.prepare(
       'SELECT * FROM admins WHERE username = ? AND password_hash = ?'
     ).bind(username, password).first()
-    if (!admin) return c.json({ success: false, error: '아이디 또는 비밀번호가 틀렸습니다.' }, 401)
+    if (!admin) return c.json({ success: false, error: 'Invalid username or password.' }, 401)
     return c.json({ success: true, token: 'admin-token-' + Date.now() })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-// ─────────────────────────────────────────────
-// API: 관리자 - 전체 지원자 목록
-// ─────────────────────────────────────────────
+// ── API: Admin — applications ────────────────
 app.get('/api/admin/applications', async (c) => {
-  const auth = c.req.header('X-Admin-Token')
-  if (!auth || !auth.startsWith('admin-token-')) {
-    return c.json({ success: false, error: 'Unauthorized' }, 401)
-  }
+  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
-    const campaign_id = c.req.query('campaign_id')
-    const status = c.req.query('status')
-    let query = 'SELECT * FROM applications'
+    const cid = c.req.query('campaign_id')
+    const st  = c.req.query('status')
+    let q = 'SELECT * FROM applications'
     const params: any[] = []
-    const conditions: string[] = []
-    if (campaign_id) { conditions.push('campaign_id = ?'); params.push(campaign_id) }
-    if (status) { conditions.push('status = ?'); params.push(status) }
-    if (conditions.length) query += ' WHERE ' + conditions.join(' AND ')
-    query += ' ORDER BY created_at DESC'
-
-    const stmt = c.env.DB.prepare(query)
+    const conds: string[] = []
+    if (cid) { conds.push('campaign_id = ?'); params.push(cid) }
+    if (st)  { conds.push('status = ?');      params.push(st) }
+    if (conds.length) q += ' WHERE ' + conds.join(' AND ')
+    q += ' ORDER BY created_at DESC'
+    const stmt = c.env.DB.prepare(q)
     const { results } = await (params.length ? stmt.bind(...params) : stmt).all()
     return c.json({ success: true, data: results })
   } catch (e: any) {
@@ -216,38 +144,22 @@ app.get('/api/admin/applications', async (c) => {
   }
 })
 
-// ─────────────────────────────────────────────
-// API: 관리자 - 지원 상태 변경
-// ─────────────────────────────────────────────
 app.patch('/api/admin/applications/:id', async (c) => {
-  const auth = c.req.header('X-Admin-Token')
-  if (!auth || !auth.startsWith('admin-token-')) {
-    return c.json({ success: false, error: 'Unauthorized' }, 401)
-  }
+  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
-    const id = c.req.param('id')
     const { status } = await c.req.json()
-    await c.env.DB.prepare(
-      'UPDATE applications SET status = ? WHERE id = ?'
-    ).bind(status, id).run()
+    await c.env.DB.prepare('UPDATE applications SET status = ? WHERE id = ?').bind(status, c.req.param('id')).run()
     return c.json({ success: true })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-// ─────────────────────────────────────────────
-// API: 관리자 - 캠페인 관리
-// ─────────────────────────────────────────────
+// ── API: Admin — campaigns ───────────────────
 app.get('/api/admin/campaigns', async (c) => {
-  const auth = c.req.header('X-Admin-Token')
-  if (!auth || !auth.startsWith('admin-token-')) {
-    return c.json({ success: false, error: 'Unauthorized' }, 401)
-  }
+  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
-    const { results } = await c.env.DB.prepare(
-      'SELECT * FROM campaigns ORDER BY created_at DESC'
-    ).all()
+    const { results } = await c.env.DB.prepare('SELECT * FROM campaigns ORDER BY created_at DESC').all()
     return c.json({ success: true, data: results })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
@@ -255,376 +167,310 @@ app.get('/api/admin/campaigns', async (c) => {
 })
 
 app.post('/api/admin/campaigns', async (c) => {
-  const auth = c.req.header('X-Admin-Token')
-  if (!auth || !auth.startsWith('admin-token-')) {
-    return c.json({ success: false, error: 'Unauthorized' }, 401)
-  }
+  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
-    const body = await c.req.json()
-    const { title, description, place_id, place_name, place_address, place_photo_ref, place_rating, place_types, category, max_participants, deadline } = body
-    const result = await c.env.DB.prepare(
-      `INSERT INTO campaigns (title, description, place_id, place_name, place_address, place_photo_ref, place_rating, place_types, category, max_participants, deadline)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(title, description, place_id, place_name, place_address, place_photo_ref || '', place_rating || 0, place_types || '', category || '맛집', max_participants || 10, deadline).run()
-    return c.json({ success: true, id: result.meta.last_row_id })
+    const b = await c.req.json()
+    const r = await c.env.DB.prepare(
+      `INSERT INTO campaigns (title, description, place_id, place_name, place_address, place_photo_ref, place_rating, category, max_participants, deadline, benefits, requirements)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(b.title, b.description, b.place_id, b.place_name, b.place_address || '', b.place_photo_ref || '', b.place_rating || 0, b.category || 'Hospital', b.max_participants || 10, b.deadline, b.benefits || '', b.requirements || '').run()
+    return c.json({ success: true, id: r.meta.last_row_id })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
 })
 
 app.delete('/api/admin/campaigns/:id', async (c) => {
-  const auth = c.req.header('X-Admin-Token')
-  if (!auth || !auth.startsWith('admin-token-')) {
-    return c.json({ success: false, error: 'Unauthorized' }, 401)
-  }
+  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
-    const id = c.req.param('id')
-    await c.env.DB.prepare('UPDATE campaigns SET status = ? WHERE id = ?').bind('inactive', id).run()
+    await c.env.DB.prepare('UPDATE campaigns SET status = ? WHERE id = ?').bind('inactive', c.req.param('id')).run()
     return c.json({ success: true })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-// ─────────────────────────────────────────────
-// HTML 페이지 함수들
-// ─────────────────────────────────────────────
+function isAdmin(c: any) {
+  const t = c.req.header('X-Admin-Token')
+  return t && t.startsWith('admin-token-')
+}
+
+// ════════════════════════════════════════════════════════════════
+// HTML — Main Page
+// ════════════════════════════════════════════════════════════════
 function mainPageHTML(): string {
   return `<!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Korea Experience — 외국인 체험단</title>
+  <title>Korea Medical Experience</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
-    body { font-family: 'Noto Sans KR', sans-serif; }
-    .hero-gradient { background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 50%, #e8505b 100%); }
-    .card-hover { transition: all 0.3s ease; }
-    .card-hover:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
-    .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-    .progress-bar { height: 6px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
-    .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); border-radius: 999px; transition: width 0.5s ease; }
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; backdrop-filter: blur(4px); }
-    .modal-overlay.active { display: flex; align-items: center; justify-content: center; }
-    .photo-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; border-radius: 12px; overflow: hidden; }
-    .photo-gallery img { width: 100%; height: 120px; object-fit: cover; }
-    .star-rating { color: #f59e0b; }
-    input, textarea, select { transition: border-color 0.2s; }
-    input:focus, textarea:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-    .tab-btn.active { background: #2563eb; color: white; }
-    .filter-btn.active { background: #1e40af; color: white; }
-    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #f1f5f9; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    * { font-family: 'Inter', sans-serif; }
+    .card-hover { transition: transform .25s, box-shadow .25s; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,.10); }
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:999; backdrop-filter:blur(3px); }
+    .modal-overlay.active { display:flex; align-items:center; justify-content:center; }
+    .progress-bar { height:5px; background:#e5e7eb; border-radius:99px; overflow:hidden; }
+    .progress-fill { height:100%; background:#2563eb; border-radius:99px; }
+    .tag { display:inline-block; padding:2px 10px; border-radius:99px; font-size:11px; font-weight:600; }
+    .filter-btn { border:1.5px solid #e5e7eb; color:#6b7280; transition:all .2s; }
+    .filter-btn.active { border-color:#2563eb; background:#eff6ff; color:#2563eb; }
+    input:focus, textarea:focus, select:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+    ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:3px; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 
-<!-- 네비게이션 -->
-<nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex items-center justify-between h-16">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-          <i class="fas fa-globe-asia text-white text-sm"></i>
-        </div>
-        <div>
-          <div class="font-bold text-gray-900 text-lg leading-tight">Korea Experience</div>
-          <div class="text-xs text-gray-400">외국인 체험단 모집</div>
-        </div>
+<!-- Nav -->
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2">
+      <div class="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+        <i class="fas fa-plus text-white text-xs"></i>
       </div>
-      <div class="flex items-center gap-3">
-        <button onclick="openSearchModal()" class="flex items-center gap-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full transition-colors">
-          <i class="fas fa-search"></i>
-          <span class="hidden sm:inline">장소 검색</span>
-        </button>
-        <a href="/admin" class="text-sm text-gray-500 hover:text-gray-700 px-3 py-2">
-          <i class="fas fa-shield-alt mr-1"></i>관리자
-        </a>
-      </div>
+      <span class="font-bold text-gray-900 text-base">Korea Medical Experience</span>
+    </a>
+    <div class="flex items-center gap-2">
+      <button onclick="openPlaceSearch()" class="hidden sm:flex items-center gap-2 text-sm text-gray-500 border border-gray-200 rounded-full px-3 py-1.5 hover:border-gray-300 transition">
+        <i class="fas fa-search text-xs"></i> Search places
+      </button>
+      <a href="/admin" class="text-xs text-gray-400 hover:text-gray-600 px-2 py-1">Admin</a>
     </div>
   </div>
 </nav>
 
-<!-- 히어로 섹션 -->
-<section class="hero-gradient text-white py-20 px-4">
-  <div class="max-w-4xl mx-auto text-center">
-    <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 mb-6 text-sm">
-      <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-      현재 모집 중인 체험단이 있습니다
-    </div>
-    <h1 class="text-4xl sm:text-5xl font-bold mb-4 leading-tight">
-      한국을 직접 경험하고<br>
-      <span class="text-yellow-300">SNS에 공유하세요! 🇰🇷</span>
-    </h1>
-    <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-      음식, 문화, 관광 등 다양한 한국 체험 기회를 외국인 인플루언서에게 제공합니다
-    </p>
-    <div class="flex flex-wrap justify-center gap-6 text-sm">
-      <div class="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
-        <i class="fas fa-utensils text-yellow-300"></i> 맛집 체험
-      </div>
-      <div class="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
-        <i class="fas fa-landmark text-yellow-300"></i> 문화 관광
-      </div>
-      <div class="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
-        <i class="fas fa-coffee text-yellow-300"></i> 카페 체험
-      </div>
-      <div class="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
-        <i class="fas fa-spa text-yellow-300"></i> 뷰티/웰니스
-      </div>
+<!-- Hero -->
+<section class="bg-white border-b border-gray-100 py-10 px-4">
+  <div class="max-w-6xl mx-auto">
+    <div class="max-w-xl">
+      <span class="tag bg-blue-50 text-blue-600 mb-3">For Foreigners in Korea</span>
+      <h1 class="text-3xl font-bold text-gray-900 mt-2 mb-3 leading-snug">
+        Try Korea's Best<br>Medical &amp; Wellness Services
+      </h1>
+      <p class="text-gray-500 text-sm leading-relaxed">
+        Get free or discounted treatments at top Korean clinics and spas —<br>
+        just share your honest experience on social media.
+      </p>
     </div>
   </div>
 </section>
 
-<!-- 카테고리 필터 -->
-<section class="bg-white border-b border-gray-100 py-4 px-4 sticky top-16 z-40 shadow-sm">
-  <div class="max-w-7xl mx-auto flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
-    <span class="text-sm text-gray-500 whitespace-nowrap font-medium">필터:</span>
-    <button onclick="filterCampaigns('all')" class="filter-btn active whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 transition-colors" data-filter="all">전체</button>
-    <button onclick="filterCampaigns('맛집')" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 transition-colors" data-filter="맛집">🍽️ 맛집</button>
-    <button onclick="filterCampaigns('문화')" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 transition-colors" data-filter="문화">🏛️ 문화</button>
-    <button onclick="filterCampaigns('카페')" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 transition-colors" data-filter="카페">☕ 카페</button>
-    <button onclick="filterCampaigns('쇼핑')" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 transition-colors" data-filter="쇼핑">🛍️ 쇼핑</button>
-    <button onclick="filterCampaigns('뷰티')" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 transition-colors" data-filter="뷰티">💄 뷰티</button>
-    <button onclick="filterCampaigns('숙박')" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 transition-colors" data-filter="숙박">🏨 숙박</button>
-  </div>
-</section>
-
-<!-- 캠페인 목록 -->
-<main class="max-w-7xl mx-auto px-4 py-10">
-  <div class="flex items-center justify-between mb-8">
-    <div>
-      <h2 class="text-2xl font-bold text-gray-900">현재 모집 중</h2>
-      <p class="text-gray-500 text-sm mt-1">지금 지원 가능한 체험단 목록입니다</p>
-    </div>
-    <span id="campaign-count" class="text-sm text-gray-400"></span>
-  </div>
-
-  <div id="loading" class="flex flex-col items-center justify-center py-20">
-    <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p class="text-gray-500">캠페인을 불러오는 중...</p>
-  </div>
-
-  <div id="campaigns-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 hidden"></div>
-
-  <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 text-gray-400">
-    <i class="fas fa-search text-5xl mb-4 text-gray-200"></i>
-    <p class="text-lg font-medium">해당 카테고리에 캠페인이 없습니다</p>
-  </div>
-</main>
-
-<!-- 장소 검색 모달 -->
-<div id="searchModal" class="modal-overlay">
-  <div class="bg-white rounded-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-    <div class="p-6 border-b border-gray-100">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-map-marker-alt text-red-500 mr-2"></i>Google Places 장소 검색</h3>
-        <button onclick="closeSearchModal()" class="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      <div class="flex gap-2">
-        <input id="searchInput" type="text" placeholder="장소명을 영어로 검색하세요 (예: Gyeongbokgung Palace, Myeongdong...)"
-          class="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm"
-          onkeydown="if(event.key==='Enter') searchPlaces()">
-        <button onclick="searchPlaces()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl text-sm font-medium transition-colors">
-          <i class="fas fa-search mr-1"></i>검색
-        </button>
-      </div>
-      <p class="text-xs text-gray-400 mt-2">* Google Places API 키가 설정되어 있어야 검색이 가능합니다</p>
-    </div>
-    <div id="searchResults" class="p-4 overflow-y-auto flex-1">
-      <div class="text-center text-gray-400 py-12">
-        <i class="fas fa-search text-4xl mb-3 text-gray-200"></i>
-        <p>검색어를 입력하면 Google Places에서<br>장소 정보를 가져옵니다</p>
-      </div>
-    </div>
+<!-- Category filter -->
+<div class="bg-white border-b border-gray-100 sticky top-14 z-40">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto">
+    <button onclick="filterBy('all')" data-f="all" class="filter-btn active whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium">All</button>
+    <button onclick="filterBy('Hospital')" data-f="Hospital" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium">🏥 Hospital</button>
+    <button onclick="filterBy('Head Spa')" data-f="Head Spa" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium">💆 Head Spa</button>
+    <button onclick="filterBy('Dental')" data-f="Dental" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium">🦷 Dental</button>
+    <button onclick="filterBy('Skin')" data-f="Skin" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium">✨ Skin</button>
+    <button onclick="filterBy('Wellness')" data-f="Wellness" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium">🌿 Wellness</button>
   </div>
 </div>
 
-<!-- 체험단 지원 모달 -->
+<!-- Campaign list -->
+<main class="max-w-6xl mx-auto px-4 py-8">
+  <div id="loading" class="flex justify-center py-20">
+    <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+  <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 hidden"></div>
+  <div id="empty" class="hidden text-center py-20 text-gray-400">
+    <i class="fas fa-search text-4xl mb-3 block text-gray-200"></i>No campaigns found
+  </div>
+</main>
+
+<!-- Apply Modal -->
 <div id="applyModal" class="modal-overlay">
-  <div class="bg-white rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
-    <div class="p-6 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-paper-plane text-blue-500 mr-2"></i>체험단 지원하기</h3>
-        <button onclick="closeApplyModal()" class="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
-          <i class="fas fa-times"></i>
+  <div class="bg-white rounded-2xl w-full max-w-md mx-4 shadow-xl overflow-hidden">
+    <!-- Header -->
+    <div class="px-6 pt-6 pb-4 border-b border-gray-100">
+      <div class="flex items-start justify-between">
+        <div>
+          <h3 class="font-bold text-gray-900 text-lg">Apply Now</h3>
+          <p id="applySubtitle" class="text-sm text-gray-400 mt-0.5"></p>
+        </div>
+        <button onclick="closeApply()" class="text-gray-300 hover:text-gray-500 ml-4 mt-0.5">
+          <i class="fas fa-times text-lg"></i>
         </button>
       </div>
-      <div id="applyModalPlace" class="mt-3 p-3 bg-blue-50 rounded-xl flex items-center gap-3">
-        <div id="applyModalThumb" class="w-14 h-14 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 overflow-hidden flex-shrink-0">
-          <i class="fas fa-image"></i>
-        </div>
-        <div>
-          <div id="applyModalTitle" class="font-semibold text-gray-900 text-sm"></div>
-          <div id="applyModalSubtitle" class="text-xs text-gray-500 mt-0.5"></div>
-        </div>
-      </div>
     </div>
-    <form id="applyForm" class="p-6 space-y-4">
-      <input type="hidden" id="applyCapId" name="campaign_id">
+    <!-- Form -->
+    <form id="applyForm" class="px-6 py-5 space-y-4">
+      <input type="hidden" id="applyCapId">
+
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">이름 (Name) <span class="text-red-500">*</span></label>
-          <input type="text" id="applyName" placeholder="Full Name" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Full Name <span class="text-red-400">*</span></label>
+          <input id="fName" type="text" placeholder="Your name" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">국적 (Nationality) <span class="text-red-500">*</span></label>
-          <select id="applyNationality" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
-            <option value="">Select Country</option>
-            <option>🇺🇸 USA</option><option>🇬🇧 UK</option><option>🇯🇵 Japan</option>
-            <option>🇨🇳 China</option><option>🇹🇼 Taiwan</option><option>🇭🇰 Hong Kong</option>
-            <option>🇹🇭 Thailand</option><option>🇻🇳 Vietnam</option><option>🇵🇭 Philippines</option>
-            <option>🇮🇩 Indonesia</option><option>🇲🇾 Malaysia</option><option>🇸🇬 Singapore</option>
-            <option>🇦🇺 Australia</option><option>🇨🇦 Canada</option><option>🇩🇪 Germany</option>
-            <option>🇫🇷 France</option><option>🇮🇳 India</option><option>🇧🇷 Brazil</option>
-            <option>🇲🇽 Mexico</option><option>🇷🇺 Russia</option><option>🇸🇦 Saudi Arabia</option>
-            <option>🇺🇦 Ukraine</option><option>🇳🇱 Netherlands</option><option>🇮🇹 Italy</option>
-            <option>🇪🇸 Spain</option><option>🇵🇱 Poland</option><option>Other</option>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Nationality <span class="text-red-400">*</span></label>
+          <select id="fNation" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
+            <option value="">Select</option>
+            <option>🇺🇸 American</option><option>🇬🇧 British</option><option>🇦🇺 Australian</option>
+            <option>🇨🇦 Canadian</option><option>🇯🇵 Japanese</option><option>🇨🇳 Chinese</option>
+            <option>🇹🇼 Taiwanese</option><option>🇭🇰 Hong Konger</option><option>🇹🇭 Thai</option>
+            <option>🇻🇳 Vietnamese</option><option>🇵🇭 Filipino</option><option>🇮🇩 Indonesian</option>
+            <option>🇲🇾 Malaysian</option><option>🇸🇬 Singaporean</option><option>🇮🇳 Indian</option>
+            <option>🇫🇷 French</option><option>🇩🇪 German</option><option>🇧🇷 Brazilian</option>
+            <option>🇲🇽 Mexican</option><option>🇷🇺 Russian</option><option>🇸🇦 Saudi</option>
+            <option>🇳🇱 Dutch</option><option>🇮🇹 Italian</option><option>🇪🇸 Spanish</option>
+            <option>Other</option>
           </select>
         </div>
       </div>
+
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">이메일 (Email) <span class="text-red-500">*</span></label>
-        <input type="email" id="applyEmail" placeholder="your@email.com" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Email <span class="text-red-400">*</span></label>
+        <input id="fEmail" type="email" placeholder="your@email.com" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
       </div>
+
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">연락처 (Phone)</label>
-        <input type="text" id="applyPhone" placeholder="+82-10-0000-0000" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Phone (optional)</label>
+        <input id="fPhone" type="text" placeholder="+82-10-0000-0000" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
       </div>
-      <div class="border border-gray-100 rounded-xl p-4 bg-gray-50">
-        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">SNS 계정 (하나 이상 필수)</p>
-        <div class="space-y-3">
-          <div class="flex items-center gap-2">
-            <i class="fab fa-instagram text-pink-500 w-5"></i>
-            <input type="text" id="applyInstagram" placeholder="@instagram_handle" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
-          </div>
-          <div class="flex items-center gap-2">
-            <i class="fab fa-youtube text-red-500 w-5"></i>
-            <input type="text" id="applyYoutube" placeholder="YouTube Channel URL" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
-          </div>
-          <div class="flex items-center gap-2">
-            <i class="fas fa-users text-blue-500 w-5"></i>
-            <input type="number" id="applyFollowers" placeholder="총 팔로워 수" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
-          </div>
+
+      <!-- Key fields -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">
+          <i class="fab fa-instagram text-pink-500 mr-1"></i>Instagram Handle <span class="text-red-400">*</span>
+        </label>
+        <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+          <span class="px-3 text-gray-400 text-sm bg-gray-50 border-r border-gray-200 py-2.5">@</span>
+          <input id="fInsta" type="text" placeholder="your_instagram" class="flex-1 px-3 py-2.5 text-sm border-none outline-none" required>
         </div>
       </div>
+
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">지원 동기 (Message)</label>
-        <textarea id="applyMessage" rows="3" placeholder="한국 체험에 관심을 갖게 된 이유나 SNS 활동 내용을 알려주세요..." class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none"></textarea>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">
+          <i class="far fa-clock text-blue-500 mr-1"></i>Preferred Visit Time <span class="text-red-400">*</span>
+        </label>
+        <select id="fTime" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
+          <option value="">Select preferred time</option>
+          <optgroup label="Weekday">
+            <option>Weekday Morning (9AM–12PM)</option>
+            <option>Weekday Afternoon (1PM–5PM)</option>
+            <option>Weekday Evening (5PM–8PM)</option>
+          </optgroup>
+          <optgroup label="Weekend">
+            <option>Weekend Morning (9AM–12PM)</option>
+            <option>Weekend Afternoon (1PM–5PM)</option>
+          </optgroup>
+          <optgroup label="Flexible">
+            <option>Anytime (Flexible)</option>
+          </optgroup>
+        </select>
       </div>
-      <div id="applyError" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm"></div>
-      <div id="applySuccess" class="hidden bg-green-50 border border-green-200 text-green-700 rounded-xl p-3 text-sm"></div>
-      <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 rounded-xl font-semibold transition-all text-sm">
-        <i class="fas fa-paper-plane mr-2"></i>지원 제출하기
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Message (optional)</label>
+        <textarea id="fMsg" rows="2" placeholder="Any questions or notes for the clinic..." class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none"></textarea>
+      </div>
+
+      <div id="applyErr" class="hidden bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3 border border-red-100"></div>
+      <div id="applyOk"  class="hidden bg-green-50 text-green-700 text-sm rounded-xl px-4 py-3 border border-green-100"></div>
+
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl text-sm transition-colors">
+        Submit Application
       </button>
-      <p class="text-xs text-center text-gray-400">제출 후 이메일로 결과를 안내드립니다</p>
+      <p class="text-center text-xs text-gray-400">We'll contact you via email once reviewed.</p>
     </form>
   </div>
 </div>
 
-<!-- 캠페인 상세 모달 -->
+<!-- Detail Modal -->
 <div id="detailModal" class="modal-overlay">
-  <div class="bg-white rounded-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+  <div class="bg-white rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-xl">
     <div id="detailContent"></div>
   </div>
 </div>
 
-<footer class="bg-gray-900 text-gray-400 py-12 mt-16">
-  <div class="max-w-7xl mx-auto px-4 text-center">
-    <div class="flex items-center justify-center gap-3 mb-4">
-      <div class="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-        <i class="fas fa-globe-asia text-white text-xs"></i>
-      </div>
-      <span class="text-white font-bold">Korea Experience</span>
+<!-- Place Search Modal (for admin reference) -->
+<div id="placeModal" class="modal-overlay">
+  <div class="bg-white rounded-2xl w-full max-w-xl mx-4 max-h-[85vh] flex flex-col shadow-xl overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <h3 class="font-bold text-gray-900"><i class="fab fa-google text-blue-500 mr-2"></i>Search on Google Places</h3>
+      <button onclick="closePlaceSearch()" class="text-gray-300 hover:text-gray-500"><i class="fas fa-times"></i></button>
     </div>
-    <p class="text-sm">외국인 체험단 모집 플랫폼 · Powered by Google Places API</p>
-    <p class="text-xs mt-2">© 2025 Korea Experience. All rights reserved.</p>
+    <div class="px-5 py-3 border-b border-gray-100">
+      <div class="flex gap-2">
+        <input id="placeQ" type="text" placeholder="e.g. Gangnam dermatology clinic, Seoul"
+          class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm"
+          onkeydown="if(event.key==='Enter') doPlaceSearch()">
+        <button onclick="doPlaceSearch()" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700">Search</button>
+      </div>
+    </div>
+    <div id="placeResults" class="flex-1 overflow-y-auto px-4 py-3">
+      <p class="text-center text-sm text-gray-400 py-10">Search for hospitals, clinics, or spas in Korea</p>
+    </div>
   </div>
-</footer>
+</div>
 
 <script>
 let allCampaigns = []
-let currentFilter = 'all'
-let currentCampaignId = null
 
-// ── 캠페인 목록 로드 ──────────────────────────
+// ── Load campaigns ────────────────────────────
 async function loadCampaigns() {
   try {
     const res = await fetch('/api/campaigns')
-    const data = await res.json()
-    if (data.success) {
-      allCampaigns = data.data
-      renderCampaigns(allCampaigns)
-    }
-  } catch(e) {
-    document.getElementById('loading').innerHTML = '<p class="text-red-500">데이터를 불러오지 못했습니다.</p>'
+    const { data } = await res.json()
+    allCampaigns = data || []
+    render(allCampaigns)
+  } catch {
+    document.getElementById('loading').innerHTML = '<p class="text-red-400 text-sm">Failed to load campaigns.</p>'
   }
 }
 
-function renderCampaigns(campaigns) {
-  const grid = document.getElementById('campaigns-grid')
+function render(list) {
   const loading = document.getElementById('loading')
-  const empty = document.getElementById('empty-state')
-  const count = document.getElementById('campaign-count')
-
+  const grid    = document.getElementById('grid')
+  const empty   = document.getElementById('empty')
   loading.classList.add('hidden')
+  if (!list.length) { grid.classList.add('hidden'); empty.classList.remove('hidden'); return }
+  empty.classList.add('hidden'); grid.classList.remove('hidden')
 
-  if (!campaigns.length) {
-    grid.classList.add('hidden')
-    empty.classList.remove('hidden')
-    count.textContent = ''
-    return
-  }
+  const catColor = { 'Hospital':'bg-blue-50 text-blue-600', 'Head Spa':'bg-purple-50 text-purple-600',
+    'Dental':'bg-cyan-50 text-cyan-600', 'Skin':'bg-pink-50 text-pink-600', 'Wellness':'bg-green-50 text-green-600' }
 
-  empty.classList.add('hidden')
-  grid.classList.remove('hidden')
-  count.textContent = campaigns.length + '개 캠페인'
-
-  grid.innerHTML = campaigns.map(c => {
-    const pct = Math.round((c.current_participants / c.max_participants) * 100)
-    const isFull = c.current_participants >= c.max_participants
-    const thumbUrl = c.place_photo_ref ? '/api/places/photo?ref=' + c.place_photo_ref + '&maxwidth=600' : ''
-    const categoryEmoji = { '맛집':'🍽️', '문화':'🏛️', '카페':'☕', '쇼핑':'🛍️', '뷰티':'💄', '숙박':'🏨' }[c.category] || '📍'
-    const deadline = c.deadline ? new Date(c.deadline).toLocaleDateString('ko-KR', {month:'long',day:'numeric'}) : '미정'
-    const stars = '⭐'.repeat(Math.round(c.place_rating || 0))
-
-    return \`<article class="card-hover bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm cursor-pointer" onclick="openDetail(\${c.id})">
-      <div class="relative h-52 bg-gradient-to-br from-gray-100 to-gray-200">
-        \${thumbUrl
-          ? \`<img src="\${thumbUrl}" class="w-full h-full object-cover" alt="\${c.place_name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">\`
-          : ''}
-        <div class="\${thumbUrl ? 'hidden' : 'flex'} w-full h-full items-center justify-center flex-col text-gray-400" style="display:\${thumbUrl ? 'none' : 'flex'}">
-          <i class="fas fa-image text-4xl mb-2 text-gray-300"></i>
-          <span class="text-sm">\${c.place_name}</span>
+  grid.innerHTML = list.map(c => {
+    const full = c.current_participants >= c.max_participants
+    const pct  = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
+    const thumb = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
+    const cc    = catColor[c.category] || 'bg-gray-100 text-gray-600'
+    const dl    = c.deadline ? new Date(c.deadline).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : 'TBD'
+    return \`
+    <article class="card-hover bg-white rounded-2xl overflow-hidden border border-gray-100 cursor-pointer" onclick="openDetail(\${c.id})">
+      <div class="relative h-44 bg-gray-100">
+        \${thumb
+          ? \`<img src="\${thumb}" class="w-full h-full object-cover" alt="\${c.place_name}" onerror="this.parentElement.innerHTML='<div class=\\"w-full h-full flex items-center justify-center text-gray-300\\"><i class=\\"fas fa-hospital text-4xl\\"></i></div>'">\`
+          : \`<div class="w-full h-full flex items-center justify-center text-gray-200"><i class="fas fa-hospital text-5xl"></i></div>\`
+        }
+        \${full ? '<div class="absolute inset-0 bg-black/40 flex items-center justify-center"><span class="bg-white text-gray-700 text-xs font-bold px-3 py-1 rounded-full">FULL</span></div>' : ''}
+        <div class="absolute top-2.5 left-2.5">
+          <span class="tag \${cc}">\${c.category}</span>
         </div>
-        <div class="absolute top-3 left-3">
-          <span class="bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-semibold px-2 py-1 rounded-full shadow">\${categoryEmoji} \${c.category}</span>
-        </div>
-        \${isFull ? '<div class="absolute inset-0 bg-black/50 flex items-center justify-center"><span class="bg-red-500 text-white text-sm font-bold px-4 py-2 rounded-full">마감</span></div>' : ''}
       </div>
-      <div class="p-5">
-        <h3 class="font-bold text-gray-900 text-base mb-1 line-clamp-1">\${c.title}</h3>
-        <div class="flex items-center gap-1 text-sm text-gray-500 mb-1">
-          <i class="fas fa-map-marker-alt text-red-400 text-xs"></i>
-          <span class="line-clamp-1">\${c.place_name}</span>
-        </div>
-        \${c.place_rating ? \`<div class="text-xs text-yellow-500 mb-3">⭐ \${c.place_rating} / 5.0</div>\` : '<div class="mb-3"></div>'}
-        <p class="text-xs text-gray-500 line-clamp-2 mb-4">\${c.description || ''}</p>
-        <div class="space-y-2 mb-4">
+      <div class="p-4">
+        <h3 class="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">\${c.title}</h3>
+        <p class="text-xs text-gray-400 mb-0.5"><i class="fas fa-map-marker-alt mr-1 text-red-400"></i>\${c.place_name}</p>
+        \${c.place_rating ? \`<p class="text-xs text-yellow-500 mb-3">★ \${c.place_rating}</p>\` : '<div class="mb-3"></div>'}
+        <div class="space-y-1.5 mb-4">
           <div class="flex justify-between text-xs text-gray-500">
-            <span>모집 현황</span>
-            <span class="font-semibold \${isFull ? 'text-red-500' : 'text-blue-600'}">\${c.current_participants} / \${c.max_participants}명</span>
+            <span>\${c.current_participants}/\${c.max_participants} spots filled</span>
+            <span class="font-medium \${full ? 'text-red-500' : 'text-blue-600'}">\${pct}%</span>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width:\${pct}%"></div></div>
         </div>
+        \${c.benefits ? \`<p class="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-3 line-clamp-2"><i class="fas fa-gift text-blue-400 mr-1"></i>\${c.benefits}</p>\` : ''}
         <div class="flex items-center justify-between">
-          <span class="text-xs text-gray-400"><i class="far fa-clock mr-1"></i>마감 \${deadline}</span>
-          <button onclick="event.stopPropagation(); openApply(\${c.id})" \${isFull ? 'disabled' : ''} class="\${isFull ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'} px-4 py-2 rounded-xl text-xs font-semibold transition-colors">
-            \${isFull ? '마감됨' : '지원하기'}
+          <span class="text-xs text-gray-400">Deadline: \${dl}</span>
+          <button onclick="event.stopPropagation(); openApply(\${c.id})"
+            \${full ? 'disabled' : ''}
+            class="\${full ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'} px-4 py-1.5 rounded-xl text-xs font-semibold transition-colors">
+            \${full ? 'Full' : 'Apply'}
           </button>
         </div>
       </div>
@@ -632,869 +478,699 @@ function renderCampaigns(campaigns) {
   }).join('')
 }
 
-function filterCampaigns(filter) {
-  currentFilter = filter
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.filter === filter)
-    if (!btn.classList.contains('active')) {
-      btn.classList.add('bg-gray-100', 'text-gray-700')
-      btn.classList.remove('bg-gray-100')
-    }
-  })
-  const filtered = filter === 'all' ? allCampaigns : allCampaigns.filter(c => c.category === filter)
-  renderCampaigns(filtered)
+function filterBy(cat) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.f === cat))
+  render(cat === 'all' ? allCampaigns : allCampaigns.filter(c => c.category === cat))
 }
 
-// ── 상세 모달 ──────────────────────────────────
+// ── Detail modal ──────────────────────────────
 async function openDetail(id) {
-  const res = await fetch('/api/campaigns/' + id)
-  const { data: c } = await res.json()
-  const pct = Math.round((c.current_participants / c.max_participants) * 100)
-  const isFull = c.current_participants >= c.max_participants
-  const thumbUrl = c.place_photo_ref ? '/api/places/photo?ref=' + c.place_photo_ref + '&maxwidth=800' : ''
+  const { data: c } = await (await fetch('/api/campaigns/' + id)).json()
+  const full = c.current_participants >= c.max_participants
+  const pct  = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
+  const thumb = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
 
   document.getElementById('detailContent').innerHTML = \`
-    <div class="sticky top-0 z-10">
-      <div class="relative h-64 bg-gray-200">
-        \${thumbUrl ? \`<img src="\${thumbUrl}" class="w-full h-full object-cover">\` : \`<div class="w-full h-full flex items-center justify-center text-gray-400"><i class="fas fa-image text-5xl"></i></div>\`}
-        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-        <button onclick="closeDetailModal()" class="absolute top-4 right-4 w-9 h-9 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center transition-colors">
-          <i class="fas fa-times"></i>
-        </button>
-        <div class="absolute bottom-4 left-4 text-white">
-          <h2 class="text-xl font-bold">\${c.title}</h2>
-          <p class="text-sm text-white/80 mt-1"><i class="fas fa-map-marker-alt mr-1"></i>\${c.place_name}</p>
-        </div>
+    <div class="relative">
+      <div class="h-52 bg-gray-100">
+        \${thumb ? \`<img src="\${thumb}" class="w-full h-full object-cover">\` : \`<div class="w-full h-full flex items-center justify-center text-gray-200"><i class="fas fa-hospital text-6xl"></i></div>\`}
+        <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+      </div>
+      <button onclick="closeDetail()" class="absolute top-3 right-3 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center">
+        <i class="fas fa-times text-sm"></i>
+      </button>
+      <div class="absolute bottom-3 left-4 text-white">
+        <p class="text-xs opacity-80"><i class="fas fa-map-marker-alt mr-1"></i>\${c.place_name}</p>
+        <h2 class="font-bold text-lg leading-tight mt-0.5">\${c.title}</h2>
       </div>
     </div>
-    <div class="p-6">
-      <div class="flex flex-wrap gap-3 mb-5">
-        <div class="flex items-center gap-1 text-sm text-gray-600 bg-gray-100 rounded-full px-3 py-1">
-          <i class="fas fa-tag text-blue-500"></i> \${c.category}
-        </div>
-        \${c.place_rating ? \`<div class="flex items-center gap-1 text-sm text-gray-600 bg-yellow-50 rounded-full px-3 py-1">⭐ \${c.place_rating} 평점</div>\` : ''}
-        <div class="flex items-center gap-1 text-sm text-gray-600 bg-gray-100 rounded-full px-3 py-1">
-          <i class="fas fa-users text-green-500"></i> \${c.current_participants}/\${c.max_participants}명
-        </div>
-        \${c.deadline ? \`<div class="flex items-center gap-1 text-sm text-gray-600 bg-gray-100 rounded-full px-3 py-1"><i class="far fa-calendar text-red-500"></i> \${new Date(c.deadline).toLocaleDateString('ko-KR')}</div>\` : ''}
+    <div class="p-5 space-y-4">
+      <div class="flex flex-wrap gap-2">
+        <span class="tag bg-blue-50 text-blue-600">\${c.category}</span>
+        \${c.place_rating ? \`<span class="tag bg-yellow-50 text-yellow-600">★ \${c.place_rating}</span>\` : ''}
+        <span class="tag bg-gray-100 text-gray-600">\${c.current_participants}/\${c.max_participants} spots</span>
       </div>
-      \${c.place_address ? \`<p class="text-sm text-gray-500 mb-4"><i class="fas fa-location-dot text-red-400 mr-2"></i>\${c.place_address}</p>\` : ''}
-      <div class="space-y-2 mb-5">
-        <div class="flex justify-between text-sm text-gray-600">
-          <span>모집 현황</span>
-          <span class="font-bold \${isFull ? 'text-red-500' : 'text-blue-600'}">\${pct}%</span>
+      \${c.place_address ? \`<p class="text-sm text-gray-500"><i class="fas fa-location-dot text-red-400 mr-2"></i>\${c.place_address}</p>\` : ''}
+      <div>
+        <div class="flex justify-between text-xs text-gray-500 mb-1">
+          <span>Spots filled</span><span class="font-semibold \${full ? 'text-red-500' : 'text-blue-600'}">\${pct}%</span>
         </div>
         <div class="progress-bar"><div class="progress-fill" style="width:\${pct}%"></div></div>
       </div>
-      <div class="bg-gray-50 rounded-xl p-4 mb-5">
-        <h4 class="font-semibold text-gray-800 mb-2 text-sm">캠페인 소개</h4>
-        <p class="text-sm text-gray-600 leading-relaxed">\${c.description || '상세 설명이 없습니다.'}</p>
-      </div>
-      \${!isFull
-        ? \`<button onclick="closeDetailModal(); openApply(\${c.id})" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-bold text-sm transition-all hover:opacity-90"><i class="fas fa-paper-plane mr-2"></i>지금 지원하기</button>\`
-        : \`<div class="w-full bg-gray-200 text-gray-500 py-3 rounded-xl font-bold text-sm text-center">모집이 마감되었습니다</div>\`}
+      <p class="text-sm text-gray-600 leading-relaxed">\${c.description || ''}</p>
+      \${c.benefits ? \`<div class="bg-blue-50 rounded-xl p-3"><p class="text-xs font-semibold text-blue-700 mb-1"><i class="fas fa-gift mr-1"></i>What you get</p><p class="text-sm text-blue-800">\${c.benefits}</p></div>\` : ''}
+      \${c.requirements ? \`<div class="bg-gray-50 rounded-xl p-3"><p class="text-xs font-semibold text-gray-500 mb-1"><i class="fas fa-circle-check mr-1"></i>Requirements</p><p class="text-sm text-gray-600">\${c.requirements}</p></div>\` : ''}
+      \${!full
+        ? \`<button onclick="closeDetail(); openApply(\${c.id})" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl text-sm transition-colors">Apply Now</button>\`
+        : \`<div class="w-full bg-gray-100 text-gray-400 font-semibold py-3 rounded-xl text-sm text-center">This campaign is full</div>\`}
     </div>\`
-
   document.getElementById('detailModal').classList.add('active')
 }
+function closeDetail() { document.getElementById('detailModal').classList.remove('active') }
 
-function closeDetailModal() {
-  document.getElementById('detailModal').classList.remove('active')
-}
-
-// ── 지원 모달 ──────────────────────────────────
+// ── Apply modal ───────────────────────────────
 async function openApply(id) {
-  currentCampaignId = id
-  const res = await fetch('/api/campaigns/' + id)
-  const { data: c } = await res.json()
+  const { data: c } = await (await fetch('/api/campaigns/' + id)).json()
   document.getElementById('applyCapId').value = id
-  document.getElementById('applyModalTitle').textContent = c.title
-  document.getElementById('applyModalSubtitle').textContent = c.place_name + (c.place_address ? ' · ' + c.place_address : '')
-  const thumb = document.getElementById('applyModalThumb')
-  if (c.place_photo_ref) {
-    thumb.innerHTML = \`<img src="/api/places/photo?ref=\${c.place_photo_ref}&maxwidth=120" class="w-full h-full object-cover">\`
-  } else {
-    thumb.innerHTML = '<i class="fas fa-store text-gray-400 text-lg"></i>'
-  }
-  document.getElementById('applyError').classList.add('hidden')
-  document.getElementById('applySuccess').classList.add('hidden')
+  document.getElementById('applySubtitle').textContent = c.place_name + ' · ' + c.title
+  document.getElementById('applyErr').classList.add('hidden')
+  document.getElementById('applyOk').classList.add('hidden')
   document.getElementById('applyForm').reset()
   document.getElementById('applyCapId').value = id
   document.getElementById('applyModal').classList.add('active')
 }
+function closeApply() { document.getElementById('applyModal').classList.remove('active') }
 
-function closeApplyModal() {
-  document.getElementById('applyModal').classList.remove('active')
-}
-
-document.getElementById('applyForm').addEventListener('submit', async (e) => {
+document.getElementById('applyForm').addEventListener('submit', async e => {
   e.preventDefault()
-  const errEl = document.getElementById('applyError')
-  const sucEl = document.getElementById('applySuccess')
-  errEl.classList.add('hidden')
-  sucEl.classList.add('hidden')
+  const errEl = document.getElementById('applyErr')
+  const okEl  = document.getElementById('applyOk')
+  errEl.classList.add('hidden'); okEl.classList.add('hidden')
 
+  const instaRaw = document.getElementById('fInsta').value.trim().replace(/^@/, '')
   const body = {
-    campaign_id: parseInt(document.getElementById('applyCapId').value),
-    name: document.getElementById('applyName').value,
-    nationality: document.getElementById('applyNationality').value,
-    email: document.getElementById('applyEmail').value,
-    phone: document.getElementById('applyPhone').value,
-    instagram: document.getElementById('applyInstagram').value,
-    youtube: document.getElementById('applyYoutube').value,
-    followers: parseInt(document.getElementById('applyFollowers').value) || 0,
-    message: document.getElementById('applyMessage').value,
+    campaign_id:    parseInt(document.getElementById('applyCapId').value),
+    name:           document.getElementById('fName').value.trim(),
+    nationality:    document.getElementById('fNation').value,
+    email:          document.getElementById('fEmail').value.trim(),
+    phone:          document.getElementById('fPhone').value.trim(),
+    instagram:      instaRaw,
+    preferred_time: document.getElementById('fTime').value,
+    message:        document.getElementById('fMsg').value.trim(),
   }
 
-  const btn = e.target.querySelector('button[type="submit"]')
-  btn.disabled = true
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>제출 중...'
+  const btn = e.target.querySelector('button[type=submit]')
+  btn.disabled = true; btn.textContent = 'Submitting...'
 
   try {
-    const res = await fetch('/api/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const res  = await fetch('/api/apply', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
     const data = await res.json()
     if (data.success) {
-      sucEl.textContent = '✅ ' + data.message
-      sucEl.classList.remove('hidden')
-      btn.innerHTML = '<i class="fas fa-check mr-2"></i>지원 완료!'
-      btn.classList.remove('from-blue-600', 'to-purple-600')
-      btn.classList.add('from-green-500', 'to-green-600')
-      setTimeout(() => { closeApplyModal(); loadCampaigns() }, 2500)
+      okEl.innerHTML = '✅ ' + data.message
+      okEl.classList.remove('hidden')
+      btn.textContent = 'Done!'
+      setTimeout(() => { closeApply(); loadCampaigns() }, 2200)
     } else {
-      errEl.textContent = '❌ ' + data.error
+      errEl.textContent = data.error
       errEl.classList.remove('hidden')
-      btn.disabled = false
-      btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>지원 제출하기'
+      btn.disabled = false; btn.textContent = 'Submit Application'
     }
-  } catch(ex) {
-    errEl.textContent = '네트워크 오류가 발생했습니다.'
+  } catch {
+    errEl.textContent = 'Network error. Please try again.'
     errEl.classList.remove('hidden')
-    btn.disabled = false
-    btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>지원 제출하기'
+    btn.disabled = false; btn.textContent = 'Submit Application'
   }
 })
 
-// ── Google Places 검색 ──────────────────────────
-function openSearchModal() { document.getElementById('searchModal').classList.add('active') }
-function closeSearchModal() { document.getElementById('searchModal').classList.remove('active') }
+// ── Place search ──────────────────────────────
+function openPlaceSearch()  { document.getElementById('placeModal').classList.add('active') }
+function closePlaceSearch() { document.getElementById('placeModal').classList.remove('active') }
 
-async function searchPlaces() {
-  const q = document.getElementById('searchInput').value.trim()
+async function doPlaceSearch() {
+  const q  = document.getElementById('placeQ').value.trim()
   if (!q) return
-  const el = document.getElementById('searchResults')
-  el.innerHTML = '<div class="flex items-center justify-center py-12"><div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>'
-  try {
-    const res = await fetch('/api/places/search?q=' + encodeURIComponent(q))
-    const data = await res.json()
-    if (!data.success || !data.data.results?.length) {
-      el.innerHTML = '<div class="text-center text-gray-400 py-12"><i class="fas fa-map-marker-alt text-3xl mb-2 text-gray-200"></i><p>검색 결과가 없습니다</p><p class="text-xs mt-1">API 키가 설정되어 있는지 확인하세요</p></div>'
-      return
-    }
-    el.innerHTML = data.data.results.slice(0, 8).map(p => {
-      const photo = p.photos?.[0]?.photo_reference
-      const imgSrc = photo ? '/api/places/photo?ref=' + photo + '&maxwidth=120' : ''
-      return \`<div class="flex items-center gap-3 p-3 hover:bg-blue-50 rounded-xl cursor-pointer transition-colors border border-transparent hover:border-blue-100" onclick='selectPlace(\${JSON.stringify({place_id: p.place_id, name: p.name, address: p.formatted_address, rating: p.rating, types: (p.types||[]).join(","), photo: photo||""}).replace(/'/g, "&#39;")})'>
-        <div class="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200">
-          \${imgSrc ? \`<img src="\${imgSrc}" class="w-full h-full object-cover" onerror="this.style.display='none'">\` : '<i class="fas fa-image text-gray-300 text-lg"></i>'}
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="font-semibold text-sm text-gray-900 truncate">\${p.name}</div>
-          <div class="text-xs text-gray-400 truncate mt-0.5">\${p.formatted_address || ''}</div>
-          \${p.rating ? \`<div class="text-xs text-yellow-500 mt-1">⭐ \${p.rating}</div>\` : ''}
-        </div>
-        <div class="text-blue-400 text-xs">선택 →</div>
-      </div>\`
-    }).join('')
-  } catch(e) {
-    el.innerHTML = '<div class="text-center text-red-400 py-12">검색 오류가 발생했습니다</div>'
+  const el = document.getElementById('placeResults')
+  el.innerHTML = '<p class="text-center text-sm text-gray-400 py-6">Searching...</p>'
+  const res  = await fetch('/api/places/search?q=' + encodeURIComponent(q))
+  const data = await res.json()
+  if (!data.success || !data.data.results?.length) {
+    el.innerHTML = '<p class="text-center text-sm text-gray-400 py-8">No results. Try a different keyword.</p>'; return
   }
+  el.innerHTML = data.data.results.slice(0,8).map(p => {
+    const photo = p.photos?.[0]?.photo_reference
+    return \`<div class="flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-xl cursor-pointer border border-transparent hover:border-gray-200 transition mb-1">
+      <div class="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+        \${photo ? \`<img src="/api/places/photo?ref=\${photo}" class="w-full h-full object-cover">\` : '<i class="fas fa-hospital text-gray-300"></i>'}
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="font-semibold text-sm text-gray-900 truncate">\${p.name}</p>
+        <p class="text-xs text-gray-400 truncate">\${p.formatted_address || ''}</p>
+        \${p.rating ? \`<p class="text-xs text-yellow-500">★ \${p.rating}</p>\` : ''}
+      </div>
+    </div>\`
+  }).join('')
 }
 
-function selectPlace(place) {
-  window._selectedPlace = place
-  closeSearchModal()
-  alert('장소가 선택되었습니다: ' + place.name + '\\n관리자 페이지에서 캠페인을 생성하세요.')
-}
-
-// 모달 외부 클릭 닫기
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('active')
-  })
+// close on backdrop
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active') })
 })
 
-// 초기 로드
 loadCampaigns()
 </script>
 </body>
 </html>`
 }
 
-function campaignDetailHTML(id: string): string {
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><script>window.location.href='/?campaign=${id}'</script></head></html>`
-}
-
+// ════════════════════════════════════════════════════════════════
+// HTML — Admin Login
+// ════════════════════════════════════════════════════════════════
 function adminLoginHTML(): string {
   return `<!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>관리자 로그인 — Korea Experience</title>
+  <title>Admin Login</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
-    body { font-family: 'Noto Sans KR', sans-serif; }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>* { font-family:'Inter',sans-serif; }</style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
+<body class="min-h-screen bg-gray-950 flex items-center justify-center p-4">
   <div class="w-full max-w-sm">
     <div class="text-center mb-8">
-      <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-        <i class="fas fa-shield-alt text-white text-2xl"></i>
+      <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-plus text-white text-lg"></i>
       </div>
-      <h1 class="text-2xl font-bold text-white">관리자 로그인</h1>
-      <p class="text-blue-300 text-sm mt-1">Korea Experience Admin</p>
+      <h1 class="text-xl font-bold text-white">Admin Login</h1>
+      <p class="text-gray-500 text-sm mt-1">Korea Medical Experience</p>
     </div>
-    <div class="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/10 shadow-2xl">
+    <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
       <form id="loginForm" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-blue-200 mb-2">아이디</label>
-          <div class="relative">
-            <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 text-sm"></i>
-            <input type="text" id="username" value="admin" class="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-white placeholder-blue-300 text-sm focus:outline-none focus:border-blue-400 focus:bg-white/20 transition-all">
-          </div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1.5">Username</label>
+          <input id="uname" type="text" value="admin" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-medium text-blue-200 mb-2">비밀번호</label>
-          <div class="relative">
-            <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 text-sm"></i>
-            <input type="password" id="password" placeholder="비밀번호 입력" class="w-full bg-white/10 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-white placeholder-blue-300 text-sm focus:outline-none focus:border-blue-400 focus:bg-white/20 transition-all">
-          </div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1.5">Password</label>
+          <input id="pw" type="password" placeholder="Password" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500">
         </div>
-        <div id="loginError" class="hidden bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl p-3 text-sm text-center"></div>
-        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white py-3 rounded-xl font-bold transition-all text-sm shadow-lg">
-          <i class="fas fa-sign-in-alt mr-2"></i>로그인
+        <div id="loginErr" class="hidden text-red-400 text-xs text-center bg-red-950 rounded-lg py-2 px-3 border border-red-900"></div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">
+          Sign In
         </button>
       </form>
-      <p class="text-center text-blue-400 text-xs mt-4">기본 계정: admin / admin1234</p>
+      <p class="text-center text-gray-600 text-xs mt-4">Default: admin / admin1234</p>
     </div>
     <div class="text-center mt-4">
-      <a href="/" class="text-blue-400 hover:text-blue-300 text-sm transition-colors">
-        <i class="fas fa-arrow-left mr-1"></i>메인으로 돌아가기
-      </a>
+      <a href="/" class="text-gray-600 hover:text-gray-400 text-xs transition">← Back to site</a>
     </div>
   </div>
   <script>
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async e => {
       e.preventDefault()
-      const errEl = document.getElementById('loginError')
-      errEl.classList.add('hidden')
+      const err = document.getElementById('loginErr')
+      err.classList.add('hidden')
       const btn = e.target.querySelector('button')
-      btn.disabled = true
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>로그인 중...'
+      btn.disabled = true; btn.textContent = 'Signing in...'
       try {
-        const res = await fetch('/api/admin/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: document.getElementById('username').value, password: document.getElementById('password').value })
-        })
+        const res  = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: document.getElementById('uname').value, password: document.getElementById('pw').value }) })
         const data = await res.json()
-        if (data.success) {
-          sessionStorage.setItem('adminToken', data.token)
-          window.location.href = '/admin/dashboard'
-        } else {
-          errEl.textContent = data.error
-          errEl.classList.remove('hidden')
-          btn.disabled = false
-          btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>로그인'
-        }
-      } catch(e) {
-        errEl.textContent = '로그인 중 오류가 발생했습니다'
-        errEl.classList.remove('hidden')
-        btn.disabled = false
-        btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>로그인'
-      }
+        if (data.success) { sessionStorage.setItem('adminToken', data.token); window.location.href = '/admin/dashboard' }
+        else { err.textContent = data.error; err.classList.remove('hidden'); btn.disabled=false; btn.textContent='Sign In' }
+      } catch { err.textContent='Network error'; err.classList.remove('hidden'); btn.disabled=false; btn.textContent='Sign In' }
     })
   </script>
 </body>
 </html>`
 }
 
+// ════════════════════════════════════════════════════════════════
+// HTML — Admin Dashboard
+// ════════════════════════════════════════════════════════════════
 function adminDashboardHTML(): string {
   return `<!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>관리자 대시보드 — Korea Experience</title>
+  <title>Admin Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
-    body { font-family: 'Noto Sans KR', sans-serif; background: #f8fafc; }
-    .tab-btn { transition: all 0.2s; }
-    .tab-btn.active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 700; }
-    .status-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
-    .status-pending { background: #fef3c7; color: #92400e; }
-    .status-approved { background: #d1fae5; color: #065f46; }
-    .status-rejected { background: #fee2e2; color: #991b1b; }
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; backdrop-filter: blur(4px); }
-    .modal-overlay.active { display: flex; align-items: center; justify-content: center; }
-    input, textarea, select { transition: border-color 0.2s; }
-    input:focus, textarea:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-    .stat-card { background: linear-gradient(135deg, var(--from), var(--to)); }
+    * { font-family:'Inter',sans-serif; }
+    .tab-active { border-bottom:2px solid #2563eb; color:#2563eb; font-weight:600; }
+    .status-pending  { background:#fef9c3; color:#854d0e; }
+    .status-approved { background:#dcfce7; color:#166534; }
+    .status-rejected { background:#fee2e2; color:#991b1b; }
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:999; backdrop-filter:blur(3px); }
+    .modal-overlay.active { display:flex; align-items:center; justify-content:center; }
+    input:focus,select:focus,textarea:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1); }
   </style>
 </head>
-<body class="min-h-screen">
+<body class="bg-gray-50 min-h-screen">
 
-<!-- 관리자 헤더 -->
-<header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-9 h-9 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-        <i class="fas fa-shield-alt text-white text-sm"></i>
+<!-- Header -->
+<header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+        <i class="fas fa-plus text-white text-xs"></i>
       </div>
-      <div>
-        <div class="font-bold text-gray-900">Admin Dashboard</div>
-        <div class="text-xs text-gray-400">Korea Experience 관리자</div>
-      </div>
+      <span class="font-bold text-gray-900">Admin Dashboard</span>
     </div>
     <div class="flex items-center gap-3">
-      <a href="/" target="_blank" class="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
-        <i class="fas fa-external-link-alt"></i><span class="hidden sm:inline">사이트 보기</span>
-      </a>
-      <button onclick="logout()" class="text-sm text-red-500 hover:text-red-600 flex items-center gap-1">
-        <i class="fas fa-sign-out-alt"></i><span class="hidden sm:inline">로그아웃</span>
-      </button>
+      <a href="/" target="_blank" class="text-xs text-gray-400 hover:text-gray-600">View site ↗</a>
+      <button onclick="logout()" class="text-xs text-red-400 hover:text-red-500">Sign out</button>
     </div>
   </div>
 </header>
 
-<!-- 탭 네비게이션 -->
-<div class="bg-white border-b border-gray-200 sticky top-16 z-40">
-  <div class="max-w-7xl mx-auto px-4 flex gap-1">
-    <button onclick="showTab('applications')" class="tab-btn active px-5 py-4 text-sm text-gray-600" id="tab-applications">
-      <i class="fas fa-users mr-2"></i>지원자 관리
-    </button>
-    <button onclick="showTab('campaigns')" class="tab-btn px-5 py-4 text-sm text-gray-600" id="tab-campaigns">
-      <i class="fas fa-bullhorn mr-2"></i>캠페인 관리
-    </button>
-    <button onclick="showTab('create')" class="tab-btn px-5 py-4 text-sm text-gray-600" id="tab-create">
-      <i class="fas fa-plus-circle mr-2"></i>캠페인 등록
-    </button>
+<!-- Tabs -->
+<div class="bg-white border-b border-gray-200 sticky top-14 z-40">
+  <div class="max-w-7xl mx-auto px-4 flex gap-0">
+    <button id="tab-apps"  onclick="showTab('apps')"  class="tab-active px-5 py-3.5 text-sm text-gray-600 border-b-2">Applicants</button>
+    <button id="tab-camps" onclick="showTab('camps')" class="px-5 py-3.5 text-sm text-gray-600 border-b-2 border-transparent">Campaigns</button>
+    <button id="tab-new"   onclick="showTab('new')"   class="px-5 py-3.5 text-sm text-gray-600 border-b-2 border-transparent">+ New Campaign</button>
   </div>
 </div>
 
-<main class="max-w-7xl mx-auto px-4 py-8">
+<main class="max-w-7xl mx-auto px-4 py-6">
 
-  <!-- ── 통계 카드 ── -->
-  <div id="statsCards" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-    <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-5 text-white shadow">
-      <div class="text-3xl font-bold" id="stat-total">-</div>
-      <div class="text-blue-100 text-sm mt-1">전체 지원자</div>
-      <i class="fas fa-users text-blue-200 text-2xl mt-2"></i>
+  <!-- Stats -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+      <div class="text-2xl font-bold text-gray-900" id="s-total">-</div>
+      <div class="text-xs text-gray-400 mt-0.5">Total Applicants</div>
     </div>
-    <div class="bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl p-5 text-white shadow">
-      <div class="text-3xl font-bold" id="stat-pending">-</div>
-      <div class="text-amber-100 text-sm mt-1">검토 대기중</div>
-      <i class="fas fa-hourglass-half text-amber-200 text-2xl mt-2"></i>
+    <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+      <div class="text-2xl font-bold text-amber-500" id="s-pending">-</div>
+      <div class="text-xs text-gray-400 mt-0.5">Pending Review</div>
     </div>
-    <div class="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-5 text-white shadow">
-      <div class="text-3xl font-bold" id="stat-approved">-</div>
-      <div class="text-green-100 text-sm mt-1">승인됨</div>
-      <i class="fas fa-check-circle text-green-200 text-2xl mt-2"></i>
+    <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+      <div class="text-2xl font-bold text-green-600" id="s-approved">-</div>
+      <div class="text-xs text-gray-400 mt-0.5">Approved</div>
     </div>
-    <div class="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl p-5 text-white shadow">
-      <div class="text-3xl font-bold" id="stat-campaigns">-</div>
-      <div class="text-purple-100 text-sm mt-1">활성 캠페인</div>
-      <i class="fas fa-bullhorn text-purple-200 text-2xl mt-2"></i>
+    <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+      <div class="text-2xl font-bold text-blue-600" id="s-campaigns">-</div>
+      <div class="text-xs text-gray-400 mt-0.5">Active Campaigns</div>
     </div>
   </div>
 
-  <!-- ── 지원자 관리 탭 ── -->
-  <div id="panel-applications">
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <h2 class="font-bold text-gray-900"><i class="fas fa-users text-blue-500 mr-2"></i>지원자 목록</h2>
+  <!-- Applicants panel -->
+  <div id="panel-apps">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <h2 class="font-semibold text-gray-900 text-sm">Applicants</h2>
         <div class="flex gap-2 flex-wrap">
-          <select id="appFilterCampaign" onchange="loadApplications()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm">
-            <option value="">전체 캠페인</option>
+          <select id="fCamp" onchange="loadApps()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs">
+            <option value="">All campaigns</option>
           </select>
-          <select id="appFilterStatus" onchange="loadApplications()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm">
-            <option value="">전체 상태</option>
-            <option value="pending">검토중</option>
-            <option value="approved">승인</option>
-            <option value="rejected">거절</option>
+          <select id="fStatus" onchange="loadApps()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs">
+            <option value="">All status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
           </select>
-          <button onclick="loadApplications()" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700">
-            <i class="fas fa-sync-alt"></i>
+          <button onclick="loadApps()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs hover:bg-gray-50">
+            <i class="fas fa-sync-alt text-gray-400"></i>
           </button>
         </div>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
-          <thead class="bg-gray-50">
+          <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
             <tr>
-              <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">지원자</th>
-              <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase hidden sm:table-cell">캠페인</th>
-              <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase hidden md:table-cell">SNS</th>
-              <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">상태</th>
-              <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase hidden lg:table-cell">지원일</th>
-              <th class="text-center px-4 py-3 text-xs text-gray-500 font-semibold uppercase">액션</th>
+              <th class="text-left px-4 py-3">Applicant</th>
+              <th class="text-left px-4 py-3 hidden sm:table-cell">Campaign</th>
+              <th class="text-left px-4 py-3 hidden md:table-cell">Instagram</th>
+              <th class="text-left px-4 py-3 hidden md:table-cell">Preferred Time</th>
+              <th class="text-left px-4 py-3">Status</th>
+              <th class="text-center px-4 py-3">Action</th>
             </tr>
           </thead>
-          <tbody id="applicationsTable" class="divide-y divide-gray-50">
-            <tr><td colspan="6" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>
+          <tbody id="appsTable" class="divide-y divide-gray-50">
+            <tr><td colspan="6" class="text-center py-10 text-gray-400 text-xs">Loading...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <!-- ── 캠페인 관리 탭 ── -->
-  <div id="panel-campaigns" class="hidden">
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div class="p-5 border-b border-gray-100 flex items-center justify-between">
-        <h2 class="font-bold text-gray-900"><i class="fas fa-bullhorn text-purple-500 mr-2"></i>캠페인 목록</h2>
-        <button onclick="showTab('create')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 font-medium">
-          <i class="fas fa-plus mr-1"></i>새 캠페인
-        </button>
+  <!-- Campaigns panel -->
+  <div id="panel-camps" class="hidden">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="font-semibold text-gray-900 text-sm">Campaigns</h2>
+        <button onclick="showTab('new')" class="bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-blue-700">+ New</button>
       </div>
-      <div id="campaignsTable" class="p-4">
-        <div class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
-      </div>
+      <div id="campsContent" class="p-4"></div>
     </div>
   </div>
 
-  <!-- ── 캠페인 등록 탭 ── -->
-  <div id="panel-create" class="hidden">
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-      <h2 class="font-bold text-gray-900 mb-6"><i class="fas fa-plus-circle text-green-500 mr-2"></i>새 캠페인 등록</h2>
+  <!-- New campaign panel -->
+  <div id="panel-new" class="hidden">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 max-w-2xl">
+      <h2 class="font-semibold text-gray-900 mb-5">New Campaign</h2>
 
-      <!-- Google Places 검색 -->
-      <div class="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
-        <h3 class="text-sm font-semibold text-blue-800 mb-3"><i class="fab fa-google text-blue-600 mr-2"></i>Google Places로 장소 찾기</h3>
+      <!-- Place search -->
+      <div class="mb-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
+        <p class="text-xs font-semibold text-gray-500 mb-2"><i class="fab fa-google text-blue-500 mr-1"></i>Find place via Google</p>
         <div class="flex gap-2">
-          <input id="placeSearchInput" type="text" placeholder="장소 이름 검색 (예: Myeongdong, Bukchon Hanok...)" class="flex-1 border border-blue-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:border-blue-500">
-          <button onclick="searchPlacesForCreate()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium">
-            <i class="fas fa-search mr-1"></i>검색
-          </button>
+          <input id="adminPlaceQ" type="text" placeholder="e.g. Gangnam plastic surgery" class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white">
+          <button onclick="adminSearchPlace()" class="bg-blue-600 text-white px-3 py-2 rounded-xl text-xs font-medium hover:bg-blue-700">Search</button>
         </div>
-        <div id="placeSearchResults" class="mt-3 max-h-60 overflow-y-auto space-y-2"></div>
+        <div id="adminPlaceRes" class="mt-2 max-h-48 overflow-y-auto space-y-1"></div>
+        <div id="selectedPlace" class="hidden mt-3 flex items-center gap-3 bg-white rounded-xl p-3 border border-blue-200">
+          <div id="selectedThumb" class="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center text-gray-300">
+            <i class="fas fa-hospital text-sm"></i>
+          </div>
+          <div>
+            <p id="selectedName" class="font-semibold text-sm text-gray-900"></p>
+            <p id="selectedAddr" class="text-xs text-gray-400"></p>
+          </div>
+          <span class="ml-auto text-xs text-blue-600 font-medium">Selected ✓</span>
+        </div>
       </div>
 
-      <form id="createCampaignForm" class="space-y-4">
-        <input type="hidden" id="cf_place_id">
-        <input type="hidden" id="cf_photo_ref">
-        <input type="hidden" id="cf_rating">
-        <input type="hidden" id="cf_types">
+      <form id="newCampForm" class="space-y-4">
+        <input type="hidden" id="nc_place_id">
+        <input type="hidden" id="nc_photo_ref">
+        <input type="hidden" id="nc_rating">
 
-        <div id="selectedPlacePreview" class="hidden p-3 bg-green-50 rounded-xl border border-green-200 flex items-center gap-3">
-          <div id="selectedPlaceThumb" class="w-12 h-12 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0"></div>
-          <div>
-            <div id="selectedPlaceName" class="font-semibold text-sm text-gray-900"></div>
-            <div id="selectedPlaceAddr" class="text-xs text-gray-500"></div>
-          </div>
-          <div class="ml-auto">
-            <span class="text-xs text-green-600 font-medium"><i class="fas fa-check-circle mr-1"></i>선택됨</span>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">캠페인 제목 <span class="text-red-500">*</span></label>
-            <input type="text" id="cf_title" placeholder="예: 강남 한식 체험단" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="col-span-2">
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Campaign Title <span class="text-red-400">*</span></label>
+            <input id="nc_title" type="text" placeholder="e.g. Gangnam Skin Clinic Review" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">장소명 <span class="text-red-500">*</span></label>
-            <input type="text" id="cf_place_name" placeholder="장소 이름" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Place Name <span class="text-red-400">*</span></label>
+            <input id="nc_place_name" type="text" placeholder="Clinic name" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
           </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">주소</label>
-          <input type="text" id="cf_address" placeholder="장소 주소" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">캠페인 설명 <span class="text-red-500">*</span></label>
-          <textarea id="cf_description" rows="4" placeholder="체험단 모집 내용, 혜택, 조건 등을 상세히 입력해주세요..." class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none" required></textarea>
-        </div>
-
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">카테고리</label>
-            <select id="cf_category" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
-              <option>맛집</option><option>문화</option><option>카페</option>
-              <option>쇼핑</option><option>뷰티</option><option>숙박</option><option>기타</option>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Category</label>
+            <select id="nc_category" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+              <option>Hospital</option>
+              <option>Head Spa</option>
+              <option>Dental</option>
+              <option>Skin</option>
+              <option>Wellness</option>
             </select>
           </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Address</label>
+          <input id="nc_address" type="text" placeholder="Full address" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Description <span class="text-red-400">*</span></label>
+          <textarea id="nc_desc" rows="3" placeholder="Describe the campaign, what the reviewer will do..." class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none" required></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Benefits (what applicants get)</label>
+          <input id="nc_benefits" type="text" placeholder="e.g. Free consultation + 30% off treatment" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Requirements</label>
+          <input id="nc_req" type="text" placeholder="e.g. Min. 3K followers · Post within 2 weeks" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">모집 인원</label>
-            <input type="number" id="cf_max" value="10" min="1" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Max Applicants</label>
+            <input id="nc_max" type="number" value="10" min="1" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
           </div>
-          <div class="col-span-2 sm:col-span-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">마감일</label>
-            <input type="date" id="cf_deadline" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Deadline</label>
+            <input id="nc_deadline" type="date" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
           </div>
         </div>
 
-        <div id="createError" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm"></div>
-        <div id="createSuccess" class="hidden bg-green-50 border border-green-200 text-green-700 rounded-xl p-3 text-sm"></div>
-        <div class="flex gap-3">
-          <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all">
-            <i class="fas fa-save mr-2"></i>캠페인 등록
+        <div id="newCampErr" class="hidden bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3 border border-red-100"></div>
+        <div id="newCampOk"  class="hidden bg-green-50 text-green-700 text-sm rounded-xl px-4 py-3 border border-green-100"></div>
+
+        <div class="flex gap-3 pt-1">
+          <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">
+            Create Campaign
           </button>
-          <button type="button" onclick="resetCreateForm()" class="px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-medium text-sm">초기화</button>
+          <button type="button" onclick="resetNewForm()" class="px-5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium">Reset</button>
         </div>
       </form>
     </div>
   </div>
-
 </main>
 
-<!-- 지원자 상세 모달 -->
-<div id="appDetailModal" class="modal-overlay">
-  <div class="bg-white rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
-    <div id="appDetailContent" class="p-6"></div>
-  </div>
+<!-- Applicant detail modal -->
+<div id="appModal" class="modal-overlay">
+  <div id="appModalContent" class="bg-white rounded-2xl w-full max-w-md mx-4 p-6 shadow-xl max-h-[90vh] overflow-y-auto"></div>
 </div>
 
 <script>
 const token = sessionStorage.getItem('adminToken')
 if (!token) window.location.href = '/admin'
+const H = { 'Content-Type':'application/json', 'X-Admin-Token': token }
 
-function logout() {
-  sessionStorage.removeItem('adminToken')
-  window.location.href = '/admin'
-}
+function logout() { sessionStorage.removeItem('adminToken'); window.location.href = '/admin' }
 
-const headers = { 'Content-Type': 'application/json', 'X-Admin-Token': token }
-
-// ── 탭 전환 ──────────────────────────────────
-function showTab(tab) {
-  ['applications', 'campaigns', 'create'].forEach(t => {
-    document.getElementById('panel-' + t).classList.toggle('hidden', t !== tab)
-    document.getElementById('tab-' + t).classList.toggle('active', t === tab)
+// ── Tabs ──────────────────────────────────────
+function showTab(t) {
+  ['apps','camps','new'].forEach(id => {
+    document.getElementById('panel-' + id).classList.toggle('hidden', id !== t)
+    const btn = document.getElementById('tab-' + id)
+    btn.classList.toggle('tab-active', id === t)
+    if (id !== t) { btn.classList.remove('border-blue-600'); btn.classList.add('border-transparent') }
+    else { btn.classList.add('border-blue-600'); btn.classList.remove('border-transparent') }
   })
-  if (tab === 'applications') loadApplications()
-  if (tab === 'campaigns') loadCampaigns()
+  if (t === 'apps')  { loadStats(); loadApps() }
+  if (t === 'camps') loadCamps()
 }
 
-// ── 통계 로드 ─────────────────────────────────
+// ── Stats ─────────────────────────────────────
 async function loadStats() {
   try {
-    const [appRes, campRes] = await Promise.all([
-      fetch('/api/admin/applications', { headers }),
-      fetch('/api/admin/campaigns', { headers })
+    const [ar, cr] = await Promise.all([
+      fetch('/api/admin/applications', { headers: H }),
+      fetch('/api/admin/campaigns',    { headers: H }),
     ])
-    const apps = await appRes.json()
-    const camps = await campRes.json()
+    const apps  = await ar.json()
+    const camps = await cr.json()
     if (apps.success) {
-      document.getElementById('stat-total').textContent = apps.data.length
-      document.getElementById('stat-pending').textContent = apps.data.filter(a => a.status === 'pending').length
-      document.getElementById('stat-approved').textContent = apps.data.filter(a => a.status === 'approved').length
+      document.getElementById('s-total').textContent    = apps.data.length
+      document.getElementById('s-pending').textContent  = apps.data.filter(a => a.status === 'pending').length
+      document.getElementById('s-approved').textContent = apps.data.filter(a => a.status === 'approved').length
+      const sel = document.getElementById('fCamp')
+      const cur = sel.value
+      sel.innerHTML = '<option value="">All campaigns</option>' + camps.data.map(c => \`<option value="\${c.id}" \${cur == c.id ? 'selected':''} >\${c.place_name}</option>\`).join('')
     }
-    if (camps.success) {
-      document.getElementById('stat-campaigns').textContent = camps.data.filter(c => c.status === 'active').length
-      const sel = document.getElementById('appFilterCampaign')
-      sel.innerHTML = '<option value="">전체 캠페인</option>' + camps.data.map(c => \`<option value="\${c.id}">\${c.place_name} - \${c.title}</option>\`).join('')
-    }
-  } catch(e) {}
+    if (camps.success) document.getElementById('s-campaigns').textContent = camps.data.filter(c => c.status === 'active').length
+  } catch {}
 }
 
-// ── 지원자 목록 ──────────────────────────────
-async function loadApplications() {
-  const tbody = document.getElementById('applicationsTable')
-  tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
-  const cid = document.getElementById('appFilterCampaign').value
-  const st = document.getElementById('appFilterStatus').value
+// ── Applicants ────────────────────────────────
+async function loadApps() {
+  const tb = document.getElementById('appsTable')
+  tb.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-xs text-gray-400">Loading...</td></tr>'
+  const cid = document.getElementById('fCamp').value
+  const st  = document.getElementById('fStatus').value
   let url = '/api/admin/applications?'
   if (cid) url += 'campaign_id=' + cid + '&'
-  if (st) url += 'status=' + st
-  try {
-    const res = await fetch(url, { headers })
-    const data = await res.json()
-    if (!data.success) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">데이터 로드 실패</td></tr>'; return }
-    if (!data.data.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-400"><i class="fas fa-inbox text-3xl mb-2 block text-gray-200"></i>지원자가 없습니다</td></tr>'; return }
-    tbody.innerHTML = data.data.map(a => {
-      const snsInfo = [a.instagram ? '📸' + a.instagram : '', a.youtube ? '▶️' : ''].filter(Boolean).join(' ')
-      return \`<tr class="hover:bg-gray-50 transition-colors">
-        <td class="px-4 py-3">
-          <div class="font-semibold text-gray-900 text-sm">\${a.applicant_name}</div>
-          <div class="text-xs text-gray-400">\${a.nationality} · \${a.email}</div>
-        </td>
-        <td class="px-4 py-3 hidden sm:table-cell">
-          <div class="text-sm text-gray-700 font-medium">\${a.place_name || ''}</div>
-          <div class="text-xs text-gray-400">\${a.campaign_title || ''}</div>
-        </td>
-        <td class="px-4 py-3 hidden md:table-cell">
-          <div class="text-xs text-gray-600">\${a.instagram ? '<span class="text-pink-500">@' + a.instagram + '</span>' : ''}</div>
-          <div class="text-xs text-gray-400">\${a.followers ? a.followers.toLocaleString() + ' followers' : ''}</div>
-        </td>
-        <td class="px-4 py-3">
-          <span class="status-badge status-\${a.status}">\${{ pending: '검토중', approved: '승인', rejected: '거절' }[a.status] || a.status}</span>
-        </td>
-        <td class="px-4 py-3 hidden lg:table-cell">
-          <div class="text-xs text-gray-400">\${new Date(a.created_at).toLocaleDateString('ko-KR')}</div>
-        </td>
-        <td class="px-4 py-3 text-center">
-          <div class="flex items-center justify-center gap-1">
-            <button onclick="openAppDetail(\${JSON.stringify(a).replace(/"/g,'&quot;')})" class="w-8 h-8 bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-600 rounded-lg flex items-center justify-center text-xs transition-colors" title="상세보기">
-              <i class="fas fa-eye"></i>
-            </button>
-            \${a.status !== 'approved' ? \`<button onclick="updateStatus(\${a.id},'approved')" class="w-8 h-8 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-xs transition-colors" title="승인"><i class="fas fa-check"></i></button>\` : ''}
-            \${a.status !== 'rejected' ? \`<button onclick="updateStatus(\${a.id},'rejected')" class="w-8 h-8 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg flex items-center justify-center text-xs transition-colors" title="거절"><i class="fas fa-times"></i></button>\` : ''}
-          </div>
-        </td>
-      </tr>\`
-    }).join('')
-  } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">오류: ' + e.message + '</td></tr>'
+  if (st)  url += 'status=' + st
+  const { success, data } = await (await fetch(url, { headers: H })).json()
+  if (!success || !data.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-xs text-gray-400">No applicants found</td></tr>'
+    return
   }
+  tb.innerHTML = data.map(a => \`
+    <tr class="hover:bg-gray-50 transition-colors">
+      <td class="px-4 py-3">
+        <p class="font-medium text-sm text-gray-900">\${a.applicant_name}</p>
+        <p class="text-xs text-gray-400">\${a.nationality}</p>
+      </td>
+      <td class="px-4 py-3 hidden sm:table-cell">
+        <p class="text-xs text-gray-700">\${a.place_name || ''}</p>
+        <p class="text-xs text-gray-400">\${a.campaign_title || ''}</p>
+      </td>
+      <td class="px-4 py-3 hidden md:table-cell">
+        \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-xs text-pink-500 hover:underline">@\${a.instagram}</a>\` : '<span class="text-xs text-gray-300">—</span>'}
+      </td>
+      <td class="px-4 py-3 hidden md:table-cell">
+        <p class="text-xs text-gray-600">\${a.preferred_time || '—'}</p>
+      </td>
+      <td class="px-4 py-3">
+        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold status-\${a.status}">\${{pending:'Pending',approved:'Approved',rejected:'Rejected'}[a.status]||a.status}</span>
+      </td>
+      <td class="px-4 py-3 text-center">
+        <div class="flex items-center justify-center gap-1">
+          <button onclick='openAppDetail(\${JSON.stringify(a).replace(/"/g,"&quot;")})' class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-blue-100 text-gray-500 hover:text-blue-600 flex items-center justify-center text-xs transition" title="Detail">
+            <i class="fas fa-eye"></i>
+          </button>
+          \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved')" class="w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center text-xs transition" title="Approve"><i class="fas fa-check"></i></button>\` : ''}
+          \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center text-xs transition" title="Reject"><i class="fas fa-times"></i></button>\` : ''}
+        </div>
+      </td>
+    </tr>\`).join('')
 }
 
 function openAppDetail(a) {
-  document.getElementById('appDetailContent').innerHTML = \`
+  document.getElementById('appModalContent').innerHTML = \`
     <div class="flex items-center justify-between mb-5">
-      <h3 class="font-bold text-gray-900 text-lg"><i class="fas fa-user-circle text-blue-500 mr-2"></i>지원자 상세</h3>
-      <button onclick="document.getElementById('appDetailModal').classList.remove('active')" class="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"><i class="fas fa-times"></i></button>
+      <h3 class="font-bold text-gray-900">Applicant Detail</h3>
+      <button onclick="document.getElementById('appModal').classList.remove('active')" class="text-gray-300 hover:text-gray-500"><i class="fas fa-times"></i></button>
     </div>
-    <div class="space-y-4">
+    <div class="space-y-3 text-sm">
       <div class="grid grid-cols-2 gap-3">
-        <div class="bg-gray-50 rounded-xl p-3">
-          <div class="text-xs text-gray-400 mb-1">이름</div>
-          <div class="font-semibold text-sm">\${a.applicant_name}</div>
-        </div>
-        <div class="bg-gray-50 rounded-xl p-3">
-          <div class="text-xs text-gray-400 mb-1">국적</div>
-          <div class="font-semibold text-sm">\${a.nationality}</div>
-        </div>
-        <div class="bg-gray-50 rounded-xl p-3">
-          <div class="text-xs text-gray-400 mb-1">이메일</div>
-          <div class="font-semibold text-sm text-blue-600">\${a.email}</div>
-        </div>
-        <div class="bg-gray-50 rounded-xl p-3">
-          <div class="text-xs text-gray-400 mb-1">연락처</div>
-          <div class="font-semibold text-sm">\${a.phone || '-'}</div>
+        <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400 mb-0.5">Name</p><p class="font-semibold">\${a.applicant_name}</p></div>
+        <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400 mb-0.5">Nationality</p><p class="font-semibold">\${a.nationality}</p></div>
+        <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400 mb-0.5">Email</p><p class="font-semibold text-blue-600 text-xs break-all">\${a.email}</p></div>
+        <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400 mb-0.5">Phone</p><p class="font-semibold text-xs">\${a.phone || '—'}</p></div>
+      </div>
+      <div class="bg-pink-50 rounded-xl p-3 flex items-center gap-3">
+        <i class="fab fa-instagram text-pink-500 text-lg"></i>
+        <div>
+          <p class="text-xs text-gray-400">Instagram</p>
+          \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="font-semibold text-pink-600 hover:underline">@\${a.instagram}</a>\` : '<p class="text-gray-400 text-xs">—</p>'}
         </div>
       </div>
       <div class="bg-blue-50 rounded-xl p-3">
-        <div class="text-xs text-gray-400 mb-1">지원 캠페인</div>
-        <div class="font-semibold text-sm">\${a.campaign_title}</div>
-        <div class="text-xs text-gray-500">\${a.place_name}</div>
+        <p class="text-xs text-gray-400 mb-0.5"><i class="far fa-clock mr-1"></i>Preferred Time</p>
+        <p class="font-semibold text-blue-800">\${a.preferred_time || '—'}</p>
       </div>
       <div class="bg-gray-50 rounded-xl p-3">
-        <div class="text-xs text-gray-400 mb-2">SNS 계정</div>
-        \${a.instagram ? \`<div class="text-sm text-pink-600"><i class="fab fa-instagram mr-1"></i>\${a.instagram}</div>\` : ''}
-        \${a.youtube ? \`<div class="text-sm text-red-600 mt-1"><i class="fab fa-youtube mr-1"></i>\${a.youtube}</div>\` : ''}
-        \${a.followers ? \`<div class="text-xs text-gray-500 mt-1"><i class="fas fa-users mr-1"></i>\${parseInt(a.followers).toLocaleString()} 팔로워</div>\` : ''}
+        <p class="text-xs text-gray-400 mb-0.5">Campaign</p>
+        <p class="font-semibold">\${a.campaign_title || ''}</p>
+        <p class="text-xs text-gray-400">\${a.place_name || ''}</p>
       </div>
-      \${a.message ? \`<div class="bg-gray-50 rounded-xl p-3"><div class="text-xs text-gray-400 mb-1">지원 동기</div><div class="text-sm text-gray-700 leading-relaxed">\${a.message}</div></div>\` : ''}
-      <div class="flex items-center justify-between">
-        <div>
-          <div class="text-xs text-gray-400">현재 상태</div>
-          <span class="status-badge status-\${a.status} mt-1">\${{ pending:'검토중',approved:'승인',rejected:'거절' }[a.status]}</span>
-        </div>
+      \${a.message ? \`<div class="bg-gray-50 rounded-xl p-3"><p class="text-xs text-gray-400 mb-0.5">Message</p><p class="text-sm text-gray-700">\${a.message}</p></div>\` : ''}
+      <div class="flex items-center justify-between pt-1">
+        <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold status-\${a.status}">\${{pending:'Pending',approved:'Approved',rejected:'Rejected'}[a.status]}</span>
         <div class="flex gap-2">
-          \${a.status !== 'approved' ? \`<button onclick="updateStatus(\${a.id},'approved'); document.getElementById('appDetailModal').classList.remove('active')" class="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-green-700"><i class="fas fa-check mr-1"></i>승인</button>\` : ''}
-          \${a.status !== 'rejected' ? \`<button onclick="updateStatus(\${a.id},'rejected'); document.getElementById('appDetailModal').classList.remove('active')" class="bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-600"><i class="fas fa-times mr-1"></i>거절</button>\` : ''}
+          \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved');document.getElementById('appModal').classList.remove('active')" class="bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-green-700">Approve</button>\` : ''}
+          \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');document.getElementById('appModal').classList.remove('active')" class="bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-red-600">Reject</button>\` : ''}
         </div>
       </div>
     </div>\`
-  document.getElementById('appDetailModal').classList.add('active')
+  document.getElementById('appModal').classList.add('active')
 }
 
-async function updateStatus(id, status) {
-  try {
-    const res = await fetch('/api/admin/applications/' + id, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ status })
-    })
-    const data = await res.json()
-    if (data.success) {
-      loadApplications()
-      loadStats()
-    }
-  } catch(e) { alert('오류: ' + e.message) }
+async function setStatus(id, status) {
+  await fetch('/api/admin/applications/' + id, { method:'PATCH', headers:H, body: JSON.stringify({ status }) })
+  loadStats(); loadApps()
 }
 
-// ── 캠페인 목록 ──────────────────────────────
-async function loadCampaigns() {
-  const el = document.getElementById('campaignsTable')
-  el.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
-  try {
-    const res = await fetch('/api/admin/campaigns', { headers })
-    const data = await res.json()
-    if (!data.data?.length) { el.innerHTML = '<div class="text-center py-12 text-gray-400">등록된 캠페인이 없습니다</div>'; return }
-    el.innerHTML = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-2">' + data.data.map(c => {
-      const thumbUrl = c.place_photo_ref ? '/api/places/photo?ref=' + c.place_photo_ref + '&maxwidth=300' : ''
-      const pct = Math.round((c.current_participants / c.max_participants) * 100)
-      return \`<div class="border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-        <div class="h-32 bg-gray-100 relative">
-          \${thumbUrl ? \`<img src="\${thumbUrl}" class="w-full h-full object-cover">\` : \`<div class="w-full h-full flex items-center justify-center text-gray-300"><i class="fas fa-image text-3xl"></i></div>\`}
-          <div class="absolute top-2 right-2">
-            <span class="\${c.status === 'active' ? 'bg-green-500' : 'bg-gray-400'} text-white text-xs px-2 py-0.5 rounded-full">\${c.status === 'active' ? '모집중' : '마감'}</span>
-          </div>
+// ── Campaigns ─────────────────────────────────
+async function loadCamps() {
+  const el = document.getElementById('campsContent')
+  el.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">Loading...</p>'
+  const { data } = await (await fetch('/api/admin/campaigns', { headers: H })).json()
+  if (!data?.length) { el.innerHTML = '<p class="text-xs text-gray-400 text-center py-8">No campaigns yet</p>'; return }
+  el.innerHTML = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">' + data.map(c => {
+    const pct  = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
+    const thumb = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
+    return \`<div class="border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+      <div class="h-28 bg-gray-100">
+        \${thumb ? \`<img src="\${thumb}" class="w-full h-full object-cover">\` : \`<div class="w-full h-full flex items-center justify-center text-gray-200"><i class="fas fa-hospital text-3xl"></i></div>\`}
+      </div>
+      <div class="p-3">
+        <div class="flex items-center justify-between mb-1">
+          <p class="font-semibold text-xs text-gray-900 truncate flex-1">\${c.title}</p>
+          <span class="text-xs ml-2 \${c.status==='active'?'text-green-500':'text-gray-300'}">\${c.status==='active'?'●':'○'}</span>
         </div>
-        <div class="p-3">
-          <div class="font-semibold text-sm text-gray-900 mb-1 truncate">\${c.title}</div>
-          <div class="text-xs text-gray-400 mb-2">\${c.place_name} · \${c.category}</div>
-          <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
-            <span>\${c.current_participants}/\${c.max_participants}명</span>
-            <span>\${pct}%</span>
-          </div>
-          <div class="h-1.5 bg-gray-100 rounded-full mb-3">
-            <div class="h-full bg-blue-500 rounded-full" style="width:\${pct}%"></div>
-          </div>
-          <button onclick="deactivateCampaign(\${c.id})" class="w-full text-xs text-red-500 hover:text-red-600 hover:bg-red-50 py-1.5 rounded-lg transition-colors border border-red-100">
-            <i class="fas fa-ban mr-1"></i>비활성화
-          </button>
+        <p class="text-xs text-gray-400 mb-2">\${c.place_name} · \${c.category}</p>
+        <div class="flex justify-between text-xs text-gray-400 mb-1">
+          <span>\${c.current_participants}/\${c.max_participants}</span><span>\${pct}%</span>
         </div>
-      </div>\`
-    }).join('') + '</div>'
-  } catch(e) {
-    el.innerHTML = '<div class="text-center py-8 text-red-400">오류: ' + e.message + '</div>'
-  }
+        <div class="h-1 bg-gray-100 rounded-full mb-2"><div class="h-full bg-blue-500 rounded-full" style="width:\${pct}%"></div></div>
+        \${c.status==='active' ? \`<button onclick="deactivate(\${c.id})" class="w-full text-xs text-red-400 hover:text-red-500 border border-red-100 hover:bg-red-50 py-1.5 rounded-lg transition">Deactivate</button>\` : \`<span class="block text-center text-xs text-gray-300 py-1.5">Inactive</span>\`}
+      </div>
+    </div>\`
+  }).join('') + '</div>'
 }
 
-async function deactivateCampaign(id) {
-  if (!confirm('이 캠페인을 비활성화하시겠습니까?')) return
-  const res = await fetch('/api/admin/campaigns/' + id, { method: 'DELETE', headers })
-  const data = await res.json()
-  if (data.success) loadCampaigns()
+async function deactivate(id) {
+  if (!confirm('Deactivate this campaign?')) return
+  await fetch('/api/admin/campaigns/' + id, { method:'DELETE', headers:H })
+  loadCamps(); loadStats()
 }
 
-// ── 캠페인 등록 ──────────────────────────────
-async function searchPlacesForCreate() {
-  const q = document.getElementById('placeSearchInput').value.trim()
+// ── New campaign ──────────────────────────────
+async function adminSearchPlace() {
+  const q = document.getElementById('adminPlaceQ').value.trim()
   if (!q) return
-  const el = document.getElementById('placeSearchResults')
-  el.innerHTML = '<div class="flex items-center gap-2 text-sm text-gray-400 py-2"><i class="fas fa-spinner fa-spin"></i> 검색 중...</div>'
-  try {
-    const res = await fetch('/api/places/search?q=' + encodeURIComponent(q))
-    const data = await res.json()
-    if (!data.success || !data.data.results?.length) {
-      el.innerHTML = '<p class="text-sm text-gray-400 py-2">검색 결과가 없습니다. API 키를 확인하세요.</p>'
-      return
-    }
-    el.innerHTML = data.data.results.slice(0, 6).map(p => {
-      const photo = p.photos?.[0]?.photo_reference
-      const imgSrc = photo ? '/api/places/photo?ref=' + photo + '&maxwidth=80' : ''
-      return \`<div class="flex items-center gap-3 p-2 hover:bg-blue-50 rounded-xl cursor-pointer transition-colors border border-transparent hover:border-blue-200"
-        onclick='fillPlaceInfo({"place_id":"\${p.place_id}","name":\${JSON.stringify(p.name)},"address":\${JSON.stringify(p.formatted_address||"")},"rating":\${p.rating||0},"types":"\${(p.types||[]).slice(0,3).join(',')}","photo":"\${photo||""}"})'>
-        <div class="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
-          \${imgSrc ? \`<img src="\${imgSrc}" class="w-full h-full object-cover">\` : '<i class="fas fa-image text-gray-300 text-xs"></i>'}
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="font-semibold text-sm truncate">\${p.name}</div>
-          <div class="text-xs text-gray-400 truncate">\${p.formatted_address || ''}</div>
-        </div>
-        <i class="fas fa-plus text-blue-400 text-xs flex-shrink-0"></i>
-      </div>\`
-    }).join('')
-  } catch(e) {
-    el.innerHTML = '<p class="text-sm text-red-400">검색 오류가 발생했습니다</p>'
-  }
+  const el = document.getElementById('adminPlaceRes')
+  el.innerHTML = '<p class="text-xs text-gray-400 py-2">Searching...</p>'
+  const res  = await fetch('/api/places/search?q=' + encodeURIComponent(q))
+  const data = await res.json()
+  if (!data.success || !data.data.results?.length) { el.innerHTML = '<p class="text-xs text-gray-400 py-2">No results</p>'; return }
+  el.innerHTML = data.data.results.slice(0,5).map(p => {
+    const photo = p.photos?.[0]?.photo_reference
+    return \`<div class="flex items-center gap-2 px-2 py-2 hover:bg-blue-50 rounded-xl cursor-pointer transition text-xs border border-transparent hover:border-blue-200"
+      onclick='fillPlace({"place_id":"\${p.place_id}","name":\${JSON.stringify(p.name)},"address":\${JSON.stringify(p.formatted_address||"")},"rating":\${p.rating||0},"photo":"\${photo||""}"})'>
+      <div class="w-9 h-9 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center text-gray-300">
+        \${photo ? \`<img src="/api/places/photo?ref=\${photo}" class="w-full h-full object-cover">\` : '<i class="fas fa-hospital text-xs"></i>'}
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="font-semibold truncate text-gray-900">\${p.name}</p>
+        <p class="text-gray-400 truncate">\${p.formatted_address||''}</p>
+      </div>
+      <i class="fas fa-plus text-blue-400 flex-shrink-0"></i>
+    </div>\`
+  }).join('')
 }
 
-function fillPlaceInfo(place) {
-  document.getElementById('cf_place_id').value = place.place_id
-  document.getElementById('cf_place_name').value = place.name
-  document.getElementById('cf_address').value = place.address
-  document.getElementById('cf_photo_ref').value = place.photo
-  document.getElementById('cf_rating').value = place.rating
-  document.getElementById('cf_types').value = place.types
-  if (!document.getElementById('cf_title').value) {
-    document.getElementById('cf_title').value = place.name + ' 체험단'
-  }
-
-  const preview = document.getElementById('selectedPlacePreview')
-  document.getElementById('selectedPlaceName').textContent = place.name
-  document.getElementById('selectedPlaceAddr').textContent = place.address
-  const thumb = document.getElementById('selectedPlaceThumb')
-  if (place.photo) {
-    thumb.innerHTML = \`<img src="/api/places/photo?ref=\${place.photo}&maxwidth=80" class="w-full h-full object-cover">\`
-  } else {
-    thumb.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center"><i class="fas fa-store text-gray-400 text-sm"></i></div>'
-  }
-  preview.classList.remove('hidden')
-  document.getElementById('placeSearchResults').innerHTML = ''
+function fillPlace(p) {
+  document.getElementById('nc_place_id').value    = p.place_id
+  document.getElementById('nc_place_name').value  = p.name
+  document.getElementById('nc_address').value     = p.address
+  document.getElementById('nc_photo_ref').value   = p.photo
+  document.getElementById('nc_rating').value      = p.rating
+  if (!document.getElementById('nc_title').value) document.getElementById('nc_title').value = p.name + ' Experience'
+  document.getElementById('selectedName').textContent = p.name
+  document.getElementById('selectedAddr').textContent = p.address
+  const th = document.getElementById('selectedThumb')
+  th.innerHTML = p.photo ? \`<img src="/api/places/photo?ref=\${p.photo}" class="w-full h-full object-cover">\` : '<i class="fas fa-hospital text-sm text-gray-300"></i>'
+  document.getElementById('selectedPlace').classList.remove('hidden')
+  document.getElementById('adminPlaceRes').innerHTML = ''
 }
 
-function resetCreateForm() {
-  document.getElementById('createCampaignForm').reset()
-  document.getElementById('selectedPlacePreview').classList.add('hidden')
-  document.getElementById('placeSearchResults').innerHTML = ''
-  document.getElementById('createError').classList.add('hidden')
-  document.getElementById('createSuccess').classList.add('hidden')
+function resetNewForm() {
+  document.getElementById('newCampForm').reset()
+  document.getElementById('selectedPlace').classList.add('hidden')
+  document.getElementById('adminPlaceRes').innerHTML = ''
+  document.getElementById('newCampErr').classList.add('hidden')
+  document.getElementById('newCampOk').classList.add('hidden')
 }
 
-document.getElementById('createCampaignForm').addEventListener('submit', async (e) => {
+document.getElementById('newCampForm').addEventListener('submit', async e => {
   e.preventDefault()
-  const errEl = document.getElementById('createError')
-  const sucEl = document.getElementById('createSuccess')
-  errEl.classList.add('hidden')
-  sucEl.classList.add('hidden')
-
-  const place_id = document.getElementById('cf_place_id').value
-  if (!place_id) {
-    errEl.textContent = '장소를 검색하여 선택해주세요.'
-    errEl.classList.remove('hidden')
-    return
+  const errEl = document.getElementById('newCampErr')
+  const okEl  = document.getElementById('newCampOk')
+  errEl.classList.add('hidden'); okEl.classList.add('hidden')
+  if (!document.getElementById('nc_place_id').value) {
+    errEl.textContent = 'Please search and select a place first.'
+    errEl.classList.remove('hidden'); return
   }
-
-  const btn = e.target.querySelector('button[type="submit"]')
-  btn.disabled = true
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>등록 중...'
-
+  const btn = e.target.querySelector('button[type=submit]')
+  btn.disabled = true; btn.textContent = 'Creating...'
   const body = {
-    title: document.getElementById('cf_title').value,
-    description: document.getElementById('cf_description').value,
-    place_id,
-    place_name: document.getElementById('cf_place_name').value,
-    place_address: document.getElementById('cf_address').value,
-    place_photo_ref: document.getElementById('cf_photo_ref').value,
-    place_rating: parseFloat(document.getElementById('cf_rating').value) || 0,
-    place_types: document.getElementById('cf_types').value,
-    category: document.getElementById('cf_category').value,
-    max_participants: parseInt(document.getElementById('cf_max').value) || 10,
-    deadline: document.getElementById('cf_deadline').value,
+    title:            document.getElementById('nc_title').value,
+    description:      document.getElementById('nc_desc').value,
+    place_id:         document.getElementById('nc_place_id').value,
+    place_name:       document.getElementById('nc_place_name').value,
+    place_address:    document.getElementById('nc_address').value,
+    place_photo_ref:  document.getElementById('nc_photo_ref').value,
+    place_rating:     parseFloat(document.getElementById('nc_rating').value) || 0,
+    category:         document.getElementById('nc_category').value,
+    max_participants: parseInt(document.getElementById('nc_max').value) || 10,
+    deadline:         document.getElementById('nc_deadline').value,
+    benefits:         document.getElementById('nc_benefits').value,
+    requirements:     document.getElementById('nc_req').value,
   }
-
   try {
-    const res = await fetch('/api/admin/campaigns', { method: 'POST', headers, body: JSON.stringify(body) })
+    const res  = await fetch('/api/admin/campaigns', { method:'POST', headers:H, body: JSON.stringify(body) })
     const data = await res.json()
     if (data.success) {
-      sucEl.textContent = '✅ 캠페인이 성공적으로 등록되었습니다! (ID: ' + data.id + ')'
-      sucEl.classList.remove('hidden')
-      btn.innerHTML = '<i class="fas fa-check mr-2"></i>등록 완료!'
-      setTimeout(() => { resetCreateForm(); showTab('campaigns'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-save mr-2"></i>캠페인 등록' }, 2000)
+      okEl.textContent = '✅ Campaign created successfully!'
+      okEl.classList.remove('hidden')
+      btn.textContent = 'Created!'
+      setTimeout(() => { resetNewForm(); showTab('camps'); btn.disabled=false; btn.textContent='Create Campaign' }, 1800)
     } else {
-      errEl.textContent = data.error
-      errEl.classList.remove('hidden')
-      btn.disabled = false
-      btn.innerHTML = '<i class="fas fa-save mr-2"></i>캠페인 등록'
+      errEl.textContent = data.error; errEl.classList.remove('hidden')
+      btn.disabled=false; btn.textContent='Create Campaign'
     }
-  } catch(ex) {
-    errEl.textContent = '네트워크 오류: ' + ex.message
-    errEl.classList.remove('hidden')
-    btn.disabled = false
-    btn.innerHTML = '<i class="fas fa-save mr-2"></i>캠페인 등록'
+  } catch {
+    errEl.textContent = 'Network error'; errEl.classList.remove('hidden')
+    btn.disabled=false; btn.textContent='Create Campaign'
   }
 })
 
-// 모달 외부 클릭 닫기
-document.getElementById('appDetailModal').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('active')
-})
+document.getElementById('appModal').addEventListener('click', e => { if (e.target === document.getElementById('appModal')) document.getElementById('appModal').classList.remove('active') })
 
-// 초기화
-loadStats()
-loadApplications()
+loadStats(); loadApps()
 </script>
 </body>
 </html>`

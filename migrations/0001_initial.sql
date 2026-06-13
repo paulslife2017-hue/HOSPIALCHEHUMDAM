@@ -1,4 +1,4 @@
--- 체험단 캠페인 테이블
+-- Experience Program Campaigns
 CREATE TABLE IF NOT EXISTS campaigns (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL,
@@ -8,16 +8,17 @@ CREATE TABLE IF NOT EXISTS campaigns (
   place_address TEXT,
   place_photo_ref TEXT,
   place_rating REAL,
-  place_types TEXT,
-  category TEXT DEFAULT '맛집',
+  category TEXT DEFAULT 'Hospital',
   max_participants INTEGER DEFAULT 10,
   current_participants INTEGER DEFAULT 0,
   deadline TEXT,
+  benefits TEXT,
+  requirements TEXT,
   status TEXT DEFAULT 'active',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 지원자 테이블
+-- Applicant table (simple: instagram + preferred time)
 CREATE TABLE IF NOT EXISTS applications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   campaign_id INTEGER NOT NULL,
@@ -27,16 +28,15 @@ CREATE TABLE IF NOT EXISTS applications (
   nationality TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT,
-  instagram TEXT,
-  youtube TEXT,
-  followers INTEGER DEFAULT 0,
+  instagram TEXT NOT NULL,
+  preferred_time TEXT NOT NULL,
   message TEXT,
   status TEXT DEFAULT 'pending',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
 );
 
--- 관리자 계정 테이블
+-- Admin accounts
 CREATE TABLE IF NOT EXISTS admins (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL,
@@ -44,12 +44,59 @@ CREATE TABLE IF NOT EXISTS admins (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- 기본 캠페인 데이터
-INSERT OR IGNORE INTO campaigns (id, title, description, place_id, place_name, place_address, place_photo_ref, place_rating, place_types, category, max_participants, deadline) VALUES
-(1, '강남 맛집 SNS 체험단', '서울 강남의 유명 한식 레스토랑에서 외국인 SNS 체험단을 모집합니다. 방문 후 인스타그램에 후기를 남겨주세요!', 'ChIJN1t_tDeuEmsRUsoyG83frY4', '모범 한식당', '서울 강남구 테헤란로 123', '', 4.5, 'restaurant,food', '맛집', 8, '2025-07-31'),
-(2, '경복궁 문화 체험단', '유네스코 세계문화유산 경복궁에서 특별한 한국 문화를 경험해보세요. 한복 체험 포함!', 'ChIJgUZiEVKifDURqFxnFCVKqxI', '경복궁', '서울 종로구 사직로 161', '', 4.7, 'tourist_attraction,museum', '문화', 15, '2025-08-15'),
-(3, '홍대 카페 체험단', '트렌디한 홍대 카페에서 특별한 디저트와 음료를 체험해보세요!', 'ChIJAWV_rsSlfDURbXzXfCHxOHs', '홍대 아트카페', '서울 마포구 와우산로 123', '', 4.3, 'cafe,food', '카페', 10, '2025-07-20');
+-- Sample campaigns
+INSERT OR IGNORE INTO campaigns (id, title, description, place_id, place_name, place_address, place_rating, category, max_participants, deadline, benefits, requirements) VALUES
+(1,
+ 'Gangnam Plastic Surgery Review',
+ 'Visit one of Seoul''s top plastic surgery clinics and share your honest experience with your followers. Consultation and selected treatments provided.',
+ 'ChIJN1t_tDeuEmsRUsoyG83frY4',
+ 'Gangnam Aesthetic Clinic',
+ '123 Teheran-ro, Gangnam-gu, Seoul',
+ 4.8, 'Hospital', 6, '2025-08-31',
+ 'Free consultation + 30% off selected procedures',
+ 'Min. 5K followers · Post within 2 weeks'
+),
+(2,
+ 'Seoul Dental Clinic Experience',
+ 'Experience premium dental care in Seoul. Checkup, cleaning, and whitening included. Share your dental tourism story.',
+ 'ChIJgUZiEVKifDURqFxnFCVKqxI',
+ 'Seoul Smile Dental',
+ '45 Sinchon-ro, Mapo-gu, Seoul',
+ 4.7, 'Hospital', 8, '2025-09-15',
+ 'Free checkup + cleaning + whitening',
+ 'Min. 3K followers · English content'
+),
+(3,
+ 'K-Dermatology Skin Treatment',
+ 'Try Korean dermatology — laser, skin boosters, anti-aging. Document your skin journey for your international audience.',
+ 'ChIJAWV_rsSlfDURbXzXfCHxOHs',
+ 'Myeongdong Skin Clinic',
+ '88 Myeongdong-gil, Jung-gu, Seoul',
+ 4.6, 'Hospital', 10, '2025-09-30',
+ '2 laser sessions + skincare kit',
+ 'Any follower count · Before/after content'
+),
+(4,
+ 'Luxury Head Spa Experience',
+ 'Relax at a premium head spa in Seoul. Scalp treatment, deep conditioning, and relaxation therapy. Perfect for wellness creators.',
+ 'ChIJ_headspa_1',
+ 'Seoul Head Spa & Scalp Clinic',
+ '33 Apgujeong-ro, Gangnam-gu, Seoul',
+ 4.9, 'Head Spa', 8, '2025-09-10',
+ 'Full head spa session (90 min) + scalp care kit',
+ 'Wellness/beauty creators preferred'
+),
+(5,
+ 'Oriental Medicine & Acupuncture',
+ 'Experience authentic Korean traditional medicine. Acupuncture, cupping, and herbal consultations. Great for health & wellness channels.',
+ 'ChIJ_oriental_1',
+ 'Jongno Korean Medicine Clinic',
+ '12 Jongno-ro, Jongno-gu, Seoul',
+ 4.5, 'Hospital', 12, '2025-10-15',
+ '3 acupuncture sessions + herbal tea set',
+ 'Open to all nationalities and follower counts'
+);
 
--- 기본 관리자 계정 (비밀번호: admin1234)
+-- Default admin (password: admin1234)
 INSERT OR IGNORE INTO admins (username, password_hash) VALUES 
 ('admin', 'admin1234');
