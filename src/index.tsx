@@ -112,7 +112,7 @@ app.post('/api/apply', async (c) => {
       `👤 <b>Name:</b> ${applicant_name}\n` +
       `🌏 <b>Nationality:</b> ${nationality}\n` +
       `📧 <b>Email:</b> ${email}\n` +
-      `📱 <b>Phone:</b> ${phone || '—'}\n` +
+      `📱 <b>WhatsApp:</b> ${phone || '—'}\n` +
       `📸 <b>Instagram:</b> @${instagram}\n` +
       `📅 <b>Available Dates:</b>\n${preferred_dates}\n` +
       (message ? `💬 <b>Message:</b> ${message}\n` : '') +
@@ -225,6 +225,8 @@ function mainPageHTML(): string {
     .filter-btn.active { border-color:#2563eb; background:#eff6ff; color:#2563eb; }
     .date-chip { display:inline-flex; align-items:center; gap:4px; background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; border-radius:8px; padding:4px 10px; font-size:13px; font-weight:500; }
     .date-chip button { color:#93c5fd; hover:color:#1d4ed8; line-height:1; background:none; border:none; cursor:pointer; font-size:15px; padding:0 0 0 2px; }
+    .time-select { border:1px solid #e5e7eb; border-radius:8px; padding:6px 8px; font-size:12px; color:#374151; background:#fff; cursor:pointer; }
+    .time-select:focus { outline:none; border-color:#2563eb; }
     input:focus, textarea:focus, select:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1); }
   </style>
 </head>
@@ -328,7 +330,7 @@ function mainPageHTML(): string {
           <input id="fEmail" type="email" placeholder="your@email.com" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
+          <label class="block text-xs font-semibold text-gray-600 mb-1"><i class="fab fa-whatsapp text-green-500 mr-1"></i>WhatsApp</label>
           <input id="fPhone" type="text" placeholder="+82-10-0000-0000" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
         </div>
       </div>
@@ -344,14 +346,35 @@ function mainPageHTML(): string {
         </div>
       </div>
 
-      <!-- Preferred Dates -->
+      <!-- Preferred Dates + Time -->
       <div>
         <label class="block text-xs font-semibold text-gray-600 mb-1">
-          <i class="far fa-calendar text-blue-500 mr-1"></i>Available Dates <span class="text-red-400">*</span>
+          <i class="far fa-calendar text-blue-500 mr-1"></i>Available Dates &amp; Times <span class="text-red-400">*</span>
         </label>
-        <p class="text-xs text-gray-400 mb-2">Add 2–5 dates you're available. The clinic will confirm one that works.</p>
-        <div class="flex gap-2">
-          <input id="dateInput" type="date" class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+        <p class="text-xs text-gray-400 mb-2">Add up to 5 date &amp; time slots. The clinic will confirm one that works.</p>
+        <div class="flex gap-2 items-center flex-wrap">
+          <input id="dateInput" type="date" class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm min-w-0" style="flex:1;min-width:130px">
+          <select id="timeInput" class="time-select" style="flex:0 0 auto">
+            <option value="09:00">9:00 AM</option>
+            <option value="09:30">9:30 AM</option>
+            <option value="10:00">10:00 AM</option>
+            <option value="10:30">10:30 AM</option>
+            <option value="11:00">11:00 AM</option>
+            <option value="11:30">11:30 AM</option>
+            <option value="12:00">12:00 PM</option>
+            <option value="12:30">12:30 PM</option>
+            <option value="13:00">1:00 PM</option>
+            <option value="13:30">1:30 PM</option>
+            <option value="14:00">2:00 PM</option>
+            <option value="14:30">2:30 PM</option>
+            <option value="15:00">3:00 PM</option>
+            <option value="15:30">3:30 PM</option>
+            <option value="16:00">4:00 PM</option>
+            <option value="16:30">4:30 PM</option>
+            <option value="17:00">5:00 PM</option>
+            <option value="17:30">5:30 PM</option>
+            <option value="18:00">6:00 PM</option>
+          </select>
           <button type="button" onclick="addDate()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">
             + Add
           </button>
@@ -513,34 +536,54 @@ async function openApply(id) {
   renderDateChips()
   // set min date to today
   document.getElementById('dateInput').min = new Date().toISOString().split('T')[0]
+  // default time to 10:00 AM
+  document.getElementById('timeInput').value = '10:00'
   document.getElementById('applyModal').classList.add('active')
 }
 function closeApply() { document.getElementById('applyModal').classList.remove('active') }
 
-// ── Date chips ────────────────────────────────
+// ── Date + Time chips ─────────────────────────
+// selectedDates items: { key: "2025-08-15|14:00", date: "2025-08-15", time: "14:00" }
 function addDate() {
-  const val = document.getElementById('dateInput').value
-  if (!val) return
-  if (selectedDates.includes(val)) { document.getElementById('dateInput').value = ''; return }
-  if (selectedDates.length >= 5) { alert('You can add up to 5 dates.'); return }
-  selectedDates.push(val)
-  selectedDates.sort()
+  const dateVal = document.getElementById('dateInput').value
+  const timeVal = document.getElementById('timeInput').value
+  if (!dateVal) { alert('Please select a date.'); return }
+  const key = dateVal + '|' + timeVal
+  if (selectedDates.find(x => x.key === key)) return
+  if (selectedDates.length >= 5) { alert('You can add up to 5 slots.'); return }
+  selectedDates.push({ key, date: dateVal, time: timeVal })
+  selectedDates.sort((a, b) => a.key.localeCompare(b.key))
   renderDateChips()
   document.getElementById('dateInput').value = ''
 }
 
-function removeDate(d) {
-  selectedDates = selectedDates.filter(x => x !== d)
+function removeDate(key) {
+  selectedDates = selectedDates.filter(x => x.key !== key)
   renderDateChips()
+}
+
+function fmtTime(t) {
+  // "14:00" -> "2:00 PM"
+  const [hStr, mStr] = t.split(':')
+  let h = parseInt(hStr), m = mStr
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  if (h > 12) h -= 12
+  if (h === 0) h = 12
+  return h + ':' + m + ' ' + ampm
 }
 
 function renderDateChips() {
   const el = document.getElementById('dateChips')
-  el.innerHTML = selectedDates.map(d => {
-    const fmt = new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
-    return \`<span class="date-chip"><i class="far fa-calendar-check text-blue-400 text-xs"></i>\${fmt}<button type="button" onclick="removeDate('\${d}')" aria-label="remove">×</button></span>\`
+  el.innerHTML = selectedDates.map(({ key, date, time }) => {
+    const dateFmt = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
+    const timeFmt = fmtTime(time)
+    const escapedKey = key.replace(/'/g, "\\\\'")  // escape for onclick
+    return \`<span class="date-chip"><i class="far fa-clock text-blue-400 text-xs"></i>\${dateFmt} \${timeFmt}<button type="button" onclick="removeDate('\${escapedKey}')" aria-label="remove">×</button></span>\`
   }).join('')
-  document.getElementById('fDates').value = selectedDates.join(', ')
+  document.getElementById('fDates').value = selectedDates.map(x => {
+    const dateFmt = new Date(x.date + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
+    return dateFmt + ' ' + fmtTime(x.time)
+  }).join(' / ')
 }
 
 document.getElementById('applyForm').addEventListener('submit', async e => {
@@ -550,7 +593,7 @@ document.getElementById('applyForm').addEventListener('submit', async e => {
   errEl.classList.add('hidden'); okEl.classList.add('hidden')
 
   if (selectedDates.length === 0) {
-    errEl.textContent = 'Please add at least one available date.'
+    errEl.textContent = 'Please add at least one available date & time.'
     errEl.classList.remove('hidden'); return
   }
 
@@ -561,7 +604,10 @@ document.getElementById('applyForm').addEventListener('submit', async e => {
     email:           document.getElementById('fEmail').value.trim(),
     phone:           document.getElementById('fPhone').value.trim(),
     instagram:       document.getElementById('fInsta').value.trim().replace(/^@/,''),
-    preferred_dates: selectedDates.join(', '),
+    preferred_dates: selectedDates.map(x => {
+      const dateFmt = new Date(x.date + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
+      return dateFmt + ' ' + fmtTime(x.time)
+    }).join(' / '),
     message:         document.getElementById('fMsg').value.trim(),
   }
 
@@ -983,11 +1029,8 @@ async function loadApps() {
     tb.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-xs text-gray-400">No applicants found</td></tr>'; return
   }
   tb.innerHTML = data.map(a => {
-    const dates = (a.preferred_dates || '').split(',').map(d => d.trim()).filter(Boolean)
-    const dateHtml = dates.map(d => {
-      const fmt = new Date(d + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})
-      return \`<span class="date-pill">\${fmt}</span>\`
-    }).join('')
+    const dates = (a.preferred_dates || '').split('/').map(d => d.trim()).filter(Boolean)
+    const dateHtml = dates.map(d => \`<span class="date-pill">\${d}</span>\`).join('')
     return \`<tr class="hover:bg-gray-50 transition-colors">
       <td class="px-4 py-3">
         <p class="font-medium text-sm text-gray-900">\${a.applicant_name}</p>
@@ -1021,10 +1064,9 @@ async function loadApps() {
 }
 
 function openAppDetail(a) {
-  const dates = (a.preferred_dates||'').split(',').map(d=>d.trim()).filter(Boolean)
+  const dates = (a.preferred_dates||'').split('/').map(d=>d.trim()).filter(Boolean)
   const dateHtml = dates.map(d => {
-    const fmt = new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
-    return \`<div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0"><i class="far fa-calendar text-blue-400 text-xs w-4"></i><span class="text-sm text-gray-700">\${fmt}</span></div>\`
+    return \`<div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0"><i class="far fa-clock text-blue-400 text-xs w-4"></i><span class="text-sm text-gray-700">\${d}</span></div>\`
   }).join('')
 
   document.getElementById('appModalContent').innerHTML = \`
@@ -1047,7 +1089,7 @@ function openAppDetail(a) {
           <p class="font-semibold text-blue-600 text-xs break-all">\${a.email}</p>
         </div>
         <div class="bg-gray-50 rounded-xl p-3">
-          <p class="text-xs text-gray-400 mb-0.5">Phone</p>
+          <p class="text-xs text-gray-400 mb-0.5"><i class="fab fa-whatsapp text-green-500 mr-1"></i>WhatsApp</p>
           <p class="font-semibold text-xs">\${a.phone||'—'}</p>
         </div>
       </div>
