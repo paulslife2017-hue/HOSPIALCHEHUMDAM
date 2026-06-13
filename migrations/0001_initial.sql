@@ -18,14 +18,18 @@ CREATE TABLE IF NOT EXISTS campaigns (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Applicant table (instagram + preferred time only)
+-- Applicant table
 CREATE TABLE IF NOT EXISTS applications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   campaign_id INTEGER NOT NULL,
   campaign_title TEXT,
   place_name TEXT,
+  applicant_name TEXT NOT NULL,
+  nationality TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
   instagram TEXT NOT NULL,
-  preferred_time TEXT NOT NULL,
+  preferred_dates TEXT NOT NULL,
   message TEXT,
   status TEXT DEFAULT 'pending',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -42,57 +46,25 @@ CREATE TABLE IF NOT EXISTS admins (
 
 -- Sample campaigns
 INSERT OR IGNORE INTO campaigns (id, title, description, place_id, place_name, place_address, place_rating, category, max_participants, deadline, benefits, requirements) VALUES
-(1,
- 'Gangnam Plastic Surgery Review',
- 'Visit one of Seoul''s top plastic surgery clinics and share your honest experience with your followers. Consultation and selected treatments provided.',
- 'ChIJN1t_tDeuEmsRUsoyG83frY4',
- 'Gangnam Aesthetic Clinic',
- '123 Teheran-ro, Gangnam-gu, Seoul',
- 4.8, 'Hospital', 6, '2025-08-31',
- 'Free consultation + 30% off selected procedures',
- 'Min. 5K followers · Post within 2 weeks'
-),
-(2,
- 'Seoul Dental Clinic Experience',
- 'Experience premium dental care in Seoul. Checkup, cleaning, and whitening included. Share your dental tourism story.',
- 'ChIJgUZiEVKifDURqFxnFCVKqxI',
- 'Seoul Smile Dental',
- '45 Sinchon-ro, Mapo-gu, Seoul',
- 4.7, 'Hospital', 8, '2025-09-15',
- 'Free checkup + cleaning + whitening',
- 'Min. 3K followers · English content'
-),
-(3,
- 'K-Dermatology Skin Treatment',
- 'Try Korean dermatology — laser, skin boosters, anti-aging. Document your skin journey for your international audience.',
- 'ChIJAWV_rsSlfDURbXzXfCHxOHs',
- 'Myeongdong Skin Clinic',
- '88 Myeongdong-gil, Jung-gu, Seoul',
- 4.6, 'Hospital', 10, '2025-09-30',
- '2 laser sessions + skincare kit',
- 'Any follower count · Before/after content'
-),
-(4,
- 'Luxury Head Spa Experience',
- 'Relax at a premium head spa in Seoul. Scalp treatment, deep conditioning, and relaxation therapy. Perfect for wellness creators.',
- 'ChIJ_headspa_1',
- 'Seoul Head Spa & Scalp Clinic',
- '33 Apgujeong-ro, Gangnam-gu, Seoul',
- 4.9, 'Head Spa', 8, '2025-09-10',
- 'Full head spa session (90 min) + scalp care kit',
- 'Wellness/beauty creators preferred'
-),
-(5,
- 'Oriental Medicine & Acupuncture',
- 'Experience authentic Korean traditional medicine. Acupuncture, cupping, and herbal consultations. Great for health & wellness channels.',
- 'ChIJ_oriental_1',
- 'Jongno Korean Medicine Clinic',
- '12 Jongno-ro, Jongno-gu, Seoul',
- 4.5, 'Hospital', 12, '2025-10-15',
- '3 acupuncture sessions + herbal tea set',
- 'Open to all nationalities and follower counts'
-);
+(1, 'Gangnam Plastic Surgery Review',
+ 'Visit one of Seoul''s top plastic surgery clinics and share your honest experience. Consultation and selected treatments provided.',
+ 'ChIJN1t_tDeuEmsRUsoyG83frY4', 'Gangnam Aesthetic Clinic', '123 Teheran-ro, Gangnam-gu, Seoul',
+ 4.8, 'Hospital', 6, '2025-08-31', 'Free consultation + 30% off selected procedures', 'Min. 5K followers · Post within 2 weeks'),
+(2, 'Seoul Dental Clinic Experience',
+ 'Experience premium dental care in Seoul. Checkup, cleaning, and whitening included.',
+ 'ChIJgUZiEVKifDURqFxnFCVKqxI', 'Seoul Smile Dental', '45 Sinchon-ro, Mapo-gu, Seoul',
+ 4.7, 'Hospital', 8, '2025-09-15', 'Free checkup + cleaning + whitening', 'Min. 3K followers · English content'),
+(3, 'K-Dermatology Skin Treatment',
+ 'Try Korean dermatology — laser, skin boosters, anti-aging. Document your skin journey.',
+ 'ChIJAWV_rsSlfDURbXzXfCHxOHs', 'Myeongdong Skin Clinic', '88 Myeongdong-gil, Jung-gu, Seoul',
+ 4.6, 'Hospital', 10, '2025-09-30', '2 laser sessions + skincare kit', 'Any follower count · Before/after content'),
+(4, 'Luxury Head Spa Experience',
+ 'Relax at a premium head spa. Scalp treatment, deep conditioning, and relaxation therapy.',
+ 'ChIJ_headspa_1', 'Seoul Head Spa & Scalp Clinic', '33 Apgujeong-ro, Gangnam-gu, Seoul',
+ 4.9, 'Head Spa', 8, '2025-09-10', 'Full head spa session (90 min) + scalp care kit', 'Wellness/beauty creators preferred'),
+(5, 'Oriental Medicine & Acupuncture',
+ 'Experience authentic Korean traditional medicine. Acupuncture, cupping, and herbal consultations.',
+ 'ChIJ_oriental_1', 'Jongno Korean Medicine Clinic', '12 Jongno-ro, Jongno-gu, Seoul',
+ 4.5, 'Hospital', 12, '2025-10-15', '3 acupuncture sessions + herbal tea set', 'Open to all nationalities');
 
--- Default admin (password: admin1234)
-INSERT OR IGNORE INTO admins (username, password_hash) VALUES 
-('admin', 'admin1234');
+INSERT OR IGNORE INTO admins (username, password_hash) VALUES ('admin', 'admin1234');
