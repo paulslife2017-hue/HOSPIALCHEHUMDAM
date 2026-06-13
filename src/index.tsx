@@ -13,6 +13,11 @@ const app = new Hono<{ Bindings: Bindings }>()
 app.use('/api/*', cors())
 app.use('/static/*', serveStatic({ root: './' }))
 
+// favicon 처리
+app.get('/favicon.ico', (c) => {
+  return new Response(null, { status: 204 })
+})
+
 // ─────────────────────────────────────────────
 // 메인 페이지
 // ─────────────────────────────────────────────
