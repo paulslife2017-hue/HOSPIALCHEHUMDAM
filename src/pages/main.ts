@@ -268,10 +268,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '          <div class="stat-num">100%</div>\n' +
 '          <div class="stat-label">Free<br>Treatments</div>\n' +
 '        </div>\n' +
-'        <div class="stat-card">\n' +
-'          <div class="stat-num">24+</div>\n' +
-'          <div class="stat-label">Partner<br>Nations</div>\n' +
-'        </div>\n' +
+
 '        <div class="stat-card" style="background:linear-gradient(135deg,rgba(201,160,53,.15),rgba(232,193,106,.1));border-color:rgba(201,160,53,.25);">\n' +
 '          <div class="stat-num" style="font-size:28px;color:#f0d585;line-height:1.2;">EN<br>spoken</div>\n' +
 '          <div class="stat-label">All clinics<br>English-ready</div>\n' +
@@ -314,22 +311,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '        <span class="sb-count" id="sbCountBeauty">0</span>\n' +
 '      </button>\n' +
 '    </div>\n' +
-'    <!-- 통계 -->\n' +
-'    <div class="sidebar-section">\n' +
-'      <div class="sidebar-title">Overview</div>\n' +
-'      <div class="sb-stat">\n' +
-'        <span class="sb-stat-label">Active programs</span>\n' +
-'        <span class="sb-stat-val" id="sbStatActive">—</span>\n' +
-'      </div>\n' +
-'      <div class="sb-stat">\n' +
-'        <span class="sb-stat-label">Open spots</span>\n' +
-'        <span class="sb-stat-val">Unlimited</span>\n' +
-'      </div>\n' +
-'      <div class="sb-stat">\n' +
-'        <span class="sb-stat-label">Nationalities</span>\n' +
-'        <span class="sb-stat-val">24+</span>\n' +
-'      </div>\n' +
-'    </div>\n' +
+
 '    <!-- 안내 배너 -->\n' +
 '    <div style="background:linear-gradient(135deg,#1c1408,#0c0b09);border-radius:16px;padding:20px;">\n' +
 '      <p style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">How it works</p>\n' +
@@ -793,8 +775,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '// hero 스탯 카드 숫자 세팅\n' +
 'var statEl = document.getElementById("statPrograms");\n' +
 'if (statEl) statEl.textContent = allCampaigns.length;\n' +
-'var sbStatActive = document.getElementById("sbStatActive");\n' +
-'if (sbStatActive) sbStatActive.textContent = allCampaigns.length;\n' +
+
 
 '\n' +
 '// 초기 렌더링\n' +

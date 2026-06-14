@@ -857,14 +857,17 @@ document.getElementById('newCampForm').addEventListener('submit', async e => {
   }
   const btn = e.target.querySelector('button[type=submit]')
   btn.disabled = true
+  btn.textContent = '번역 중…'
+
+  // 한글이 있으면 저장 전 자동 번역
+  const rawBen  = document.getElementById('nc_benefits').value.trim()
+  const rawReq  = document.getElementById('nc_req').value.trim()
+  const rawDesc = document.getElementById('nc_desc').value.trim()
+  const benefitsVal = await gtTranslate(rawBen)
+  const reqVal      = await gtTranslate(rawReq)
+  const descVal     = await gtTranslate(rawDesc)
+
   btn.textContent = 'Creating…'
-  // 번역된 값 우선, 없으면 원본 그대로
-  const benefitsVal = document.getElementById('nc_benefits_final').value ||
-                      document.getElementById('nc_benefits').value
-  const reqVal      = document.getElementById('nc_req_final').value ||
-                      document.getElementById('nc_req').value
-  const descVal     = document.getElementById('nc_desc_final').value ||
-                      document.getElementById('nc_desc').value
   const body = {
     title:            document.getElementById('nc_title').value,
     description:      descVal,
@@ -1181,14 +1184,23 @@ document.getElementById('editCampForm').addEventListener('submit', async e => {
 
   const btn = e.target.querySelector('button[type=submit]')
   btn.disabled = true
-  btn.textContent = '저장 중…'
+  btn.textContent = '번역 중…'
 
+  // 한글이 있으면 저장 전 자동 번역
+  const rawDesc = (document.getElementById('ec_desc').value).trim()
+  const rawBen  = (document.getElementById('ec_benefits').value).trim()
+  const rawReq  = (document.getElementById('ec_req').value).trim()
+  const descVal = await gtTranslate(rawDesc)
+  const benVal  = await gtTranslate(rawBen)
+  const reqVal  = await gtTranslate(rawReq)
+
+  btn.textContent = '저장 중…'
   const body = {
     title:        document.getElementById('ec_title').value.trim(),
     category:     document.getElementById('ec_category').value,
-    description:  (document.getElementById('ec_desc_final').value || document.getElementById('ec_desc').value).trim(),
-    benefits:     (document.getElementById('ec_ben_final').value  || document.getElementById('ec_benefits').value).trim(),
-    requirements: (document.getElementById('ec_req_final').value  || document.getElementById('ec_req').value).trim(),
+    description:  descVal,
+    benefits:     benVal,
+    requirements: reqVal,
   }
 
   try {
