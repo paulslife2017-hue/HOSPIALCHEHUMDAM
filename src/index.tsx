@@ -261,137 +261,147 @@ function mainPageHTML(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Seoul Beauty & Medical — Influencer Program</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Seoul Beauty Trip — Influencer Experience Program</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
-    body { font-family:'Inter',sans-serif; background:#f8f7f5; }
-    .serif { font-family:'Playfair Display',serif; }
-    .card-hover { transition:box-shadow .25s ease, border-color .25s ease; }
-    .card-hover:hover { box-shadow:0 12px 36px rgba(0,0,0,.12); border-color:#e8d9bf !important; }
-    .card-img { transition:none; }
-    .days-badge { animation:none; }
-    .spot-badge { display:inline-flex; align-items:center; gap:3px; }
-    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(10,10,10,.6); z-index:999; backdrop-filter:blur(6px); }
-    .modal-overlay.active { display:flex; align-items:center; justify-content:center; }
-    .progress-bar { height:4px; background:#e5e7eb; border-radius:99px; overflow:hidden; }
-    .progress-fill { height:100%; background:linear-gradient(90deg,#b5935a,#d4af7a); border-radius:99px; }
-    .pill { display:inline-block; padding:3px 11px; border-radius:99px; font-size:11px; font-weight:600; letter-spacing:.3px; }
-    .filter-btn { border:1.5px solid #e2ddd6; color:#888; transition:all .2s; background:#fff; font-size:13px; }
-    .filter-btn.active { border-color:#b5935a; background:#fdf8f0; color:#8a6d3b; }
-    .date-chip { display:inline-flex; align-items:center; gap:4px; background:#fdf8f0; border:1px solid #e8d9bf; color:#8a6d3b; border-radius:8px; padding:4px 10px; font-size:12px; font-weight:500; }
-    .date-chip button { color:#c9a96e; line-height:1; background:none; border:none; cursor:pointer; font-size:14px; padding:0 0 0 2px; }
-    .time-select { border:1px solid #e2ddd6; border-radius:8px; padding:7px 8px; font-size:12px; color:#374151; background:#fff; cursor:pointer; }
-    .time-select:focus { outline:none; border-color:#b5935a; }
-    input:focus, textarea:focus, select:focus { outline:none; border-color:#b5935a !important; box-shadow:0 0 0 3px rgba(181,147,90,.12); }
-    .btn-gold { background:linear-gradient(135deg,#c9a035,#e8c16a); color:#fff; font-weight:600; transition:all .2s; }
-    .btn-gold:hover { background:linear-gradient(135deg,#b5900a,#d4aa50); box-shadow:0 4px 16px rgba(181,147,90,.35); }
-    .hero-bg { background:linear-gradient(135deg,#0a0a0a 0%,#1a1209 50%,#0d0d0d 100%); }
-    ::-webkit-scrollbar { width:4px; } ::-webkit-scrollbar-track { background:#f1f1f1; } ::-webkit-scrollbar-thumb { background:#d4b896; border-radius:99px; }
+    :root{--gold:#c9a035;--gold-lt:#e8c16a;--dark:#0c0b09;}
+    body{font-family:'Inter',sans-serif;background:#faf9f7;color:#1a1a1a;}
+    .serif{font-family:'Cormorant Garamond',serif;}
+    /* Nav */
+    .nav-blur{background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);}
+    /* Cards */
+    .card{background:#fff;border-radius:20px;overflow:hidden;border:1px solid #ede9e2;transition:box-shadow .3s,border-color .3s;display:flex;flex-direction:column;}
+    .card:hover{box-shadow:0 16px 48px rgba(0,0,0,.10);border-color:#d4c4a0;}
+    .card-img-wrap{position:relative;height:220px;overflow:hidden;background:#f0ede8;flex-shrink:0;}
+    .card-img-wrap img{width:100%;height:100%;object-fit:cover;}
+    /* Pill */
+    .pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.3px;}
+    .pill-clinic{background:#dbeafe;color:#1d4ed8;}
+    .pill-beauty{background:#fce7f3;color:#be185d;}
+    /* Filter */
+    .f-btn{border:1.5px solid #e2ddd6;color:#888;background:#fff;font-size:13px;font-weight:500;padding:7px 18px;border-radius:99px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+    .f-btn.active{border-color:var(--gold);background:#fdf8ef;color:#8a6d3b;}
+    /* Gold button */
+    .btn-gold{background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;font-weight:600;transition:all .2s;border:none;cursor:pointer;}
+    .btn-gold:hover{background:linear-gradient(135deg,#b5900a,#d4aa50);box-shadow:0 4px 18px rgba(181,147,90,.4);}
+    .btn-gold:disabled{background:#e5e7eb;color:#9ca3af;cursor:not-allowed;box-shadow:none;}
+    /* Progress */
+    .pbar{height:3px;background:#ede9e2;border-radius:99px;overflow:hidden;}
+    .pbar-fill{height:100%;background:linear-gradient(90deg,#c9a035,#e8c16a);border-radius:99px;}
+    /* Modal */
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(8,7,6,.65);z-index:999;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;}
+    .modal-bg.open{display:flex;}
+    /* Date chip */
+    .chip{display:inline-flex;align-items:center;gap:5px;background:#fdf8ef;border:1px solid #e8d9bf;color:#7a5c2a;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500;}
+    .chip button{color:#c9a96e;background:none;border:none;cursor:pointer;font-size:15px;line-height:1;padding:0 0 0 2px;}
+    input:focus,textarea:focus,select:focus{outline:none!important;border-color:#c9a035!important;box-shadow:0 0 0 3px rgba(201,160,53,.12)!important;}
+    /* Hero */
+    .hero{background:linear-gradient(150deg,#0c0b09 0%,#1c1408 55%,#0e0c09 100%);position:relative;overflow:hidden;}
+    .hero-noise{position:absolute;inset:0;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+    /* Divider line */
+    .gold-line{height:1px;background:linear-gradient(90deg,transparent,#c9a035 40%,#c9a035 60%,transparent);}
+    /* Scrollbar */
+    ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:#f1ede8;}::-webkit-scrollbar-thumb{background:#d4b896;border-radius:99px;}
   </style>
 </head>
 <body class="min-h-screen">
 
-<!-- Nav -->
-<nav class="bg-white/95 backdrop-blur-md border-b border-stone-100 sticky top-0 z-50 shadow-sm">
+<!-- ── Nav ─────────────────────────────────── -->
+<nav class="nav-blur border-b border-stone-100 sticky top-0 z-50">
   <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-    <a href="/" class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">
-        <i class="fas fa-star text-white text-xs"></i>
+    <a href="/" class="flex items-center gap-3 group">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">
+        <i class="fas fa-seedling text-white text-xs"></i>
       </div>
-      <div>
-        <span class="font-bold text-gray-900 text-sm tracking-wide">SEOUL BEAUTY TRIP</span>
-        <span class="hidden sm:inline text-gray-300 mx-2">·</span>
-        <span class="hidden sm:inline text-xs text-gray-400">Influencer Experience Program</span>
+      <div class="leading-none">
+        <div class="text-sm font-bold text-gray-900 tracking-widest uppercase">Seoul Beauty Trip</div>
+        <div class="text-[10px] text-gray-400 tracking-wide mt-0.5 hidden sm:block">Influencer Experience Program</div>
       </div>
     </a>
-    <a href="/admin" class="text-xs text-gray-300 hover:text-gray-500 transition-colors">Admin</a>
+    <a href="/admin" class="text-xs text-gray-300 hover:text-gray-500 transition-colors">Admin ↗</a>
   </div>
 </nav>
 
-<!-- Hero -->
-<section class="hero-bg text-white py-20 px-5 relative overflow-hidden">
-  <div class="absolute inset-0 opacity-5" style="background-image:url('data:image/svg+xml,<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M30 5 L55 20 L55 40 L30 55 L5 40 L5 20Z\" fill=\"none\" stroke=\"white\" stroke-width=\"0.5\"/></svg>'); background-size:60px;"></div>
-  <div class="max-w-6xl mx-auto relative">
-    <div class="max-w-2xl">
-      <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-xs font-medium text-amber-300 mb-6 backdrop-blur-sm">
-        <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></span>
+<!-- ── Hero ─────────────────────────────────── -->
+<section class="hero text-white py-24 sm:py-32 px-5">
+  <div class="hero-noise"></div>
+  <div class="max-w-6xl mx-auto relative z-10">
+    <div class="max-w-xl">
+      <div class="inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-medium text-amber-300 mb-7" style="border-color:rgba(201,160,53,.35);background:rgba(201,160,53,.08);">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
         Exclusive for International Creators
       </div>
-      <h1 class="serif text-4xl sm:text-5xl font-bold leading-tight mb-5">
-        Experience Seoul's<br>
-        <span style="background:linear-gradient(90deg,#c9a035,#f0d080);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Premium Clinics</span>
+      <h1 class="serif text-5xl sm:text-6xl font-semibold leading-[1.12] mb-6">
+        Seoul's Finest<br>
+        <span style="background:linear-gradient(90deg,#c9a035,#f0d585);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Clinics & Beauty</span>
       </h1>
-      <p class="text-stone-300 text-base leading-relaxed mb-8 max-w-lg">
-        Get complimentary treatments at Seoul's top-rated medical &amp; wellness clinics. Share your authentic experience with your audience.
+      <p class="text-stone-400 text-[15px] leading-relaxed mb-9 max-w-md">
+        Complimentary treatments at Seoul's most prestigious medical and beauty destinations — crafted for international creators ready to share authentic experiences.
       </p>
-      <div class="flex flex-wrap gap-5 text-sm text-stone-300">
-        <div class="flex items-center gap-2"><i class="fas fa-check-circle text-amber-400"></i> Free treatments</div>
-        <div class="flex items-center gap-2"><i class="fas fa-check-circle text-amber-400"></i> English support</div>
-        <div class="flex items-center gap-2"><i class="fas fa-check-circle text-amber-400"></i> All nationalities welcome</div>
+      <div class="flex flex-wrap gap-6 text-[13px] text-stone-400">
+        <span class="flex items-center gap-2"><i class="fas fa-check-circle text-amber-400"></i>Complimentary treatments</span>
+        <span class="flex items-center gap-2"><i class="fas fa-check-circle text-amber-400"></i>English-speaking staff</span>
+        <span class="flex items-center gap-2"><i class="fas fa-check-circle text-amber-400"></i>All nationalities</span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Filter -->
-<div class="bg-white border-b border-stone-100 sticky top-16 z-40 shadow-sm">
-  <div class="max-w-6xl mx-auto px-5 py-3 flex gap-2 overflow-x-auto scrollbar-none">
-    <button onclick="filterBy('all')" data-f="all" class="filter-btn active whitespace-nowrap px-4 py-2 rounded-full font-medium">All</button>
-    <button onclick="filterBy('Clinic')" data-f="Clinic" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">🏥 Clinic</button>
-    <button onclick="filterBy('Beauty Shop')" data-f="Beauty Shop" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">💄 Beauty Shop</button>
+<div class="gold-line"></div>
+
+<!-- ── Filter bar ───────────────────────────── -->
+<div class="bg-white/95 backdrop-blur-sm border-b border-stone-100 sticky top-16 z-40">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2.5 overflow-x-auto" style="scrollbar-width:none;">
+    <button onclick="filterBy('all')"          data-f="all"          class="f-btn active">All Programs</button>
+    <button onclick="filterBy('Clinic')"       data-f="Clinic"       class="f-btn">🏥 Clinic</button>
+    <button onclick="filterBy('Beauty Shop')"  data-f="Beauty Shop"  class="f-btn">💄 Beauty Shop</button>
+    <div id="campaignCount" class="ml-auto text-xs text-gray-400 bg-stone-100 px-3 py-1.5 rounded-full flex-shrink-0"></div>
   </div>
 </div>
 
-<!-- Campaigns -->
-<main class="max-w-6xl mx-auto px-5 py-10">
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <h2 class="text-lg font-bold text-gray-900">Open Programs</h2>
-      <p class="text-sm text-gray-400 mt-0.5">Apply now — limited spots available</p>
-    </div>
-    <div id="campaignCount" class="text-xs text-gray-400 bg-stone-100 px-3 py-1.5 rounded-full"></div>
+<!-- ── Grid ─────────────────────────────────── -->
+<main class="max-w-6xl mx-auto px-5 py-12">
+  <div id="loading" class="flex flex-col items-center py-28 gap-3">
+    <div class="w-7 h-7 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+    <p class="text-sm text-gray-400">Loading programs…</p>
   </div>
-  <div id="loading" class="flex flex-col items-center justify-center py-24 gap-3">
-    <div class="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-    <p class="text-sm text-gray-400">Loading programs...</p>
-  </div>
-  <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 hidden"></div>
-  <div id="empty" class="hidden text-center py-24">
+  <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-7 hidden"></div>
+  <div id="empty" class="hidden text-center py-28">
     <div class="w-16 h-16 bg-stone-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
       <i class="fas fa-search text-2xl text-stone-300"></i>
     </div>
     <p class="text-gray-400 font-medium">No programs found</p>
-    <p class="text-sm text-gray-300 mt-1">Try a different category</p>
   </div>
 </main>
 
-<!-- Footer -->
-<footer class="border-t border-stone-200 bg-white mt-8 py-8 px-5">
-  <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-    <div class="flex items-center gap-2">
-      <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">
-        <i class="fas fa-star text-white text-xs" style="font-size:8px"></i>
+<!-- ── Footer ───────────────────────────────── -->
+<footer class="border-t border-stone-200 bg-white mt-4 py-10 px-5">
+  <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2.5">
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">
+        <i class="fas fa-seedling text-white" style="font-size:9px"></i>
       </div>
-      <span class="text-sm font-semibold text-gray-700">Seoul Beauty Trip</span>
+      <div>
+        <div class="text-sm font-bold text-gray-800 tracking-wide">Seoul Beauty Trip</div>
+        <div class="text-[10px] text-gray-400">Influencer Experience Program</div>
+      </div>
     </div>
-    <p class="text-xs text-gray-400">© 2025 Seoul Beauty Trip · Influencer Experience Program</p>
+    <p class="text-xs text-gray-300">© 2025 Seoul Beauty Trip · All rights reserved</p>
   </div>
 </footer>
 
-<!-- Apply Modal -->
-<div id="applyModal" class="modal-overlay">
+<!-- ── Apply Modal ───────────────────────────── -->
+<div id="applyModal" class="modal-bg">
   <div class="bg-white rounded-2xl w-full max-w-md mx-4 shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
-    <div class="px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0" style="background:linear-gradient(135deg,#0a0a0a,#1a1209)">
+    <div class="px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0" style="background:linear-gradient(135deg,#0c0b09,#1c1408)">
       <div class="flex items-start justify-between">
         <div>
-          <h3 class="font-bold text-white text-base">Apply for Program</h3>
-          <p id="applySubtitle" class="text-xs text-amber-300/80 mt-0.5 truncate max-w-xs"></p>
+          <h3 class="font-semibold text-white text-base tracking-wide">Apply for Program</h3>
+          <p id="applySubtitle" class="text-xs text-amber-300/70 mt-0.5 truncate max-w-xs"></p>
         </div>
-        <button onclick="closeApply()" class="text-white/40 hover:text-white/80 ml-4 transition-colors">
-          <i class="fas fa-times"></i>
-        </button>
+        <button onclick="closeApply()" class="text-white/30 hover:text-white/70 ml-4 transition-colors text-lg leading-none">×</button>
       </div>
     </div>
     <form id="applyForm" class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
@@ -399,11 +409,11 @@ function mainPageHTML(): string {
 
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5">Full Name <span class="text-red-400">*</span></label>
+          <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Full Name <span class="text-red-400">*</span></label>
           <input id="fName" type="text" placeholder="Your name" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5">Nationality <span class="text-red-400">*</span></label>
+          <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Nationality <span class="text-red-400">*</span></label>
           <select id="fNation" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
             <option value="">Select</option>
             <option>🇺🇸 American</option><option>🇬🇧 British</option><option>🇦🇺 Australian</option>
@@ -421,29 +431,29 @@ function mainPageHTML(): string {
 
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5">Email <span class="text-red-400">*</span></label>
+          <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Email <span class="text-red-400">*</span></label>
           <input id="fEmail" type="email" placeholder="your@email.com" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5"><i class="fab fa-whatsapp text-green-500 mr-1"></i>WhatsApp</label>
+          <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5"><i class="fab fa-whatsapp text-green-500 mr-1"></i>WhatsApp</label>
           <input id="fPhone" type="text" placeholder="+1-000-0000" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
         </div>
       </div>
 
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5"><i class="fab fa-instagram text-pink-500 mr-1"></i>Instagram <span class="text-red-400">*</span></label>
-        <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2" style="focus-within:border-color:#b5935a">
+        <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5"><i class="fab fa-instagram text-pink-500 mr-1"></i>Instagram <span class="text-red-400">*</span></label>
+        <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-amber-500">
           <span class="px-3 text-gray-400 text-sm bg-gray-50 border-r border-gray-200 py-2.5 select-none">@</span>
-          <input id="fInsta" type="text" placeholder="your_handle" class="flex-1 px-3 py-2.5 text-sm border-none outline-none" required>
+          <input id="fInsta" type="text" placeholder="your_handle" class="flex-1 px-3 py-2.5 text-sm border-none outline-none bg-white" required>
         </div>
       </div>
 
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5"><i class="far fa-calendar text-amber-500 mr-1"></i>Available Dates &amp; Times <span class="text-red-400">*</span></label>
-        <p class="text-xs text-gray-400 mb-2">Add up to 5 slots — clinic will confirm one.</p>
+        <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5"><i class="far fa-calendar text-amber-500 mr-1"></i>Available Dates & Times <span class="text-red-400">*</span></label>
+        <p class="text-xs text-gray-400 mb-2">Add up to 5 slots — the clinic will confirm one.</p>
         <div class="flex gap-2 items-center flex-wrap">
-          <input id="dateInput" type="date" class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm" style="flex:1;min-width:130px">
-          <select id="timeInput" class="time-select">
+          <input id="dateInput" type="date" class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm flex-1 min-w-[130px]">
+          <select id="timeInput" class="border border-gray-200 rounded-xl px-2.5 py-2.5 text-sm bg-white">
             <option value="09:00">9:00 AM</option><option value="09:30">9:30 AM</option>
             <option value="10:00">10:00 AM</option><option value="10:30">10:30 AM</option>
             <option value="11:00">11:00 AM</option><option value="11:30">11:30 AM</option>
@@ -455,15 +465,15 @@ function mainPageHTML(): string {
             <option value="17:00">5:00 PM</option><option value="17:30">5:30 PM</option>
             <option value="18:00">6:00 PM</option>
           </select>
-          <button type="button" onclick="addDate()" class="btn-gold px-4 py-2 rounded-xl text-sm whitespace-nowrap">+ Add</button>
+          <button type="button" onclick="addDate()" class="btn-gold px-4 py-2.5 rounded-xl text-sm whitespace-nowrap">+ Add</button>
         </div>
-        <div id="dateChips" class="flex flex-wrap gap-2 mt-2 min-h-[28px]"></div>
+        <div id="dateChips" class="flex flex-wrap gap-2 mt-2.5 min-h-[28px]"></div>
         <input type="hidden" id="fDates">
       </div>
 
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Message <span class="text-gray-300 font-normal">(optional)</span></label>
-        <textarea id="fMsg" rows="2" placeholder="Any notes for the clinic..." class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none"></textarea>
+        <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Message <span class="text-gray-300 font-normal normal-case">(optional)</span></label>
+        <textarea id="fMsg" rows="2" placeholder="Any notes for the clinic…" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none"></textarea>
       </div>
 
       <div id="applyErr" class="hidden bg-red-50 text-red-600 text-xs rounded-xl px-4 py-3 border border-red-100"></div>
@@ -475,9 +485,9 @@ function mainPageHTML(): string {
   </div>
 </div>
 
-<!-- Detail Modal -->
-<div id="detailModal" class="modal-overlay">
-  <div class="bg-white rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+<!-- ── Detail Modal ───────────────────────────── -->
+<div id="detailModal" class="modal-bg">
+  <div class="bg-white rounded-2xl w-full max-w-lg mx-4 max-h-[92vh] overflow-y-auto shadow-2xl">
     <div id="detailContent"></div>
   </div>
 </div>
@@ -493,7 +503,7 @@ async function loadCampaigns() {
     allCampaigns = data || []
     render(allCampaigns)
   } catch {
-    document.getElementById('loading').innerHTML = '<p class="text-red-400 text-sm text-center py-10">Failed to load.</p>'
+    document.getElementById('loading').innerHTML = '<p class="text-red-400 text-sm text-center py-10">Failed to load programs.</p>'
   }
 }
 
@@ -503,91 +513,77 @@ function render(list) {
   const empty   = document.getElementById('empty')
   const count   = document.getElementById('campaignCount')
   loading.classList.add('hidden')
-  count.textContent = list.length + ' program' + (list.length !== 1 ? 's' : '')
+  count.textContent = list.length + (list.length === 1 ? ' program' : ' programs')
   if (!list.length) { grid.classList.add('hidden'); empty.classList.remove('hidden'); return }
   empty.classList.add('hidden'); grid.classList.remove('hidden')
 
-  const catColors = {
-    Clinic:         { bg:'#dbeafe', text:'#1d4ed8' },
-    'Beauty Shop':  { bg:'#fce7f3', text:'#be185d' },
-  }
-
   grid.innerHTML = list.map(c => {
-    const full      = c.current_participants >= c.max_participants
-    const pct       = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
-    const thumb     = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
-    const col       = catColors[c.category] || { bg:'#f3f4f6', text:'#374151' }
-    const spotsLeft = c.max_participants - c.current_participants
-    const mapsUrl   = c.place_id ? \`https://www.google.com/maps/place/?q=place_id:\${c.place_id}\` : ''
+    const full    = c.current_participants >= c.max_participants
+    const thumb   = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
+    const mapsUrl = c.place_id ? \`https://www.google.com/maps/place/?q=place_id:\${c.place_id}\` : ''
+    const catPill = c.category === 'Clinic'
+      ? \`<span class="pill pill-clinic">\${c.category}</span>\`
+      : \`<span class="pill pill-beauty">\${c.category}</span>\`
 
-    // Deadline display: days remaining
-    let deadlineHtml = ''
+    // Deadline
+    let dlBadge = ''
     if (c.deadline) {
-      const dlDate = new Date(c.deadline)
-      const today  = new Date(); today.setHours(0,0,0,0)
+      const dlDate   = new Date(c.deadline)
+      const today    = new Date(); today.setHours(0,0,0,0)
       const daysLeft = Math.ceil((dlDate - today) / 86400000)
-      if (daysLeft < 0) {
-        deadlineHtml = \`<span class="text-xs text-gray-300">Closed</span>\`
-      } else if (daysLeft === 0) {
-        deadlineHtml = \`<span class="text-xs font-semibold text-red-500">⚡ Last day!</span>\`
-      } else if (daysLeft <= 7) {
-        deadlineHtml = \`<span class="text-xs font-semibold text-orange-500">⚡ \${daysLeft}d left</span>\`
-      } else {
-        const dlFmt = dlDate.toLocaleDateString('en-US',{month:'short',day:'numeric'})
-        deadlineHtml = \`<span class="text-xs text-gray-400">Until \${dlFmt}</span>\`
-      }
-    } else {
-      deadlineHtml = \`<span class="text-xs text-gray-400">Open</span>\`
+      if (daysLeft < 0)        dlBadge = \`<span class="text-xs text-gray-400">Closed</span>\`
+      else if (daysLeft === 0) dlBadge = \`<span class="text-xs font-semibold text-red-500">Last day</span>\`
+      else if (daysLeft <= 7)  dlBadge = \`<span class="text-xs font-semibold text-orange-500">\${daysLeft}d left</span>\`
+      else                     dlBadge = \`<span class="text-xs text-gray-400">\${dlDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>\`
     }
 
+    // Short description (first sentence)
+    const shortDesc = c.description ? c.description.split('.')[0] + '.' : ''
+
     return \`
-    <article class="card-hover bg-white rounded-2xl overflow-hidden border border-stone-100 cursor-pointer flex flex-col" onclick="openDetail(\${c.id})">
-      <div class="relative h-48 bg-stone-100 overflow-hidden flex-shrink-0">
+    <article class="card cursor-pointer" onclick="openDetail(\${c.id})">
+      <!-- Image -->
+      <div class="card-img-wrap">
         \${thumb
-          ? \`<img src="\${thumb}" class="card-img w-full h-full object-cover" alt="\${c.place_name}" onerror="this.parentElement.innerHTML='<div class=&quot;w-full h-full flex items-center justify-center bg-stone-100&quot;><i class=&quot;fas fa-clinic-medical text-5xl text-stone-300&quot;></i></div>'">\`
-          : \`<div class="w-full h-full flex items-center justify-center bg-stone-100"><i class="fas fa-clinic-medical text-5xl text-stone-300"></i></div>\`}
-        <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
-        \${full ? '<div class="absolute inset-0 bg-black/55 flex items-center justify-center"><span class="bg-white/20 backdrop-blur text-white text-xs font-bold px-4 py-1.5 rounded-full border border-white/30 tracking-wide">FULLY BOOKED</span></div>' : ''}
-
-        <!-- Top-left: category + rating side by side -->
-        <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-          <span class="pill text-xs" style="background:\${col.bg};color:\${col.text}">\${c.category}</span>
-          \${c.place_rating ? \`<span class="flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-2 py-0.5"><span class="text-amber-400 text-xs">★</span><span class="text-white text-xs font-semibold">\${c.place_rating}</span></span>\` : ''}
+          ? \`<img src="\${thumb}" alt="\${c.place_name}" loading="lazy" onerror="this.style.display='none'">\`
+          : \`<div class="w-full h-full flex items-center justify-center"><i class="fas fa-clinic-medical text-5xl text-stone-300"></i></div>\`}
+        <!-- Gradient -->
+        <div class="absolute inset-0" style="background:linear-gradient(to bottom, rgba(0,0,0,.0) 40%, rgba(0,0,0,.62) 100%)"></div>
+        <!-- Fully booked overlay -->
+        \${full ? '<div class="absolute inset-0 flex items-center justify-center" style="background:rgba(0,0,0,.52)"><span style="border:1px solid rgba(255,255,255,.3);color:#fff;font-size:11px;font-weight:700;letter-spacing:2px;padding:6px 18px;border-radius:99px;backdrop-filter:blur(6px);">FULLY BOOKED</span></div>' : ''}
+        <!-- Top badges -->
+        <div class="absolute top-3 left-3 flex items-center gap-1.5">
+          \${catPill}
+          \${c.place_rating ? \`<span class="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-white" style="background:rgba(0,0,0,.45);backdrop-filter:blur(6px)"><span style="color:#f59e0b">★</span>\${c.place_rating}</span>\` : ''}
         </div>
-
-        <!-- Bottom of image: place name + maps link -->
-        <div class="absolute bottom-0 left-0 right-0 px-3 pb-2.5 flex items-end justify-between">
-          <p class="text-white text-xs font-medium drop-shadow truncate max-w-[70%]">
-            <i class="fas fa-location-dot text-red-400 mr-1"></i>\${c.place_name}
-          </p>
-          \${mapsUrl ? \`<a href="\${mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex items-center gap-1 bg-white/20 hover:bg-white/35 backdrop-blur-sm border border-white/30 rounded-full px-2.5 py-1 text-white text-xs font-medium transition-colors whitespace-nowrap">
-            <i class="fas fa-map text-xs"></i> Map
-          </a>\` : ''}
+        <!-- Bottom: place + map btn -->
+        <div class="absolute bottom-0 left-0 right-0 px-4 pb-3.5 flex items-end justify-between">
+          <div class="text-white">
+            <p class="text-[11px] text-white/70 mb-0.5"><i class="fas fa-location-dot text-red-400 mr-1"></i>\${c.place_name}</p>
+            <h3 class="text-base font-semibold leading-snug" style="font-family:'Cormorant Garamond',serif;letter-spacing:.2px;">\${c.title}</h3>
+          </div>
+          \${mapsUrl ? \`<a href="\${mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex-shrink-0 ml-3 flex items-center gap-1.5 text-white text-[11px] font-medium rounded-full px-3 py-1.5 border transition-colors" style="border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.12);backdrop-filter:blur(8px);" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'"><i class="fas fa-map-location-dot text-xs"></i>Map</a>\` : ''}
         </div>
       </div>
 
-      <div class="p-4 flex flex-col flex-1">
-        <h3 class="font-semibold text-gray-900 text-sm mb-2.5 line-clamp-2 leading-snug flex-1">\${c.title}</h3>
-        \${c.benefits ? \`<p class="text-xs text-stone-500 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-3 line-clamp-1"><i class="fas fa-gift text-amber-500 mr-1.5"></i>\${c.benefits}</p>\` : ''}
+      <!-- Body -->
+      <div class="px-5 py-4 flex flex-col flex-1">
+        <!-- Description -->
+        <p class="text-[13px] text-gray-500 leading-relaxed mb-3 line-clamp-2">\${shortDesc}</p>
 
-        <!-- Spots progress -->
-        <div class="space-y-1.5 mb-3">
-          <div class="flex justify-between items-center text-xs">
-            <span class="text-gray-400">\${c.current_participants}/\${c.max_participants} applicants</span>
-            <span class="font-semibold spot-badge \${full ? 'text-red-400' : spotsLeft <= 3 ? 'text-orange-500' : 'text-amber-600'}">
-              \${full ? '🔴 Full' : spotsLeft <= 3 ? '🟡 ' + spotsLeft + ' left' : '🟢 ' + spotsLeft + ' spots'}
-            </span>
-          </div>
-          <div class="progress-bar"><div class="progress-fill" style="width:\${pct}%"></div></div>
-        </div>
+        <!-- Benefits -->
+        \${c.benefits ? \`<div class="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5 mb-4">
+          <i class="fas fa-gift text-amber-400 text-xs mt-0.5 flex-shrink-0"></i>
+          <p class="text-xs text-amber-800 leading-relaxed line-clamp-2">\${c.benefits}</p>
+        </div>\` : ''}
 
-        <!-- Footer: deadline + apply button -->
-        <div class="flex items-center justify-between pt-1">
-          <div class="flex items-center gap-1">
-            <i class="far fa-calendar text-amber-400 text-xs"></i>
-            \${deadlineHtml}
+        <!-- Footer row -->
+        <div class="flex items-center justify-between mt-auto pt-2 border-t border-stone-100">
+          <div class="flex items-center gap-1.5 text-xs text-gray-400">
+            <i class="far fa-calendar text-amber-400"></i>
+            \${dlBadge}
           </div>
-          <button onclick="event.stopPropagation(); openApply(\${c.id})" \${full ? 'disabled' : ''} class="\${full ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'btn-gold'} px-4 py-1.5 rounded-xl text-xs font-semibold transition-all">
+          <button onclick="event.stopPropagation(); openApply(\${c.id})" \${full ? 'disabled' : ''} class="btn-gold px-5 py-2 rounded-xl text-xs font-semibold">
             \${full ? 'Full' : 'Apply Now'}
           </button>
         </div>
@@ -597,112 +593,95 @@ function render(list) {
 }
 
 function filterBy(cat) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.f === cat))
+  document.querySelectorAll('.f-btn').forEach(b => b.classList.toggle('active', b.dataset.f === cat))
   render(cat === 'all' ? allCampaigns : allCampaigns.filter(c => c.category === cat))
 }
 
 async function openDetail(id) {
   const { data: c } = await (await fetch('/api/campaigns/' + id)).json()
-  const full      = c.current_participants >= c.max_participants
-  const pct       = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
-  const thumb     = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
-  const spotsLeft = c.max_participants - c.current_participants
-  const mapsUrl   = c.place_id ? \`https://www.google.com/maps/place/?q=place_id:\${c.place_id}\` : ''
+  const full    = c.current_participants >= c.max_participants
+  const thumb   = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
+  const mapsUrl = c.place_id ? \`https://www.google.com/maps/place/?q=place_id:\${c.place_id}\` : ''
 
-  // Deadline display
-  let deadlineDisplay = 'Open'
+  let dlText = 'Open'
   if (c.deadline) {
     const dlDate   = new Date(c.deadline)
     const today    = new Date(); today.setHours(0,0,0,0)
     const daysLeft = Math.ceil((dlDate - today) / 86400000)
     const dlFmt    = dlDate.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
-    if (daysLeft < 0)       deadlineDisplay = 'Closed'
-    else if (daysLeft === 0) deadlineDisplay = \`⚡ Last day! (\${dlFmt})\`
-    else if (daysLeft <= 7) deadlineDisplay = \`⚡ \${daysLeft} days left (\${dlFmt})\`
-    else                    deadlineDisplay = dlFmt
+    if (daysLeft < 0)        dlText = 'Closed'
+    else if (daysLeft === 0) dlText = \`Last day! (\${dlFmt})\`
+    else if (daysLeft <= 7)  dlText = \`⚡ \${daysLeft} days left — \${dlFmt}\`
+    else                     dlText = dlFmt
   }
 
   document.getElementById('detailContent').innerHTML = \`
-    <div class="relative">
-      <div class="h-56 bg-stone-100">
-        \${thumb ? \`<img src="\${thumb}" class="w-full h-full object-cover">\` : \`<div class="w-full h-full flex items-center justify-center bg-stone-100"><i class="fas fa-clinic-medical text-6xl text-stone-300"></i></div>\`}
-        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-        <button onclick="closeDetail()" class="absolute top-4 right-4 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition">
-          <i class="fas fa-times text-sm"></i>
-        </button>
-        <div class="absolute bottom-4 left-5 right-5 flex items-end justify-between">
-          <div class="text-white">
-            <p class="text-xs text-white/70 mb-1"><i class="fas fa-map-marker-alt mr-1 text-red-400"></i>\${c.place_name}</p>
-            <h2 class="font-bold text-xl leading-tight">\${c.title}</h2>
-          </div>
-          \${mapsUrl ? \`<a href="\${mapsUrl}" target="_blank" rel="noopener" class="flex-shrink-0 flex items-center gap-1.5 bg-white/20 hover:bg-white/35 backdrop-blur-sm border border-white/30 rounded-full px-3 py-1.5 text-white text-xs font-medium transition-colors">
-            <i class="fas fa-map-location-dot"></i> Open in Maps
-          </a>\` : ''}
-        </div>
+    <!-- Hero image -->
+    <div class="relative h-64">
+      \${thumb
+        ? \`<img src="\${thumb}" class="w-full h-full object-cover">\`
+        : \`<div class="w-full h-full flex items-center justify-center bg-stone-100"><i class="fas fa-clinic-medical text-6xl text-stone-300"></i></div>\`}
+      <div class="absolute inset-0" style="background:linear-gradient(to bottom,transparent 30%,rgba(0,0,0,.75) 100%)"></div>
+      <button onclick="closeDetail()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-white text-sm transition" style="background:rgba(0,0,0,.4);backdrop-filter:blur(6px)">×</button>
+      <div class="absolute bottom-0 left-0 right-0 px-6 pb-5">
+        <p class="text-white/70 text-xs mb-1.5"><i class="fas fa-location-dot text-red-400 mr-1"></i>\${c.place_name}</p>
+        <h2 class="serif text-2xl font-semibold text-white leading-snug">\${c.title}</h2>
       </div>
     </div>
-    <div class="p-6 space-y-4">
-      <!-- Info pills row -->
+
+    <!-- Content -->
+    <div class="px-6 py-6 space-y-5">
+
+      <!-- Pills row -->
       <div class="flex flex-wrap gap-2">
-        <span class="pill bg-stone-100 text-stone-600">\${c.category}</span>
-        \${c.place_rating ? \`<span class="pill bg-amber-50 text-amber-700"><i class="fas fa-star text-amber-400 mr-0.5"></i>\${c.place_rating} Rating</span>\` : ''}
-        <span class="pill \${full ? 'bg-red-50 text-red-600' : spotsLeft <= 3 ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-700'}">
-          \${full ? '🔴 Fully Booked' : spotsLeft <= 3 ? '🟡 ' + spotsLeft + ' spots left' : '🟢 ' + spotsLeft + ' spots open'}
-        </span>
+        \${c.category === 'Clinic' ? '<span class="pill pill-clinic">Clinic</span>' : '<span class="pill pill-beauty">Beauty Shop</span>'}
+        \${c.place_rating ? \`<span class="pill" style="background:#fef9ee;color:#92620a"><i class="fas fa-star text-amber-400 mr-1 text-xs"></i>\${c.place_rating} · Verified</span>\` : ''}
       </div>
 
-      <!-- Address + Maps link -->
-      \${c.place_address ? \`<div class="flex items-start gap-2 bg-stone-50 rounded-xl px-4 py-3">
-        <i class="fas fa-location-dot text-red-400 mt-0.5 flex-shrink-0"></i>
+      <!-- Address + map -->
+      \${c.place_address ? \`
+      <div class="flex items-start gap-3 rounded-xl px-4 py-3" style="background:#f8f7f5;border:1px solid #ede9e2;">
+        <i class="fas fa-location-dot text-red-400 text-sm mt-0.5 flex-shrink-0"></i>
         <div class="flex-1 min-w-0">
-          <p class="text-sm text-gray-700">\${c.place_address}</p>
-          \${mapsUrl ? \`<a href="\${mapsUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 mt-1 font-medium"><i class="fas fa-external-link-alt"></i> View on Google Maps</a>\` : ''}
+          <p class="text-sm text-gray-700 leading-relaxed">\${c.place_address}</p>
+          \${mapsUrl ? \`<a href="\${mapsUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-700 font-medium mt-1.5"><i class="fas fa-arrow-up-right-from-square text-[10px]"></i>Open in Google Maps</a>\` : ''}
         </div>
       </div>\` : ''}
 
-      <!-- Progress bar -->
-      <div>
-        <div class="flex justify-between text-xs mb-1.5">
-          <span class="text-gray-400">\${c.current_participants} of \${c.max_participants} spots filled</span>
-          <span class="font-semibold \${full ? 'text-red-400' : 'text-amber-600'}">\${pct}%</span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill" style="width:\${pct}%"></div></div>
-      </div>
-
       <!-- Description -->
-      \${c.description ? \`<p class="text-sm text-gray-600 leading-relaxed">\${c.description}</p>\` : ''}
+      \${c.description ? \`<p class="text-[14px] text-gray-600 leading-[1.75]">\${c.description}</p>\` : ''}
 
       <!-- Benefits -->
-      \${c.benefits ? \`<div class="bg-amber-50 border border-amber-100 rounded-xl p-4">
-        <p class="text-xs font-semibold text-amber-800 mb-1.5"><i class="fas fa-gift mr-1.5"></i>What You Get</p>
-        <p class="text-sm text-amber-900">\${c.benefits}</p>
+      \${c.benefits ? \`
+      <div class="rounded-xl p-4" style="background:#fdf8ef;border:1px solid #e8d9bf;">
+        <p class="text-[11px] font-bold text-amber-700 uppercase tracking-wider mb-2"><i class="fas fa-gift mr-1.5"></i>What You Receive</p>
+        <p class="text-sm text-amber-900 leading-relaxed">\${c.benefits}</p>
       </div>\` : ''}
 
       <!-- Requirements -->
-      \${c.requirements ? \`<div class="bg-stone-50 rounded-xl p-4">
-        <p class="text-xs font-semibold text-stone-500 mb-1.5"><i class="fas fa-circle-check mr-1.5"></i>Requirements</p>
-        <p class="text-sm text-stone-600">\${c.requirements}</p>
+      \${c.requirements ? \`
+      <div class="rounded-xl p-4" style="background:#f8f7f5;border:1px solid #ede9e2;">
+        <p class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2"><i class="fas fa-circle-check mr-1.5"></i>Requirements</p>
+        <p class="text-sm text-gray-600 leading-relaxed">\${c.requirements}</p>
       </div>\` : ''}
 
       <!-- Deadline -->
-      <div class="flex items-center gap-2 text-xs pb-1 \${c.deadline && Math.ceil((new Date(c.deadline)-new Date().setHours(0,0,0,0))/86400000)<=7 ? 'text-orange-500 font-semibold' : 'text-gray-400'}">
-        <i class="far fa-calendar \${c.deadline && Math.ceil((new Date(c.deadline)-new Date().setHours(0,0,0,0))/86400000)<=7 ? 'text-orange-400' : 'text-amber-400'}"></i>
-        Application deadline: <span class="font-medium">\${deadlineDisplay}</span>
-      </div>
+      <p class="text-xs text-gray-400 flex items-center gap-2"><i class="far fa-calendar text-amber-400"></i>Application deadline: <span class="font-medium text-gray-600">\${dlText}</span></p>
 
       <!-- CTA -->
       \${!full
-        ? \`<button onclick="closeDetail(); openApply(\${c.id})" class="btn-gold w-full py-3 rounded-xl text-sm font-semibold">Apply Now — Free!</button>\`
-        : \`<div class="w-full bg-stone-100 text-stone-400 font-semibold py-3 rounded-xl text-sm text-center">This program is fully booked</div>\`}
+        ? \`<button onclick="closeDetail(); openApply(\${c.id})" class="btn-gold w-full py-3.5 rounded-xl text-sm font-semibold tracking-wide">Apply Now — It's Free</button>\`
+        : \`<div class="w-full text-center py-3.5 rounded-xl text-sm font-medium text-gray-400" style="background:#f3f4f6">This program is fully booked</div>\`}
     </div>\`
-  document.getElementById('detailModal').classList.add('active')
+
+  document.getElementById('detailModal').classList.add('open')
 }
-function closeDetail() { document.getElementById('detailModal').classList.remove('active') }
+function closeDetail() { document.getElementById('detailModal').classList.remove('open') }
 
 async function openApply(id) {
   const { data: c } = await (await fetch('/api/campaigns/' + id)).json()
   document.getElementById('applyCapId').value = id
-  document.getElementById('applySubtitle').textContent = c.place_name + ' · ' + c.title
+  document.getElementById('applySubtitle').textContent = c.place_name + '  ·  ' + c.title
   document.getElementById('applyErr').classList.add('hidden')
   document.getElementById('applyOk').classList.add('hidden')
   document.getElementById('applyForm').reset()
@@ -711,9 +690,9 @@ async function openApply(id) {
   renderDateChips()
   document.getElementById('dateInput').min = new Date().toISOString().split('T')[0]
   document.getElementById('timeInput').value = '10:00'
-  document.getElementById('applyModal').classList.add('active')
+  document.getElementById('applyModal').classList.add('open')
 }
-function closeApply() { document.getElementById('applyModal').classList.remove('active') }
+function closeApply() { document.getElementById('applyModal').classList.remove('open') }
 
 function addDate() {
   const dateVal = document.getElementById('dateInput').value
@@ -727,29 +706,22 @@ function addDate() {
   renderDateChips()
   document.getElementById('dateInput').value = ''
 }
-function removeDate(key) {
-  selectedDates = selectedDates.filter(x => x.key !== key)
-  renderDateChips()
-}
+function removeDate(key) { selectedDates = selectedDates.filter(x => x.key !== key); renderDateChips() }
 function fmtTime(t) {
-  const [hStr, mStr] = t.split(':')
-  let h = parseInt(hStr), m = mStr
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  if (h > 12) h -= 12
-  if (h === 0) h = 12
-  return h + ':' + m + ' ' + ampm
+  const [h,m] = t.split(':').map(Number)
+  const ap = h >= 12 ? 'PM' : 'AM'
+  return (h > 12 ? h-12 : h || 12) + ':' + String(m).padStart(2,'0') + ' ' + ap
 }
 function renderDateChips() {
   const el = document.getElementById('dateChips')
   el.innerHTML = selectedDates.map(({ key, date, time }) => {
-    const dateFmt = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
-    const escapedKey = key.replace(/'/g, "\\\\'")
-    return \`<span class="date-chip"><i class="far fa-clock text-amber-500 text-xs"></i>\${dateFmt} \${fmtTime(time)}<button type="button" onclick="removeDate('\${escapedKey}')" aria-label="remove">×</button></span>\`
+    const fmt = new Date(date + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+    const ek  = key.replace(/'/g,"\\'")
+    return \`<span class="chip"><i class="far fa-clock text-amber-500 text-[10px]"></i>\${fmt} \${fmtTime(time)}<button type="button" onclick="removeDate('\${ek}')">×</button></span>\`
   }).join('')
-  document.getElementById('fDates').value = selectedDates.map(x => {
-    const dateFmt = new Date(x.date + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
-    return dateFmt + ' ' + fmtTime(x.time)
-  }).join(' / ')
+  document.getElementById('fDates').value = selectedDates.map(x =>
+    new Date(x.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + ' ' + fmtTime(x.time)
+  ).join(' / ')
 }
 
 document.getElementById('applyForm').addEventListener('submit', async e => {
@@ -757,7 +729,7 @@ document.getElementById('applyForm').addEventListener('submit', async e => {
   const errEl = document.getElementById('applyErr')
   const okEl  = document.getElementById('applyOk')
   errEl.classList.add('hidden'); okEl.classList.add('hidden')
-  if (selectedDates.length === 0) {
+  if (!selectedDates.length) {
     errEl.textContent = 'Please add at least one available date & time.'
     errEl.classList.remove('hidden'); return
   }
@@ -768,20 +740,16 @@ document.getElementById('applyForm').addEventListener('submit', async e => {
     email: document.getElementById('fEmail').value.trim(),
     phone: document.getElementById('fPhone').value.trim(),
     instagram: document.getElementById('fInsta').value.trim().replace(/^@/,''),
-    preferred_dates: selectedDates.map(x => {
-      const dateFmt = new Date(x.date + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
-      return dateFmt + ' ' + fmtTime(x.time)
-    }).join(' / '),
+    preferred_dates: document.getElementById('fDates').value,
     message: document.getElementById('fMsg').value.trim(),
   }
   const btn = e.target.querySelector('button[type=submit]')
-  btn.disabled = true; btn.textContent = 'Submitting...'
+  btn.disabled = true; btn.textContent = 'Submitting…'
   try {
-    const res  = await fetch('/api/apply', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+    const res  = await fetch('/api/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     const data = await res.json()
     if (data.success) {
-      okEl.innerHTML = '✅ ' + data.message
-      okEl.classList.remove('hidden')
+      okEl.innerHTML = '✅ ' + data.message; okEl.classList.remove('hidden')
       btn.textContent = 'Done!'
       setTimeout(() => { closeApply(); loadCampaigns() }, 2200)
     } else {
@@ -790,20 +758,17 @@ document.getElementById('applyForm').addEventListener('submit', async e => {
     }
   } catch {
     errEl.textContent = 'Network error. Please try again.'
-    errEl.classList.remove('hidden')
-    btn.disabled = false; btn.textContent = 'Submit Application'
+    errEl.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Submit Application'
   }
 })
 
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active') })
-})
-
+document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open') }))
 loadCampaigns()
 </script>
 </body>
 </html>`
 }
+
 
 // ════════════════════════════════════════════
 // ADMIN LOGIN
