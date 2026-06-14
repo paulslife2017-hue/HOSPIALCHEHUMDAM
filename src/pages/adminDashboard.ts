@@ -1066,6 +1066,164 @@ async function testTelegram() {
 }
 
 // ════════════════════════════════════════════
+// 7-1. Edit Campaign 함수
+// ════════════════════════════════════════════
+function openEditCamp(c) {
+  document.getElementById('ec_id').value       = c.id
+  document.getElementById('ec_title').value    = c.title || ''
+  document.getElementById('ec_category').value = c.category || 'Clinic'
+  // Description
+  document.getElementById('ec_desc').value       = c.description || ''
+  document.getElementById('ec_desc_final').value = c.description || ''
+  document.getElementById('ec_desc_en').textContent = ''
+  document.getElementById('ec_desc_translated').classList.add('hidden')
+  // Benefits
+  document.getElementById('ec_benefits').value  = c.benefits || ''
+  document.getElementById('ec_ben_final').value  = c.benefits || ''
+  document.getElementById('ec_ben_en').textContent = ''
+  document.getElementById('ec_ben_translated').classList.add('hidden')
+  // Requirements
+  document.getElementById('ec_req').value        = c.requirements || ''
+  document.getElementById('ec_req_final').value  = c.requirements || ''
+  document.getElementById('ec_req_en').textContent = ''
+  document.getElementById('ec_req_translated').classList.add('hidden')
+  // 서브타이틀 & 피드백 초기화
+  document.getElementById('editCampSubtitle').textContent = (c.place_name || '') + (c.title ? ' · ' + c.title : '')
+  document.getElementById('editCampErr').classList.add('hidden')
+  document.getElementById('editCampOk').classList.add('hidden')
+  document.getElementById('editCampModal').classList.add('open')
+}
+
+function closeEditCamp() {
+  document.getElementById('editCampModal').classList.remove('open')
+}
+
+// 한글 감지 — Description
+function onEcDescInput() {
+  const val = document.getElementById('ec_desc').value
+  const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
+  if (!hasKorean) {
+    document.getElementById('ec_desc_translated').classList.add('hidden')
+    document.getElementById('ec_desc_final').value = val
+  }
+}
+
+// 한글 감지 — Benefits
+function onEcBenInput() {
+  const val = document.getElementById('ec_benefits').value
+  const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
+  if (!hasKorean) {
+    document.getElementById('ec_ben_translated').classList.add('hidden')
+    document.getElementById('ec_ben_final').value = val
+  }
+}
+
+// 한글 감지 — Requirements
+function onEcReqInput() {
+  const val = document.getElementById('ec_req').value
+  const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
+  if (!hasKorean) {
+    document.getElementById('ec_req_translated').classList.add('hidden')
+    document.getElementById('ec_req_final').value = val
+  }
+}
+
+// MyMemory 번역 공통 헬퍼
+async function _ecTranslate(inputId, enSpanId, finalId, previewId, btn) {
+  const val = document.getElementById(inputId).value.trim()
+  if (!val) return
+  const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
+  if (!hasKorean) {
+    document.getElementById(finalId).value = val
+    document.getElementById(previewId).classList.add('hidden')
+    return
+  }
+  const origText = btn.textContent
+  btn.textContent = '...'
+  btn.disabled = true
+  try {
+    const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(val) + '&langpair=ko|en'
+    const data = await (await fetch(url)).json()
+    const translated = data.responseData?.translatedText || val
+    document.getElementById(enSpanId).textContent = translated
+    document.getElementById(finalId).value = translated
+    document.getElementById(previewId).classList.remove('hidden')
+  } catch {
+    document.getElementById(finalId).value = val
+  }
+  btn.textContent = origText
+  btn.disabled = false
+}
+
+async function translateEcDesc() {
+  await _ecTranslate('ec_desc', 'ec_desc_en', 'ec_desc_final', 'ec_desc_translated', event.target)
+}
+
+async function translateEcBen() {
+  await _ecTranslate('ec_benefits', 'ec_ben_en', 'ec_ben_final', 'ec_ben_translated', event.target)
+}
+
+async function translateEcReq() {
+  await _ecTranslate('ec_req', 'ec_req_en', 'ec_req_final', 'ec_req_translated', event.target)
+}
+
+// Edit Campaign submit
+document.getElementById('editCampForm').addEventListener('submit', async e => {
+  e.preventDefault()
+  const errEl = document.getElementById('editCampErr')
+  const okEl  = document.getElementById('editCampOk')
+  errEl.classList.add('hidden')
+  okEl.classList.add('hidden')
+
+  const id = document.getElementById('ec_id').value
+  if (!id) { errEl.textContent = 'Campaign ID missing.'; errEl.classList.remove('hidden'); return }
+
+  const btn = e.target.querySelector('button[type=submit]')
+  btn.disabled = true
+  btn.textContent = '저장 중…'
+
+  const body = {
+    title:        document.getElementById('ec_title').value.trim(),
+    category:     document.getElementById('ec_category').value,
+    description:  (document.getElementById('ec_desc_final').value || document.getElementById('ec_desc').value).trim(),
+    benefits:     (document.getElementById('ec_ben_final').value  || document.getElementById('ec_benefits').value).trim(),
+    requirements: (document.getElementById('ec_req_final').value  || document.getElementById('ec_req').value).trim(),
+  }
+
+  try {
+    const res  = await fetch('/api/admin/campaigns/' + id, { method:'PATCH', headers:H, body: JSON.stringify(body) })
+    const data = await res.json()
+    if (data.success) {
+      okEl.textContent = '✅ 저장되었습니다!'
+      okEl.classList.remove('hidden')
+      btn.textContent = '저장됨!'
+      setTimeout(() => {
+        closeEditCamp()
+        loadCamps()
+        loadStats()
+        btn.disabled = false
+        btn.textContent = '저장'
+      }, 1200)
+    } else {
+      errEl.textContent = data.error || 'Failed to update.'
+      errEl.classList.remove('hidden')
+      btn.disabled = false
+      btn.textContent = '저장'
+    }
+  } catch {
+    errEl.textContent = 'Network error'
+    errEl.classList.remove('hidden')
+    btn.disabled = false
+    btn.textContent = '저장'
+  }
+})
+
+// editCampModal 배경 클릭 닫기
+document.getElementById('editCampModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('editCampModal')) closeEditCamp()
+})
+
+// ════════════════════════════════════════════
 // 8. 이벤트 리스너 & 초기화
 // ════════════════════════════════════════════
 document.getElementById('appModal').addEventListener('click', e => {
