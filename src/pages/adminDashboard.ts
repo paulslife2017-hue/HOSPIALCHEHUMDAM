@@ -20,8 +20,9 @@ export function adminDashboardHTML(): string {
     .badge-pending {background:#fef9c3;color:#854d0e;}
     .badge-approved{background:#dcfce7;color:#166534;}
     .badge-rejected{background:#fee2e2;color:#991b1b;}
-    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;backdrop-filter:blur(4px);align-items:center;justify-content:center;}
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;}
     .modal-bg.open{display:flex;}
+    .modal-bg .sheet{max-height:90vh;overflow-y:auto;}
     input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a035!important;box-shadow:0 0 0 3px rgba(201,160,53,.12)!important;}
     .btn-gold{background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;font-weight:600;border:none;cursor:pointer;transition:all .2s;}
     .btn-gold:hover{background:linear-gradient(135deg,#b5900a,#d4aa50);}
@@ -533,7 +534,7 @@ async function loadApps() {
         </td>
         <td class="px-4 py-3.5">
           \${a.instagram
-            ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-sm text-pink-500 font-semibold hover:underline">@\${a.instagram}</a>\`
+            ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="inline-flex items-center gap-1 text-xs text-pink-500 font-semibold hover:text-pink-700 hover:underline"><i class="fab fa-instagram"></i>@\${a.instagram}<i class="fas fa-arrow-up-right-from-square text-[8px] opacity-60"></i></a>\`
             : '<span class="text-xs text-gray-300">—</span>'}
         </td>
         <td class="px-4 py-3.5 hidden lg:table-cell">
@@ -563,66 +564,121 @@ async function setStatus(id, status) {
   await fetch('/api/admin/applications/' + id, { method:'PATCH', headers:H, body: JSON.stringify({ status }) })
   loadApps()
   loadStats()
+  // 승인 시 → 달력 탭 자동 이동
+  if (status === 'approved') {
+    setTimeout(() => { showTab('cal'); loadCalData() }, 400)
+  }
+}
+
+function buildClinicMsg(a) {
+  const dates = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
+  const dateLines = dates.length ? dates.map(function(d,i){ return (i+1) + '. ' + d }).join('\\n') : 'TBD'
+  return 'Hello, this is Seoul Beauty Trip.\\n'
+    + 'We have an influencer applicant for your campaign.\\n\\n'
+    + 'Name: ' + a.applicant_name + '\\n'
+    + 'Nationality: ' + a.nationality + '\\n'
+    + 'Email: ' + a.email + '\\n'
+    + (a.phone ? 'WhatsApp: ' + a.phone + '\\n' : '')
+    + (a.instagram ? 'Instagram: @' + a.instagram + '  (instagram.com/' + a.instagram + ')\\n' : '')
+    + '\\nPreferred Visit Dates:\\n' + dateLines + '\\n'
+    + (a.message ? '\\nNote: ' + a.message + '\\n' : '')
+    + '\\nPlease confirm one of the available dates directly with the applicant.\\nThank you!'
+}
+
+function copyToClipboard(text, btnEl) {
+  navigator.clipboard.writeText(text).then(function() {
+    const orig = btnEl.innerHTML
+    btnEl.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!'
+    btnEl.style.background = '#16a34a'
+    setTimeout(function() { btnEl.innerHTML = orig; btnEl.style.background = '' }, 2000)
+  })
 }
 
 function openAppDetail(a) {
   const dates    = (a.preferred_dates || '').split('/').map(d => d.trim()).filter(Boolean)
   const dateHtml = dates.map(d =>
     \`<div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0">
-      <i class="far fa-clock text-amber-400 text-xs w-4"></i>
+      <i class="far fa-clock text-amber-400 text-xs w-4 flex-shrink-0"></i>
       <span class="text-sm text-gray-700">\${d}</span>
     </div>\`
   ).join('')
+  const clinicMsg = buildClinicMsg(a)
+  const instaUrl  = a.instagram ? 'https://instagram.com/' + a.instagram : ''
   document.getElementById('appModalContent').innerHTML = \`
-    <div class="flex items-center justify-between mb-5">
-      <h3 class="font-bold text-gray-900">Applicant Detail</h3>
-      <button onclick="document.getElementById('appModal').classList.remove('open')" class="text-gray-300 hover:text-gray-500 text-lg leading-none">×</button>
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-gray-900 text-base">Applicant Detail</h3>
+      <button onclick="document.getElementById('appModal').classList.remove('open')" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-gray-400 flex items-center justify-center text-xl leading-none">×</button>
     </div>
-    <div class="space-y-3 text-sm">
-      <div class="grid grid-cols-2 gap-2">
-        <div class="bg-stone-50 rounded-xl p-3">
-          <p class="text-xs text-gray-400 mb-0.5">Full Name</p>
-          <p class="font-semibold">\${a.applicant_name}</p>
-        </div>
-        <div class="bg-stone-50 rounded-xl p-3">
-          <p class="text-xs text-gray-400 mb-0.5">Nationality</p>
-          <p class="font-semibold">\${a.nationality}</p>
-        </div>
-        <div class="bg-stone-50 rounded-xl p-3">
-          <p class="text-xs text-gray-400 mb-0.5">Email</p>
-          <p class="font-semibold text-blue-600 text-xs break-all">\${a.email}</p>
-        </div>
-        <div class="bg-stone-50 rounded-xl p-3">
-          <p class="text-xs text-gray-400 mb-0.5"><i class="fab fa-whatsapp text-green-500 mr-1"></i>WhatsApp</p>
-          <p class="font-semibold text-xs">\${a.phone || '—'}</p>
-        </div>
+
+    <div class="grid grid-cols-2 gap-2 mb-3">
+      <div class="bg-stone-50 rounded-xl p-3">
+        <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Full Name</p>
+        <p class="font-bold text-sm text-gray-900">\${a.applicant_name}</p>
       </div>
-      <div class="bg-pink-50 rounded-xl p-3 flex items-center gap-3">
-        <i class="fab fa-instagram text-pink-500 text-2xl"></i>
+      <div class="bg-stone-50 rounded-xl p-3">
+        <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Nationality</p>
+        <p class="font-bold text-sm text-gray-900">\${a.nationality || '—'}</p>
+      </div>
+    </div>
+
+    <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3">
+      <p class="text-[10px] font-semibold text-blue-500 uppercase tracking-wide mb-2">Contact</p>
+      <div class="space-y-1.5">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-envelope text-blue-400 w-4 text-xs flex-shrink-0"></i>
+          <a href="mailto:\${a.email}" class="text-xs font-semibold text-blue-700 hover:underline break-all flex-1">\${a.email}</a>
+          <button onclick="copyToClipboard('\${a.email}',this)" class="text-[10px] px-2 py-0.5 rounded-lg btn-gold flex-shrink-0"><i class="fas fa-copy mr-0.5"></i>Copy</button>
+        </div>
+        \${a.phone ? \`<div class="flex items-center gap-2">
+          <i class="fab fa-whatsapp text-green-500 w-4 text-xs flex-shrink-0"></i>
+          <a href="https://wa.me/\${a.phone.replace(/[^0-9]/g,'')}" target="_blank" class="text-xs font-semibold text-green-700 hover:underline flex-1">\${a.phone}</a>
+          <button onclick="copyToClipboard('\${a.phone}',this)" class="text-[10px] px-2 py-0.5 rounded-lg btn-gold flex-shrink-0"><i class="fas fa-copy mr-0.5"></i>Copy</button>
+        </div>\` : ''}
+      </div>
+    </div>
+
+    <div class="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-100 rounded-xl p-3 mb-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <i class="fab fa-instagram text-pink-500 text-xl"></i>
         <div>
-          <p class="text-xs text-gray-400 mb-0.5">Instagram</p>
-          \${a.instagram
-            ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="font-bold text-pink-600 text-base hover:underline">@\${a.instagram}</a>\`
+          <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Instagram</p>
+          \${instaUrl
+            ? \`<a href="\${instaUrl}" target="_blank" class="font-bold text-pink-600 text-sm hover:underline">@\${a.instagram} <i class="fas fa-arrow-up-right-from-square text-[9px]"></i></a>\`
             : '<span class="text-gray-400 text-xs">—</span>'}
         </div>
       </div>
-      <div class="bg-amber-50 rounded-xl p-3">
-        <p class="text-xs font-semibold text-amber-700 mb-2"><i class="far fa-calendar mr-1"></i>Available Dates</p>
-        \${dateHtml || '<p class="text-xs text-gray-400">No dates provided</p>'}
+      \${instaUrl ? \`<a href="\${instaUrl}" target="_blank" class="text-xs px-3 py-1.5 rounded-xl btn-gold flex items-center gap-1 flex-shrink-0"><i class="fab fa-instagram mr-1"></i>Open</a>\` : ''}
+    </div>
+
+    <div class="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-3">
+      <p class="text-[10px] font-semibold text-amber-700 uppercase tracking-wide mb-2"><i class="far fa-calendar mr-1"></i>Available Dates</p>
+      \${dateHtml || '<p class="text-xs text-gray-400">No dates provided</p>'}
+    </div>
+
+    <div class="bg-stone-50 rounded-xl p-3 mb-3">
+      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Campaign</p>
+      <p class="font-semibold text-sm text-gray-900">\${a.campaign_title || '—'}</p>
+      <p class="text-xs text-gray-500">\${a.place_name || ''}</p>
+    </div>
+
+    \${a.message ? \`<div class="bg-stone-50 rounded-xl p-3 mb-3"><p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Message</p><p class="text-sm text-gray-700">\${a.message}</p></div>\` : ''}
+
+    <div class="border-2 border-dashed border-amber-200 rounded-xl p-3 mb-4 bg-amber-50/40">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-[10px] font-bold text-amber-700 uppercase tracking-wide"><i class="fas fa-paper-plane mr-1"></i>Message to Clinic</p>
+        <button onclick="copyToClipboard(document.getElementById('clinicMsgText').value,this)" class="text-[10px] px-2.5 py-1 rounded-lg btn-gold flex items-center gap-1"><i class="fas fa-copy mr-0.5"></i>Copy All</button>
       </div>
-      <div class="bg-stone-50 rounded-xl p-3">
-        <p class="text-xs text-gray-400 mb-0.5">Campaign</p>
-        <p class="font-semibold">\${a.campaign_title || ''}</p>
-        <p class="text-xs text-gray-400">\${a.place_name || ''}</p>
+      <textarea id="clinicMsgText" rows="8" readonly style="width:100%;font-size:11px;line-height:1.6;background:#fff;border:1px solid #fde68a;border-radius:8px;padding:10px;resize:none;font-family:monospace;color:#374151;">\${clinicMsg}</textarea>
+    </div>
+
+    <div class="flex items-center justify-between pt-1">
+      <div>
+        <span class="badge badge-\${a.status} mr-2">\${{ pending:'⏳ Pending', approved:'✅ Approved', rejected:'❌ Rejected' }[a.status]}</span>
+        <span class="text-[10px] text-gray-400">\${new Date(a.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
       </div>
-      \${a.message ? \`<div class="bg-stone-50 rounded-xl p-3"><p class="text-xs text-gray-400 mb-0.5">Message</p><p class="text-sm text-gray-700">\${a.message}</p></div>\` : ''}
-      <p class="text-xs text-gray-400">Applied: \${new Date(a.created_at).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})}</p>
-      <div class="flex items-center justify-between pt-1">
-        <span class="badge badge-\${a.status}">\${{ pending:'Pending', approved:'Approved', rejected:'Rejected' }[a.status]}</span>
-        <div class="flex gap-2">
-          \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved');document.getElementById('appModal').classList.remove('open')" class="bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-green-700">Approve</button>\` : ''}
-          \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');document.getElementById('appModal').classList.remove('open')" class="bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-red-600">Reject</button>\` : ''}
-        </div>
+      <div class="flex gap-2">
+        \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved');document.getElementById('appModal').classList.remove('open')" class="bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-green-700 flex items-center gap-1"><i class="fas fa-check"></i>Approve</button>\` : ''}
+        \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');document.getElementById('appModal').classList.remove('open')" class="bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-red-600 flex items-center gap-1"><i class="fas fa-times"></i>Reject</button>\` : ''}
       </div>
     </div>\`
   document.getElementById('appModal').classList.add('open')
