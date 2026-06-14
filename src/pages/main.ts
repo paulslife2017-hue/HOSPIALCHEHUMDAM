@@ -415,7 +415,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '        <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Available Dates &amp; Times <span style="color:#f87171">*</span></label>\n' +
 '        <p style="font-size:12px;color:#9ca3af;margin-bottom:8px">Add up to 5 slots \u2014 the clinic will confirm one.</p>\n' +
 '        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">\n' +
-'          <input id="dateInput" type="date" style="border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;font-size:14px;flex:1;min-width:130px;font-family:inherit">\n' +
+'          <input id="dateInput" type="text" placeholder="YYYY-MM-DD" maxlength="10" oninput="fmtDateInput(this)" style="border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;font-size:14px;flex:1;min-width:130px;font-family:inherit">\n' +
 '          <select id="timeInput" style="border:1px solid #e5e7eb;border-radius:12px;padding:10px 10px;font-size:14px;background:#fff;font-family:inherit">\n' +
 '            <option value="09:00">9:00 AM</option><option value="09:30">9:30 AM</option>\n' +
 '            <option value="10:00">10:00 AM</option><option value="10:30">10:30 AM</option>\n' +
@@ -697,10 +697,20 @@ export function mainPageHTML(campaigns: any[]): string {
 '}\n' +
 'function closeApply(){ document.getElementById("applyModal").classList.remove("open"); }\n' +
 '\n' +
+'function fmtDateInput(el) {\n' +
+'  var v = el.value.replace(/[^0-9]/g,"");\n' +
+'  if (v.length > 4) v = v.slice(0,4) + "-" + v.slice(4);\n' +
+'  if (v.length > 7) v = v.slice(0,7) + "-" + v.slice(7);\n' +
+'  el.value = v.slice(0,10);\n' +
+'}\n' +
 'function addDate() {\n' +
-'  var dateVal = document.getElementById("dateInput").value;\n' +
+'  var dateVal = document.getElementById("dateInput").value.trim();\n' +
 '  var timeVal = document.getElementById("timeInput").value;\n' +
-'  if (!dateVal) { alert("Please select a date."); return; }\n' +
+'  if (!dateVal) { alert("Please enter a date (YYYY-MM-DD)."); return; }\n' +
+'  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateVal) || isNaN(new Date(dateVal).getTime())) {\n' +
+'    alert("Invalid date. Please enter in YYYY-MM-DD format (e.g. 2025-08-15).");\n' +
+'    return;\n' +
+'  }\n' +
 '  var key = dateVal + "|" + timeVal;\n' +
 '  if (selectedDates.find(function(x){ return x.key === key; })) return;\n' +
 '  if (selectedDates.length >= 5) { alert("You can add up to 5 slots."); return; }\n' +
