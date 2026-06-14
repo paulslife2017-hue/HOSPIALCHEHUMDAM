@@ -694,12 +694,31 @@ async function loadCalData() {
 }
 
 function parseApplicantDates(app) {
-  const lines = (app.preferred_dates || '').split(/[\n,\/]/).map(s => s.trim()).filter(Boolean)
-  const dates = []
-  lines.forEach(line => {
-    const m = line.match(/(\d{4}-\d{2}-\d{2})/)
-    if (m) dates.push({ dateStr: m[1], timeStr: line.replace(m[1], '').trim() })
-  })
+  var raw = (app.preferred_dates || '')
+  var out = ''
+  for (var ci = 0; ci < raw.length; ci++) {
+    var code = raw.charCodeAt(ci)
+    if (code === 10 || code === 13 || raw[ci] === ',') {
+      out += '|'
+    } else {
+      out += raw[ci]
+    }
+  }
+  var lines = out.split('|').map(function(s) { return s.trim() }).filter(Boolean)
+  var dates = []
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i]
+    for (var j = 0; j <= line.length - 10; j++) {
+      var sub = line.slice(j, j + 10)
+      if (sub[4] === '-' && sub[7] === '-') {
+        var y = parseInt(sub.slice(0,4)), mo = parseInt(sub.slice(5,7)), d = parseInt(sub.slice(8,10))
+        if (y > 2000 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+          dates.push({ dateStr: sub, timeStr: line.replace(sub, '').trim() })
+          break
+        }
+      }
+    }
+  }
   return dates
 }
 
