@@ -122,7 +122,6 @@ export function adminDashboardHTML(): string {
     </div>
   </div>
 
-
   <!-- ── Calendar panel ── -->
   <div id="panel-cal" class="hidden">
     <div class="card p-5">
@@ -324,150 +323,39 @@ TELEGRAM_CHAT_ID=123456789</pre>
 </div>
 
 <script>
+// ════════════════════════════════════════════
+// 1. 전역 변수
+// ════════════════════════════════════════════
 const token = sessionStorage.getItem('adminToken')
 if (!token) window.location.href = '/admin'
 const H = { 'Content-Type':'application/json', 'X-Admin-Token': token }
 
-function logout() { sessionStorage.removeItem('adminToken'); window.location.href = '/admin' }
-
-function showTab(t) {
-  ['apps','cal','camps','new','tg'].forEach(id => {
-    document.getElementById('panel-' + id).classList.toggle('hidden', id !== t)
-    const btn = document.getElementById('tab-' + id)
-    btn.classList.toggle('on', id === t)
-  })
-  if (t === 'apps')  { 
-// ── Calendar ──────────────────────────────────
+// 달력 전역 변수
 let calYear  = new Date().getFullYear()
 let calMonth = new Date().getMonth()
 let calApps  = []
 
-function changeMonth(delta) {
-  calMonth += delta
-  if (calMonth > 11) { calMonth = 0; calYear++ }
-  if (calMonth < 0)  { calMonth = 11; calYear-- }
-  renderCal()
+// ════════════════════════════════════════════
+// 2. 탭 / 로그아웃
+// ════════════════════════════════════════════
+function logout() {
+  sessionStorage.removeItem('adminToken')
+  window.location.href = '/admin'
 }
 
-async function loadCalData() {
-  try {
-    const { success, data } = await (await fetch('/api/admin/applications', { headers: H })).json()
-    calApps = success ? data : []
-    renderCal()
-  } catch { calApps = []; renderCal() }
-}
-
-function parseApplicantDates(app) {
-  // preferred_dates: "2025-10-15 10:00 AM\n2025-10-20 2:00 PM" 형식
-  const lines = (app.preferred_dates || '').split(/[\n,\/]/).map(s => s.trim()).filter(Boolean)
-  const dates = []
-  lines.forEach(line => {
-    // YYYY-MM-DD 패턴 추출
-    const m = line.match(/(\d{4}-\d{2}-\d{2})/)
-    if (m) dates.push({ dateStr: m[1], timeStr: line.replace(m[1], '').trim() })
+function showTab(t) {
+  ['apps','cal','camps','new','tg'].forEach(id => {
+    document.getElementById('panel-' + id).classList.toggle('hidden', id !== t)
+    document.getElementById('tab-' + id).classList.toggle('on', id === t)
   })
-  return dates
-}
-
-function renderCal() {
-  const label = document.getElementById('calMonthLabel')
-  const grid  = document.getElementById('calGrid')
-  if (!label || !grid) return
-
-  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
-  label.textContent = monthNames[calMonth] + ' ' + calYear
-
-  const campFilter = document.getElementById('calCamp')?.value || ''
-
-  // 해당 월 신청자 날짜 맵 { 'YYYY-MM-DD': [app,...] }
-  const dayMap = {}
-  calApps.forEach(app => {
-    if (campFilter && String(app.campaign_id) !== campFilter) return
-    parseApplicantDates(app).forEach(({ dateStr }) => {
-      if (!dayMap[dateStr]) dayMap[dateStr] = []
-      dayMap[dateStr].push(app)
-    })
-  })
-
-  const firstDay = new Date(calYear, calMonth, 1).getDay()
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
-  const today = new Date()
-  const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0')
-
-  let html = ''
-  // 빈 칸 (이전 달)
-  for (let i = 0; i < firstDay; i++) {
-    html += '<div class="bg-white min-h-[80px] p-1.5"></div>'
-  }
-  // 날짜 칸
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0')
-    const apps    = dayMap[dateStr] || []
-    const isToday = dateStr === todayStr
-    const hasBk   = apps.length > 0
-
-    const dotColors = ['#c9a035','#3b82f6','#ec4899','#10b981','#f59e0b','#6366f1']
-    const dots = apps.slice(0,5).map((a,i) => {
-      const color = dotColors[i % dotColors.length]
-      const status = a.status === 'approved' ? '#10b981' : a.status === 'rejected' ? '#ef4444' : color
-      return \`<span title="\${a.applicant_name}" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:\${status};margin:0 1px;"></span>\`
-    }).join('')
-
-    html += \`<div class="bg-white min-h-[80px] p-1.5 cursor-pointer hover:bg-amber-50 transition-colors \${isToday ? 'ring-2 ring-amber-400 ring-inset' : ''}" onclick="selectDay('\${dateStr}')">
-      <div class="text-xs font-semibold \${isToday ? 'text-amber-600' : hasBk ? 'text-gray-900' : 'text-gray-400'} mb-1">\${d}</div>
-      \${hasBk ? \`<div class="text-[10px] font-bold text-amber-700 mb-0.5">\${apps.length} appt</div>\` : ''}
-      <div>\${dots}</div>
-    </div>\`
-  }
-  grid.innerHTML = html
-
-  // 오늘 날짜 자동 선택
-  if (dayMap[todayStr]) selectDay(todayStr)
-  else document.getElementById('calDetail').classList.add('hidden')
-}
-
-function selectDay(dateStr) {
-  const campFilter = document.getElementById('calCamp')?.value || ''
-  const apps = calApps.filter(app => {
-    if (campFilter && String(app.campaign_id) !== campFilter) return false
-    return parseApplicantDates(app).some(d => d.dateStr === dateStr)
-  })
-
-  const detail = document.getElementById('calDetail')
-  const title  = document.getElementById('calDetailTitle')
-  const list   = document.getElementById('calDetailList')
-
-  if (!apps.length) { detail.classList.add('hidden'); return }
-
-  const d = new Date(dateStr + 'T00:00:00')
-  title.textContent = d.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) + ' — ' + apps.length + ' appointment' + (apps.length > 1 ? 's' : '')
-  detail.classList.remove('hidden')
-
-  list.innerHTML = apps.map(a => {
-    const timeInfo = parseApplicantDates(a).filter(d => d.dateStr === dateStr).map(d => d.timeStr).join(', ')
-    const badgeCls = a.status === 'approved' ? 'background:#dcfce7;color:#166534' : a.status === 'rejected' ? 'background:#fee2e2;color:#991b1b' : 'background:#fef9c3;color:#854d0e'
-    return \`<div class="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-amber-100 shadow-sm">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">\${a.applicant_name.charAt(0).toUpperCase()}</div>
-        <div>
-          <p class="font-semibold text-sm text-gray-900">\${a.applicant_name}</p>
-          <p class="text-xs text-gray-400">\${a.nationality} · \${timeInfo || 'Time TBD'}</p>
-          <p class="text-xs text-gray-500">\${a.place_name || a.campaign_title || ''}</p>
-        </div>
-      </div>
-      <div class="flex flex-col items-end gap-1.5">
-        <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full" style="\${badgeCls}">\${a.status}</span>
-        \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-[11px] text-pink-500 hover:underline">@\${a.instagram}</a>\` : ''}
-      </div>
-    </div>\`
-  }).join('')
-}
-
-loadStats(); loadApps() }
+  if (t === 'apps')  loadApps()
   if (t === 'camps') loadCamps()
-  if (t === 'cal')   { loadCalData(); }
+  if (t === 'cal')   loadCalData()
 }
 
+// ════════════════════════════════════════════
+// 3. Stats & Applicants
+// ════════════════════════════════════════════
 async function loadStats() {
   try {
     const [ar, cr] = await Promise.all([
@@ -484,7 +372,7 @@ async function loadStats() {
       const cur = sel.value
       sel.innerHTML = '<option value="">All campaigns</option>' +
         camps.data.map(c => \`<option value="\${c.id}" \${cur == c.id ? 'selected' : ''}>\${c.place_name}</option>\`).join('')
-      // calendar clinic filter
+      // 달력 업체 필터 동기화
       const calSel = document.getElementById('calCamp')
       if (calSel) {
         const calCur = calSel.value
@@ -492,8 +380,10 @@ async function loadStats() {
           camps.data.map(c => \`<option value="\${c.id}" \${calCur == c.id ? 'selected' : ''}>\${c.place_name}</option>\`).join('')
       }
     }
-    if (camps.success) document.getElementById('s-camps').textContent = camps.data.filter(c => c.status === 'active').length
-  } catch {}
+    if (camps.success) {
+      document.getElementById('s-camps').textContent = camps.data.filter(c => c.status === 'active').length
+    }
+  } catch(e) { console.error('loadStats error', e) }
 }
 
 async function loadApps() {
@@ -504,46 +394,58 @@ async function loadApps() {
   let url   = '/api/admin/applications?'
   if (cid) url += 'campaign_id=' + cid + '&'
   if (st)  url += 'status=' + st
-  const { success, data } = await (await fetch(url, { headers: H })).json()
-  if (!success || !data.length) {
-    tb.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-xs text-gray-400">No applicants yet</td></tr>'; return
+  try {
+    const { success, data } = await (await fetch(url, { headers: H })).json()
+    if (!success || !data.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-xs text-gray-400">No applicants yet</td></tr>'
+      return
+    }
+    tb.innerHTML = data.map(a => {
+      const dates    = (a.preferred_dates || '').split('/').map(d => d.trim()).filter(Boolean)
+      const dateHtml = dates.map(d => \`<span style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:500;margin:1px;">\${d}</span>\`).join('')
+      return \`<tr class="row-hover transition-colors">
+        <td class="px-5 py-3.5">
+          <p class="font-semibold text-sm text-gray-900">\${a.applicant_name}</p>
+          <p class="text-xs text-gray-400">\${a.nationality}</p>
+          <p class="text-xs text-gray-400">\${a.email}</p>
+          \${a.phone ? \`<p class="text-xs text-gray-400"><i class="fab fa-whatsapp text-green-500 mr-0.5"></i>\${a.phone}</p>\` : ''}
+        </td>
+        <td class="px-4 py-3.5 hidden sm:table-cell">
+          <p class="text-xs font-semibold text-gray-800">\${a.place_name || ''}</p>
+          <p class="text-xs text-gray-400">\${a.campaign_title || ''}</p>
+        </td>
+        <td class="px-4 py-3.5">
+          \${a.instagram
+            ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-sm text-pink-500 font-semibold hover:underline">@\${a.instagram}</a>\`
+            : '<span class="text-xs text-gray-300">—</span>'}
+        </td>
+        <td class="px-4 py-3.5 hidden lg:table-cell">
+          <div class="flex flex-wrap gap-0.5">\${dateHtml || '<span class="text-xs text-gray-300">—</span>'}</div>
+        </td>
+        <td class="px-4 py-3.5">
+          <span class="badge badge-\${a.status}">\${{ pending:'Pending', approved:'Approved', rejected:'Rejected' }[a.status] || a.status}</span>
+        </td>
+        <td class="px-4 py-3.5 text-center">
+          <div class="flex items-center justify-center gap-1">
+            <button onclick='openAppDetail(\${JSON.stringify(a).replace(/"/g,"&quot;")})' class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-amber-50 text-gray-500 hover:text-amber-600 flex items-center justify-center text-xs transition" title="Detail">
+              <i class="fas fa-eye"></i>
+            </button>
+            \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved')" class="w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center text-xs transition" title="Approve"><i class="fas fa-check"></i></button>\` : ''}
+            \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center text-xs transition" title="Reject"><i class="fas fa-times"></i></button>\` : ''}
+          </div>
+        </td>
+      </tr>\`
+    }).join('')
+  } catch(e) {
+    tb.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-xs text-gray-400">Error loading data</td></tr>'
+    console.error('loadApps error', e)
   }
-  tb.innerHTML = data.map(a => {
-    const dates    = (a.preferred_dates || '').split('/').map(d => d.trim()).filter(Boolean)
-    const dateHtml = dates.map(d => \`<span style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:500;margin:1px;">\${d}</span>\`).join('')
-    return \`<tr class="row-hover transition-colors">
-      <td class="px-5 py-3.5">
-        <p class="font-semibold text-sm text-gray-900">\${a.applicant_name}</p>
-        <p class="text-xs text-gray-400">\${a.nationality}</p>
-        <p class="text-xs text-gray-400">\${a.email}</p>
-        \${a.phone ? \`<p class="text-xs text-gray-400"><i class="fab fa-whatsapp text-green-500 mr-0.5"></i>\${a.phone}</p>\` : ''}
-      </td>
-      <td class="px-4 py-3.5 hidden sm:table-cell">
-        <p class="text-xs font-semibold text-gray-800">\${a.place_name || ''}</p>
-        <p class="text-xs text-gray-400">\${a.campaign_title || ''}</p>
-      </td>
-      <td class="px-4 py-3.5">
-        \${a.instagram
-          ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-sm text-pink-500 font-semibold hover:underline">@\${a.instagram}</a>\`
-          : '<span class="text-xs text-gray-300">—</span>'}
-      </td>
-      <td class="px-4 py-3.5 hidden lg:table-cell">
-        <div class="flex flex-wrap gap-0.5">\${dateHtml || '<span class="text-xs text-gray-300">—</span>'}</div>
-      </td>
-      <td class="px-4 py-3.5">
-        <span class="badge badge-\${a.status}">\${{ pending:'Pending', approved:'Approved', rejected:'Rejected' }[a.status] || a.status}</span>
-      </td>
-      <td class="px-4 py-3.5 text-center">
-        <div class="flex items-center justify-center gap-1">
-          <button onclick='openAppDetail(\${JSON.stringify(a).replace(/"/g,"&quot;")})' class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-amber-50 text-gray-500 hover:text-amber-600 flex items-center justify-center text-xs transition" title="Detail">
-            <i class="fas fa-eye"></i>
-          </button>
-          \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved')" class="w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center text-xs transition" title="Approve"><i class="fas fa-check"></i></button>\` : ''}
-          \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center text-xs transition" title="Reject"><i class="fas fa-times"></i></button>\` : ''}
-        </div>
-      </td>
-    </tr>\`
-  }).join('')
+}
+
+async function setStatus(id, status) {
+  await fetch('/api/admin/applications/' + id, { method:'PATCH', headers:H, body: JSON.stringify({ status }) })
+  loadApps()
+  loadStats()
 }
 
 function openAppDetail(a) {
@@ -609,187 +511,64 @@ function openAppDetail(a) {
   document.getElementById('appModal').classList.add('open')
 }
 
-async function setStatus(id, status) {
-  await fetch('/api/admin/applications/' + id, { method:'PATCH', headers:H, body: JSON.stringify({ status }) })
-  
-// ── Calendar ──────────────────────────────────
-let calYear  = new Date().getFullYear()
-let calMonth = new Date().getMonth()
-let calApps  = []
-
-function changeMonth(delta) {
-  calMonth += delta
-  if (calMonth > 11) { calMonth = 0; calYear++ }
-  if (calMonth < 0)  { calMonth = 11; calYear-- }
-  renderCal()
-}
-
-async function loadCalData() {
-  try {
-    const { success, data } = await (await fetch('/api/admin/applications', { headers: H })).json()
-    calApps = success ? data : []
-    renderCal()
-  } catch { calApps = []; renderCal() }
-}
-
-function parseApplicantDates(app) {
-  // preferred_dates: "2025-10-15 10:00 AM\n2025-10-20 2:00 PM" 형식
-  const lines = (app.preferred_dates || '').split(/[\n,\/]/).map(s => s.trim()).filter(Boolean)
-  const dates = []
-  lines.forEach(line => {
-    // YYYY-MM-DD 패턴 추출
-    const m = line.match(/(\d{4}-\d{2}-\d{2})/)
-    if (m) dates.push({ dateStr: m[1], timeStr: line.replace(m[1], '').trim() })
-  })
-  return dates
-}
-
-function renderCal() {
-  const label = document.getElementById('calMonthLabel')
-  const grid  = document.getElementById('calGrid')
-  if (!label || !grid) return
-
-  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
-  label.textContent = monthNames[calMonth] + ' ' + calYear
-
-  const campFilter = document.getElementById('calCamp')?.value || ''
-
-  // 해당 월 신청자 날짜 맵 { 'YYYY-MM-DD': [app,...] }
-  const dayMap = {}
-  calApps.forEach(app => {
-    if (campFilter && String(app.campaign_id) !== campFilter) return
-    parseApplicantDates(app).forEach(({ dateStr }) => {
-      if (!dayMap[dateStr]) dayMap[dateStr] = []
-      dayMap[dateStr].push(app)
-    })
-  })
-
-  const firstDay = new Date(calYear, calMonth, 1).getDay()
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
-  const today = new Date()
-  const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0')
-
-  let html = ''
-  // 빈 칸 (이전 달)
-  for (let i = 0; i < firstDay; i++) {
-    html += '<div class="bg-white min-h-[80px] p-1.5"></div>'
-  }
-  // 날짜 칸
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0')
-    const apps    = dayMap[dateStr] || []
-    const isToday = dateStr === todayStr
-    const hasBk   = apps.length > 0
-
-    const dotColors = ['#c9a035','#3b82f6','#ec4899','#10b981','#f59e0b','#6366f1']
-    const dots = apps.slice(0,5).map((a,i) => {
-      const color = dotColors[i % dotColors.length]
-      const status = a.status === 'approved' ? '#10b981' : a.status === 'rejected' ? '#ef4444' : color
-      return \`<span title="\${a.applicant_name}" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:\${status};margin:0 1px;"></span>\`
-    }).join('')
-
-    html += \`<div class="bg-white min-h-[80px] p-1.5 cursor-pointer hover:bg-amber-50 transition-colors \${isToday ? 'ring-2 ring-amber-400 ring-inset' : ''}" onclick="selectDay('\${dateStr}')">
-      <div class="text-xs font-semibold \${isToday ? 'text-amber-600' : hasBk ? 'text-gray-900' : 'text-gray-400'} mb-1">\${d}</div>
-      \${hasBk ? \`<div class="text-[10px] font-bold text-amber-700 mb-0.5">\${apps.length} appt</div>\` : ''}
-      <div>\${dots}</div>
-    </div>\`
-  }
-  grid.innerHTML = html
-
-  // 오늘 날짜 자동 선택
-  if (dayMap[todayStr]) selectDay(todayStr)
-  else document.getElementById('calDetail').classList.add('hidden')
-}
-
-function selectDay(dateStr) {
-  const campFilter = document.getElementById('calCamp')?.value || ''
-  const apps = calApps.filter(app => {
-    if (campFilter && String(app.campaign_id) !== campFilter) return false
-    return parseApplicantDates(app).some(d => d.dateStr === dateStr)
-  })
-
-  const detail = document.getElementById('calDetail')
-  const title  = document.getElementById('calDetailTitle')
-  const list   = document.getElementById('calDetailList')
-
-  if (!apps.length) { detail.classList.add('hidden'); return }
-
-  const d = new Date(dateStr + 'T00:00:00')
-  title.textContent = d.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) + ' — ' + apps.length + ' appointment' + (apps.length > 1 ? 's' : '')
-  detail.classList.remove('hidden')
-
-  list.innerHTML = apps.map(a => {
-    const timeInfo = parseApplicantDates(a).filter(d => d.dateStr === dateStr).map(d => d.timeStr).join(', ')
-    const badgeCls = a.status === 'approved' ? 'background:#dcfce7;color:#166534' : a.status === 'rejected' ? 'background:#fee2e2;color:#991b1b' : 'background:#fef9c3;color:#854d0e'
-    return \`<div class="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-amber-100 shadow-sm">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">\${a.applicant_name.charAt(0).toUpperCase()}</div>
-        <div>
-          <p class="font-semibold text-sm text-gray-900">\${a.applicant_name}</p>
-          <p class="text-xs text-gray-400">\${a.nationality} · \${timeInfo || 'Time TBD'}</p>
-          <p class="text-xs text-gray-500">\${a.place_name || a.campaign_title || ''}</p>
-        </div>
-      </div>
-      <div class="flex flex-col items-end gap-1.5">
-        <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full" style="\${badgeCls}">\${a.status}</span>
-        \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-[11px] text-pink-500 hover:underline">@\${a.instagram}</a>\` : ''}
-      </div>
-    </div>\`
-  }).join('')
-}
-
-loadStats(); loadApps()
-}
-
+// ════════════════════════════════════════════
+// 4. Campaigns
+// ════════════════════════════════════════════
 async function loadCamps() {
   const el = document.getElementById('campsContent')
   el.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">Loading…</p>'
-  const { data } = await (await fetch('/api/admin/campaigns', { headers: H })).json()
-  if (!data?.length) { el.innerHTML = '<p class="text-xs text-gray-400 text-center py-8">No campaigns</p>'; return }
-  el.innerHTML = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">' + data.map(c => {
-    const pct   = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
-    const thumb = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
-    return \`<div class="border border-stone-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-      <div class="h-28 bg-stone-100">
-        \${thumb
-          ? \`<img src="\${thumb}" class="w-full h-full object-cover">\`
-          : \`<div class="w-full h-full flex items-center justify-center text-stone-200"><i class="fas fa-hospital text-3xl"></i></div>\`}
-      </div>
-      <div class="p-3">
-        <div class="flex items-center justify-between mb-1">
-          <p class="font-semibold text-xs text-gray-900 truncate flex-1">\${c.title}</p>
-          <span class="text-xs ml-2 \${c.status === 'active' ? 'text-green-500' : 'text-gray-300'}">\${c.status === 'active' ? '●' : '○'}</span>
+  try {
+    const { data } = await (await fetch('/api/admin/campaigns', { headers: H })).json()
+    if (!data?.length) { el.innerHTML = '<p class="text-xs text-gray-400 text-center py-8">No campaigns</p>'; return }
+    el.innerHTML = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">' + data.map(c => {
+      const pct   = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
+      const thumb = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
+      return \`<div class="border border-stone-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+        <div class="h-28 bg-stone-100">
+          \${thumb
+            ? \`<img src="\${thumb}" class="w-full h-full object-cover">\`
+            : \`<div class="w-full h-full flex items-center justify-center text-stone-200"><i class="fas fa-hospital text-3xl"></i></div>\`}
         </div>
-        <p class="text-xs text-gray-400 mb-2">\${c.place_name} · \${c.category}</p>
-        <div class="flex justify-between text-xs text-gray-400 mb-1">
-          <span>\${c.current_participants}/\${c.max_participants} applicants</span>
-          <span>\${pct}%</span>
+        <div class="p-3">
+          <div class="flex items-center justify-between mb-1">
+            <p class="font-semibold text-xs text-gray-900 truncate flex-1">\${c.title}</p>
+            <span class="text-xs ml-2 \${c.status === 'active' ? 'text-green-500' : 'text-gray-300'}">\${c.status === 'active' ? '●' : '○'}</span>
+          </div>
+          <p class="text-xs text-gray-400 mb-2">\${c.place_name} · \${c.category}</p>
+          <div class="flex justify-between text-xs text-gray-400 mb-1">
+            <span>\${c.current_participants}/\${c.max_participants} applicants</span>
+            <span>\${pct}%</span>
+          </div>
+          <div class="h-1 bg-stone-100 rounded-full mb-2.5">
+            <div class="h-full rounded-full" style="width:\${pct}%;background:linear-gradient(90deg,#c9a035,#e8c16a)"></div>
+          </div>
+          \${c.status === 'active'
+            ? \`<button onclick="deactivate(\${c.id})" class="w-full text-xs text-red-400 hover:text-red-500 border border-red-100 hover:bg-red-50 py-1.5 rounded-lg transition">Deactivate</button>\`
+            : \`<span class="block text-center text-xs text-gray-300 py-1.5">Inactive</span>\`}
         </div>
-        <div class="h-1 bg-stone-100 rounded-full mb-2.5">
-          <div class="h-full rounded-full" style="width:\${pct}%;background:linear-gradient(90deg,#c9a035,#e8c16a)"></div>
-        </div>
-        \${c.status === 'active'
-          ? \`<button onclick="deactivate(\${c.id})" class="w-full text-xs text-red-400 hover:text-red-500 border border-red-100 hover:bg-red-50 py-1.5 rounded-lg transition">Deactivate</button>\`
-          : \`<span class="block text-center text-xs text-gray-300 py-1.5">Inactive</span>\`}
-      </div>
-    </div>\`
-  }).join('') + '</div>'
+      </div>\`
+    }).join('') + '</div>'
+  } catch(e) { console.error('loadCamps error', e) }
 }
 
 async function deactivate(id) {
   if (!confirm('Deactivate this campaign?')) return
   await fetch('/api/admin/campaigns/' + id, { method:'DELETE', headers:H })
-  loadCamps(); loadStats()
+  loadCamps()
+  loadStats()
 }
 
+// ════════════════════════════════════════════
+// 5. New Campaign Form
+// ════════════════════════════════════════════
 function onMapsUrlChange() {
   const v = document.getElementById('nc_maps_url').value.trim()
   if (v.startsWith('http') && v.length > 20) document.getElementById('nc_resolve_status').classList.add('hidden')
 }
 
 async function resolveMapsUrl() {
-  const url    = document.getElementById('nc_maps_url').value.trim()
-  const btn    = document.getElementById('nc_resolve_btn')
+  const url = document.getElementById('nc_maps_url').value.trim()
+  const btn = document.getElementById('nc_resolve_btn')
   if (!url) { showResolveStatus('error', 'Please paste a Google Maps URL.'); return }
   btn.disabled = true
   btn.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i> Fetching…'
@@ -797,7 +576,7 @@ async function resolveMapsUrl() {
   try {
     const res  = await fetch('/api/places/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url }) })
     const data = await res.json()
-    if (!data.success) { showResolveStatus('error', data.error || 'Could not find place.'); }
+    if (!data.success) { showResolveStatus('error', data.error || 'Could not find place.') }
     else { fillPlace(data.data); showResolveStatus('success', '✓ Place found!') }
   } catch { showResolveStatus('error', 'Network error.') }
   btn.disabled = false
@@ -835,56 +614,66 @@ function clearPlace() {
   document.getElementById('nc_resolve_status').classList.add('hidden')
 }
 
-function resetNewForm() { document.getElementById('newCampForm').reset(); clearPlace(); document.getElementById('newCampErr').classList.add('hidden'); document.getElementById('newCampOk').classList.add('hidden') }
+function resetNewForm() {
+  document.getElementById('newCampForm').reset()
+  clearPlace()
+  document.getElementById('newCampErr').classList.add('hidden')
+  document.getElementById('newCampOk').classList.add('hidden')
+}
 
 document.getElementById('newCampForm').addEventListener('submit', async e => {
   e.preventDefault()
-  const errEl = document.getElementById('newCampErr'); const okEl = document.getElementById('newCampOk')
-  errEl.classList.add('hidden'); okEl.classList.add('hidden')
-  if (!document.getElementById('nc_place_id').value) { errEl.textContent = 'Please fetch a Google Maps place first.'; errEl.classList.remove('hidden'); return }
+  const errEl = document.getElementById('newCampErr')
+  const okEl  = document.getElementById('newCampOk')
+  errEl.classList.add('hidden')
+  okEl.classList.add('hidden')
+  if (!document.getElementById('nc_place_id').value) {
+    errEl.textContent = 'Please fetch a Google Maps place first.'
+    errEl.classList.remove('hidden')
+    return
+  }
   const btn = e.target.querySelector('button[type=submit]')
-  btn.disabled = true; btn.textContent = 'Creating…'
+  btn.disabled = true
+  btn.textContent = 'Creating…'
   const body = {
-    title: document.getElementById('nc_title').value, description: document.getElementById('nc_desc').value,
-    place_id: document.getElementById('nc_place_id').value, place_name: document.getElementById('nc_place_name').value,
-    place_address: document.getElementById('nc_address').value, place_photo_ref: document.getElementById('nc_photo_ref').value,
-    place_rating: parseFloat(document.getElementById('nc_rating').value) || 0, category: document.getElementById('nc_category').value,
-    max_participants: parseInt(document.getElementById('nc_max').value) || 10, deadline: document.getElementById('nc_deadline').value,
-    benefits: document.getElementById('nc_benefits').value, requirements: document.getElementById('nc_req').value,
+    title:            document.getElementById('nc_title').value,
+    description:      document.getElementById('nc_desc').value,
+    place_id:         document.getElementById('nc_place_id').value,
+    place_name:       document.getElementById('nc_place_name').value,
+    place_address:    document.getElementById('nc_address').value,
+    place_photo_ref:  document.getElementById('nc_photo_ref').value,
+    place_rating:     parseFloat(document.getElementById('nc_rating').value) || 0,
+    category:         document.getElementById('nc_category').value,
+    max_participants: parseInt(document.getElementById('nc_max').value) || 10,
+    deadline:         document.getElementById('nc_deadline').value,
+    benefits:         document.getElementById('nc_benefits').value,
+    requirements:     document.getElementById('nc_req').value,
   }
   try {
     const res  = await fetch('/api/admin/campaigns', { method:'POST', headers:H, body: JSON.stringify(body) })
     const data = await res.json()
     if (data.success) {
-      okEl.textContent = '✅ Campaign created!'; okEl.classList.remove('hidden'); btn.textContent = 'Created!'
+      okEl.textContent = '✅ Campaign created!'
+      okEl.classList.remove('hidden')
+      btn.textContent = 'Created!'
       setTimeout(() => { resetNewForm(); showTab('camps'); btn.disabled = false; btn.textContent = 'Create Campaign' }, 1800)
-    } else { errEl.textContent = data.error; errEl.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Create Campaign' }
-  } catch { errEl.textContent = 'Network error'; errEl.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Create Campaign' }
+    } else {
+      errEl.textContent = data.error
+      errEl.classList.remove('hidden')
+      btn.disabled = false
+      btn.textContent = 'Create Campaign'
+    }
+  } catch {
+    errEl.textContent = 'Network error'
+    errEl.classList.remove('hidden')
+    btn.disabled = false
+    btn.textContent = 'Create Campaign'
+  }
 })
 
-async function testTelegram() {
-  const tToken = document.getElementById('tgToken').value.trim()
-  const tChat  = document.getElementById('tgChatId').value.trim()
-  const resEl  = document.getElementById('tgResult')
-  if (!tToken || !tChat) { resEl.className='text-sm rounded-xl px-4 py-3 border bg-red-50 text-red-600 border-red-100'; resEl.textContent='Enter both token and chat ID.'; resEl.classList.remove('hidden'); return }
-  const msg = \`✅ <b>Seoul Beauty Trip</b>\\nTelegram connected! 🕐 \${new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})}\`
-  try {
-    const res  = await fetch(\`https://api.telegram.org/bot\${tToken}/sendMessage\`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ chat_id:tChat, text:msg, parse_mode:'HTML' }) })
-    const data = await res.json()
-    resEl.classList.remove('hidden')
-    if (data.ok) { resEl.className='text-sm rounded-xl px-4 py-3 border bg-green-50 text-green-700 border-green-100'; resEl.textContent='✅ Message sent!' }
-    else          { resEl.className='text-sm rounded-xl px-4 py-3 border bg-red-50 text-red-600 border-red-100'; resEl.textContent='❌ ' + (data.description || 'Error') }
-  } catch { resEl.className='text-sm rounded-xl px-4 py-3 border bg-red-50 text-red-600 border-red-100'; resEl.textContent='❌ Network error.'; resEl.classList.remove('hidden') }
-}
-
-document.getElementById('appModal').addEventListener('click', e => { if (e.target === document.getElementById('appModal')) document.getElementById('appModal').classList.remove('open') })
-
-
-// ── Calendar ──────────────────────────────────
-let calYear  = new Date().getFullYear()
-let calMonth = new Date().getMonth()
-let calApps  = []
-
+// ════════════════════════════════════════════
+// 6. Calendar
+// ════════════════════════════════════════════
 function changeMonth(delta) {
   calMonth += delta
   if (calMonth > 11) { calMonth = 0; calYear++ }
@@ -897,15 +686,17 @@ async function loadCalData() {
     const { success, data } = await (await fetch('/api/admin/applications', { headers: H })).json()
     calApps = success ? data : []
     renderCal()
-  } catch { calApps = []; renderCal() }
+  } catch(e) {
+    console.error('loadCalData error', e)
+    calApps = []
+    renderCal()
+  }
 }
 
 function parseApplicantDates(app) {
-  // preferred_dates: "2025-10-15 10:00 AM\n2025-10-20 2:00 PM" 형식
   const lines = (app.preferred_dates || '').split(/[\n,\/]/).map(s => s.trim()).filter(Boolean)
   const dates = []
   lines.forEach(line => {
-    // YYYY-MM-DD 패턴 추출
     const m = line.match(/(\d{4}-\d{2}-\d{2})/)
     if (m) dates.push({ dateStr: m[1], timeStr: line.replace(m[1], '').trim() })
   })
@@ -922,7 +713,6 @@ function renderCal() {
 
   const campFilter = document.getElementById('calCamp')?.value || ''
 
-  // 해당 월 신청자 날짜 맵 { 'YYYY-MM-DD': [app,...] }
   const dayMap = {}
   calApps.forEach(app => {
     if (campFilter && String(app.campaign_id) !== campFilter) return
@@ -932,17 +722,15 @@ function renderCal() {
     })
   })
 
-  const firstDay = new Date(calYear, calMonth, 1).getDay()
+  const firstDay    = new Date(calYear, calMonth, 1).getDay()
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
-  const today = new Date()
-  const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0')
+  const today       = new Date()
+  const todayStr    = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0')
 
   let html = ''
-  // 빈 칸 (이전 달)
   for (let i = 0; i < firstDay; i++) {
     html += '<div class="bg-white min-h-[80px] p-1.5"></div>'
   }
-  // 날짜 칸
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0')
     const apps    = dayMap[dateStr] || []
@@ -951,7 +739,7 @@ function renderCal() {
 
     const dotColors = ['#c9a035','#3b82f6','#ec4899','#10b981','#f59e0b','#6366f1']
     const dots = apps.slice(0,5).map((a,i) => {
-      const color = dotColors[i % dotColors.length]
+      const color  = dotColors[i % dotColors.length]
       const status = a.status === 'approved' ? '#10b981' : a.status === 'rejected' ? '#ef4444' : color
       return \`<span title="\${a.applicant_name}" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:\${status};margin:0 1px;"></span>\`
     }).join('')
@@ -964,7 +752,6 @@ function renderCal() {
   }
   grid.innerHTML = html
 
-  // 오늘 날짜 자동 선택
   if (dayMap[todayStr]) selectDay(todayStr)
   else document.getElementById('calDetail').classList.add('hidden')
 }
@@ -987,8 +774,8 @@ function selectDay(dateStr) {
   detail.classList.remove('hidden')
 
   list.innerHTML = apps.map(a => {
-    const timeInfo = parseApplicantDates(a).filter(d => d.dateStr === dateStr).map(d => d.timeStr).join(', ')
-    const badgeCls = a.status === 'approved' ? 'background:#dcfce7;color:#166534' : a.status === 'rejected' ? 'background:#fee2e2;color:#991b1b' : 'background:#fef9c3;color:#854d0e'
+    const timeInfo  = parseApplicantDates(a).filter(d => d.dateStr === dateStr).map(d => d.timeStr).join(', ')
+    const badgeCls  = a.status === 'approved' ? 'background:#dcfce7;color:#166534' : a.status === 'rejected' ? 'background:#fee2e2;color:#991b1b' : 'background:#fef9c3;color:#854d0e'
     return \`<div class="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-amber-100 shadow-sm">
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">\${a.applicant_name.charAt(0).toUpperCase()}</div>
@@ -1006,8 +793,51 @@ function selectDay(dateStr) {
   }).join('')
 }
 
-loadStats(); loadApps()
-</script>
+// ════════════════════════════════════════════
+// 7. Telegram
+// ════════════════════════════════════════════
+async function testTelegram() {
+  const tToken = document.getElementById('tgToken').value.trim()
+  const tChat  = document.getElementById('tgChatId').value.trim()
+  const resEl  = document.getElementById('tgResult')
+  if (!tToken || !tChat) {
+    resEl.className = 'text-sm rounded-xl px-4 py-3 border bg-red-50 text-red-600 border-red-100'
+    resEl.textContent = 'Enter both token and chat ID.'
+    resEl.classList.remove('hidden')
+    return
+  }
+  const msg = \`✅ <b>Seoul Beauty Trip</b>\\nTelegram connected! 🕐 \${new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})}\`
+  try {
+    const res  = await fetch(\`https://api.telegram.org/bot\${tToken}/sendMessage\`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ chat_id:tChat, text:msg, parse_mode:'HTML' }) })
+    const data = await res.json()
+    resEl.classList.remove('hidden')
+    if (data.ok) {
+      resEl.className = 'text-sm rounded-xl px-4 py-3 border bg-green-50 text-green-700 border-green-100'
+      resEl.textContent = '✅ Message sent!'
+    } else {
+      resEl.className = 'text-sm rounded-xl px-4 py-3 border bg-red-50 text-red-600 border-red-100'
+      resEl.textContent = '❌ ' + (data.description || 'Error')
+    }
+  } catch {
+    resEl.className = 'text-sm rounded-xl px-4 py-3 border bg-red-50 text-red-600 border-red-100'
+    resEl.textContent = '❌ Network error.'
+    resEl.classList.remove('hidden')
+  }
+}
+
+// ════════════════════════════════════════════
+// 8. 이벤트 리스너 & 초기화
+// ════════════════════════════════════════════
+document.getElementById('appModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('appModal')) {
+    document.getElementById('appModal').classList.remove('open')
+  }
+})
+
+// 초기 로딩
+loadStats()
+loadApps()
+<\/script>
 </body>
 </html>`
 }
