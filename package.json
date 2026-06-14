@@ -1,24 +1,24 @@
 {
-  "name": "webapp",
+  "name": "seoul-beauty-trip",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "wrangler pages dev dist",
-    "dev:sandbox": "wrangler pages dev dist --d1=webapp-production --local --ip 0.0.0.0 --port 3000",
-    "deploy": "npm run build && wrangler pages deploy dist",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
-    "db:migrate:local": "wrangler d1 migrations apply webapp-production --local",
-    "db:seed": "wrangler d1 execute webapp-production --local --file=./migrations/0001_initial.sql"
+    "dev": "node --env-file=.env.local -e \"import('@hono/node-server').then(m => import('./src/index.tsx').then(app => m.serve({fetch: app.default.fetch, port: 3000})))\"",
+    "build": "echo 'No build step needed for Vercel serverless'",
+    "vercel-build": "echo 'Vercel handles TypeScript compilation'",
+    "db:init": "node --env-file=.env.local scripts/db-init.mjs",
+    "db:seed": "node --env-file=.env.local scripts/db-seed.mjs"
   },
   "dependencies": {
-    "@hono/vite-cloudflare-pages": "^0.4.3",
+    "@hono/node-server": "^1.13.7",
+    "@libsql/client": "^0.14.0",
+    "dotenv": "^16.4.7",
     "hono": "^4.12.23"
   },
   "devDependencies": {
-    "@hono/vite-build": "^1.2.0",
-    "@hono/vite-dev-server": "^0.25.2",
-    "vite": "^6.3.5",
+    "@types/node": "^22.0.0",
+    "@vercel/node": "^5.0.0",
+    "typescript": "^5.5.0",
     "wrangler": "^4.4.0"
   }
 }

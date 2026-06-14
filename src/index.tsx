@@ -1,18 +1,34 @@
+import 'dotenv/config'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { serveStatic } from 'hono/cloudflare-workers'
+import { createClient } from '@libsql/client'
 
-type Bindings = {
-  DB: D1Database
-  GOOGLE_PLACES_API_KEY: string
-  TELEGRAM_BOT_TOKEN: string
-  TELEGRAM_CHAT_ID: string
+// ── Turso DB 클라이언트 ────────────────────────
+function getDB() {
+  const url   = process.env.TURSO_DATABASE_URL
+  const token = process.env.TURSO_AUTH_TOKEN
+  if (!url) throw new Error('TURSO_DATABASE_URL is not set')
+  return createClient({ url, authToken: token || '' })
 }
 
-const app = new Hono<{ Bindings: Bindings }>()
+// ── DB 헬퍼 ───────────────────────────────────
+async function dbAll(sql: string, args: any[] = []) {
+  const db = getDB()
+  const rs = await db.execute({ sql, args })
+  return rs.rows as any[]
+}
+async function dbFirst(sql: string, args: any[] = []) {
+  const rows = await dbAll(sql, args)
+  return rows[0] ?? null
+}
+async function dbRun(sql: string, args: any[] = []) {
+  const db = getDB()
+  return db.execute({ sql, args })
+}
+
+const app = new Hono()
 
 app.use('/api/*', cors())
-app.use('/static/*', serveStatic({ root: './' }))
 app.get('/favicon.ico', (c) => new Response(null, { status: 204 }))
 
 // ── Pages ─────────────────────────────────────
@@ -23,52 +39,35 @@ app.get('/admin/dashboard', (c) => c.html(adminDashboardHTML()))
 // ── API: Campaigns ────────────────────────────
 app.get('/api/campaigns', async (c) => {
   try {
-    const { results } = await c.env.DB.prepare(
-      'SELECT * FROM campaigns WHERE status = ? ORDER BY created_at DESC'
-    ).bind('active').all()
-    return c.json({ success: true, data: results })
+    const rows = await dbAll('SELECT * FROM campaigns WHERE status = ? ORDER BY created_at DESC', ['active'])
+    return c.json({ success: true, data: rows })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
 app.get('/api/campaigns/:id', async (c) => {
   try {
-    const campaign = await c.env.DB.prepare('SELECT * FROM campaigns WHERE id = ?').bind(c.req.param('id')).first()
-    if (!campaign) return c.json({ success: false, error: 'Not found' }, 404)
-    return c.json({ success: true, data: campaign })
+    const row = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [c.req.param('id')])
+    if (!row) return c.json({ success: false, error: 'Not found' }, 404)
+    return c.json({ success: true, data: row })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
 // ── API: Google Places ────────────────────────
-
-// Extract place_id from any Google Maps URL (short or full)
 async function resolvePlaceIdFromUrl(mapsUrl: string, apiKey: string): Promise<{ place_id: string; name: string; address: string; rating: number; photo: string } | null> {
   try {
-    // Follow redirects to get final URL
     let finalUrl = mapsUrl
     if (mapsUrl.includes('maps.app.goo.gl') || mapsUrl.includes('goo.gl/maps')) {
       const r = await fetch(mapsUrl, { redirect: 'follow' })
       finalUrl = r.url
     }
-
-    // Try to extract place_id from URL directly
     const pidMatch = finalUrl.match(/[?&]place_id=([^&]+)/)
-    if (pidMatch) {
-      return await fetchPlaceDetails(pidMatch[1], apiKey)
-    }
-
-    // Extract coordinates or place name from URL
+    if (pidMatch) return await fetchPlaceDetails(pidMatch[1], apiKey)
     const coordMatch = finalUrl.match(/@(-?[\d.]+),(-?[\d.]+)/)
     const nameMatch  = finalUrl.match(/\/place\/([^/@]+)/)
-    
     let searchQuery = ''
-    if (nameMatch) {
-      searchQuery = decodeURIComponent(nameMatch[1].replace(/\+/g, ' '))
-    } else if (coordMatch) {
-      searchQuery = `${coordMatch[1]},${coordMatch[2]}`
-    }
+    if (nameMatch) searchQuery = decodeURIComponent(nameMatch[1].replace(/\+/g, ' '))
+    else if (coordMatch) searchQuery = `${coordMatch[1]},${coordMatch[2]}`
     if (!searchQuery) return null
-
-    // Search by name/coords
     const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&key=${apiKey}&language=en`
     const sRes  = await fetch(searchUrl)
     const sData: any = await sRes.json()
@@ -94,11 +93,10 @@ async function fetchPlaceDetails(placeId: string, apiKey: string) {
   }
 }
 
-// POST /api/places/resolve  body: { url: "https://maps.app.goo.gl/..." }
 app.post('/api/places/resolve', async (c) => {
   const { url } = await c.req.json<{ url: string }>()
   if (!url) return c.json({ success: false, error: 'URL required' }, 400)
-  const apiKey = c.env.GOOGLE_PLACES_API_KEY
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY
   if (!apiKey) return c.json({ success: false, error: 'Google API key not configured' }, 500)
   const place = await resolvePlaceIdFromUrl(url, apiKey)
   if (!place) return c.json({ success: false, error: 'Could not resolve place from this URL' }, 400)
@@ -107,7 +105,7 @@ app.post('/api/places/resolve', async (c) => {
 
 app.get('/api/places/photo', async (c) => {
   const ref = c.req.query('ref')
-  const apiKey = c.env.GOOGLE_PLACES_API_KEY
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY
   if (!apiKey || !ref) return c.json({ success: false, error: 'Missing params' }, 400)
   const url = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${ref}&key=${apiKey}`
   const res = await fetch(url)
@@ -139,25 +137,27 @@ app.post('/api/apply', async (c) => {
       return c.json({ success: false, error: 'Please fill in all required fields.' }, 400)
     }
 
-    const existing = await c.env.DB.prepare(
-      'SELECT id FROM applications WHERE campaign_id = ? AND instagram = ?'
-    ).bind(campaign_id, instagram).first()
+    const existing = await dbFirst(
+      'SELECT id FROM applications WHERE campaign_id = ? AND instagram = ?',
+      [campaign_id, instagram]
+    )
     if (existing) return c.json({ success: false, error: 'You have already applied to this campaign.' }, 400)
 
-    const campaign: any = await c.env.DB.prepare('SELECT * FROM campaigns WHERE id = ?').bind(campaign_id).first()
+    const campaign: any = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [campaign_id])
     if (!campaign) return c.json({ success: false, error: 'Campaign not found.' }, 404)
     if (campaign.current_participants >= campaign.max_participants) {
       return c.json({ success: false, error: 'This campaign is now full.' }, 400)
     }
 
-    await c.env.DB.prepare(
+    await dbRun(
       `INSERT INTO applications (campaign_id, campaign_title, place_name, applicant_name, nationality, email, phone, instagram, preferred_dates, message)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(campaign_id, campaign.title, campaign.place_name, applicant_name, nationality, email, phone || '', instagram, preferred_dates, message || '').run()
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [campaign_id, campaign.title, campaign.place_name, applicant_name, nationality, email, phone || '', instagram, preferred_dates, message || '']
+    )
+    await dbRun('UPDATE campaigns SET current_participants = current_participants + 1 WHERE id = ?', [campaign_id])
 
-    await c.env.DB.prepare('UPDATE campaigns SET current_participants = current_participants + 1 WHERE id = ?').bind(campaign_id).run()
-
-    // 텔레그램 알림 전송
+    const tgToken  = process.env.TELEGRAM_BOT_TOKEN || ''
+    const tgChatId = process.env.TELEGRAM_CHAT_ID   || ''
     const tgMsg = `🔔 <b>New Application!</b>\n\n` +
       `📋 <b>Campaign:</b> ${campaign.title}\n` +
       `🏥 <b>Place:</b> ${campaign.place_name}\n` +
@@ -172,8 +172,7 @@ app.post('/api/apply', async (c) => {
       `━━━━━━━━━━━━━━━\n` +
       `🕐 ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`
 
-    await sendTelegram(c.env.TELEGRAM_BOT_TOKEN, c.env.TELEGRAM_CHAT_ID, tgMsg)
-
+    await sendTelegram(tgToken, tgChatId, tgMsg)
     return c.json({ success: true, message: 'Application submitted! We will contact you soon.' })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
@@ -182,9 +181,10 @@ app.post('/api/apply', async (c) => {
 app.post('/api/admin/login', async (c) => {
   try {
     const { username, password } = await c.req.json()
-    const admin = await c.env.DB.prepare(
-      'SELECT * FROM admins WHERE username = ? AND password_hash = ?'
-    ).bind(username, password).first()
+    const admin = await dbFirst(
+      'SELECT * FROM admins WHERE username = ? AND password_hash = ?',
+      [username, password]
+    )
     if (!admin) return c.json({ success: false, error: 'Invalid username or password.' }, 401)
     return c.json({ success: true, token: 'admin-token-' + Date.now() })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
@@ -203,9 +203,8 @@ app.get('/api/admin/applications', async (c) => {
     if (st)  { conds.push('status = ?');      params.push(st) }
     if (conds.length) q += ' WHERE ' + conds.join(' AND ')
     q += ' ORDER BY created_at DESC'
-    const stmt = c.env.DB.prepare(q)
-    const { results } = await (params.length ? stmt.bind(...params) : stmt).all()
-    return c.json({ success: true, data: results })
+    const rows = await dbAll(q, params)
+    return c.json({ success: true, data: rows })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
@@ -213,7 +212,7 @@ app.patch('/api/admin/applications/:id', async (c) => {
   if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
     const { status } = await c.req.json()
-    await c.env.DB.prepare('UPDATE applications SET status = ? WHERE id = ?').bind(status, c.req.param('id')).run()
+    await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, c.req.param('id')])
     return c.json({ success: true })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
@@ -222,8 +221,8 @@ app.patch('/api/admin/applications/:id', async (c) => {
 app.get('/api/admin/campaigns', async (c) => {
   if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
-    const { results } = await c.env.DB.prepare('SELECT * FROM campaigns ORDER BY created_at DESC').all()
-    return c.json({ success: true, data: results })
+    const rows = await dbAll('SELECT * FROM campaigns ORDER BY created_at DESC')
+    return c.json({ success: true, data: rows })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
@@ -231,18 +230,19 @@ app.post('/api/admin/campaigns', async (c) => {
   if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
     const b = await c.req.json()
-    const r = await c.env.DB.prepare(
+    const r = await dbRun(
       `INSERT INTO campaigns (title, description, place_id, place_name, place_address, place_photo_ref, place_rating, category, max_participants, deadline, benefits, requirements)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(b.title, b.description, b.place_id, b.place_name, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||10, b.deadline, b.benefits||'', b.requirements||'').run()
-    return c.json({ success: true, id: r.meta.last_row_id })
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [b.title, b.description, b.place_id, b.place_name, b.place_address||''  , b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||10, b.deadline, b.benefits||'', b.requirements||'']
+    )
+    return c.json({ success: true, id: r.lastInsertRowid })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
 app.delete('/api/admin/campaigns/:id', async (c) => {
   if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
-    await c.env.DB.prepare('UPDATE campaigns SET status = ? WHERE id = ?').bind('inactive', c.req.param('id')).run()
+    await dbRun('UPDATE campaigns SET status = ? WHERE id = ?', ['inactive', c.req.param('id')])
     return c.json({ success: true })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
@@ -251,6 +251,8 @@ function isAdmin(c: any) {
   const t = c.req.header('X-Admin-Token')
   return t && t.startsWith('admin-token-')
 }
+
+export default app
 
 // ════════════════════════════════════════════
 // MAIN PAGE
