@@ -475,6 +475,17 @@ export function mainPageHTML(campaigns: any[]): string {
 '  wrap.appendChild(fb);\n' +
 '}\n' +
 '\n' +
+'// 업체명 정리: 한글+영어 혼합 긴 이름 → 짧은 표시명 (전역 함수)\n' +
+'function cleanPlaceName(name) {\n' +
+'  if (!name) return "";\n' +
+'  var korMatch = name.match(/[가-힣ㄱ-ㅎㅏ-ㅣ][^A-Z]*/);\n' +
+'  if (korMatch) {\n' +
+'    var kor = korMatch[0].trim().replace(/\\s+[A-Z].*$/, "").trim();\n' +
+'    if (kor.length >= 2) return kor;\n' +
+'  }\n' +
+'  return name;\n' +
+'}\n' +
+'\n' +
 'function render(list) {\n' +
 '  // 모바일 count badge\n' +
 '  var countEl = document.getElementById("campaignCount");\n' +
@@ -499,19 +510,6 @@ export function mainPageHTML(campaigns: any[]): string {
 '    return;\n' +
 '  }\n' +
 '  empty.style.display = "none";\n' +
-'\n' +
-'  // 업체명 정리: 한글+영어 혼합 긴 이름 → 짧은 표시명\n' +
-'  function cleanPlaceName(name) {\n' +
-'    if (!name) return "";\n' +
-'    // 한글이 포함된 경우 한글 부분만 추출\n' +
-'    var korMatch = name.match(/[가-힣ㄱ-ㅎㅏ-ㅣ][^A-Z]*/);\n' +
-'    if (korMatch) {\n' +
-'      var kor = korMatch[0].trim().replace(/\\s+[A-Z].*$/, "").trim();\n' +
-'      if (kor.length >= 2) return kor;\n' +
-'    }\n' +
-'    // 영어만 있는 경우 그대로\n' +
-'    return name;\n' +
-'  }\n' +
 '\n' +
 '  grid.innerHTML = list.map(function(c) {\n' +
 '    var full    = c.current_participants >= c.max_participants;\n' +
@@ -660,7 +658,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '      \'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 25%,rgba(0,0,0,.78) 100%);pointer-events:none"></div>\' +\n' +
 '      \'<button onclick="closeDetail()" style="position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);backdrop-filter:blur(6px);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">&times;</button>\' +\n' +
 '      \'<div style="position:absolute;bottom:0;left:0;right:0;padding:0 20px 18px">\' +\n' +
-'        \'<p style="font-size:11px;color:rgba(255,255,255,.7);margin:0 0 6px">&#x1F4CD; \' + displayName + \'</p>\' +\n' +
+'        \'<p style="font-size:11px;color:rgba(255,255,255,.7);margin:0 0 6px">&#x1F4CD; \' + cleanPlaceName(c.place_name) + \'</p>\' +\n' +
 '        \'<h2 style="font-family:Cormorant Garamond,Georgia,serif;font-size:24px;font-weight:600;color:#fff;line-height:1.25;margin:0">\' + c.title + \'</h2>\' +\n' +
 '      \'</div>\' +\n' +
 '    \'</div>\' +\n' +
