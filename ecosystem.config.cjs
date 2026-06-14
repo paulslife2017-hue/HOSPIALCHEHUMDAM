@@ -1,16 +1,15 @@
 module.exports = {
-  apps: [
-    {
-      name: 'webapp',
-      script: 'npx',
-      args: 'wrangler pages dev dist --d1=webapp-production --local --ip 0.0.0.0 --port 3000',
-      env: {
-        NODE_ENV: 'development',
-        PORT: 3000
-      },
-      watch: false,
-      instances: 1,
-      exec_mode: 'fork'
-    }
-  ]
+  apps: [{
+    name: 'seoul-beauty-trip',
+    script: '/home/user/webapp/node_modules/.bin/ts-node',
+    args: '--project /home/user/webapp/tsconfig.json /home/user/webapp/standalone.ts',
+    cwd: '/home/user/webapp',
+    env: {
+      NODE_ENV: 'development',
+      TS_NODE_TRANSPILE_ONLY: 'true'
+    },
+    watch: false,
+    instances: 1,
+    exec_mode: 'fork'
+  }]
 }

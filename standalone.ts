@@ -74,7 +74,14 @@ const app = new Hono()
 app.use('/api/*', cors())
 app.get('/favicon.ico', (c) => new Response(null, { status: 204 }))
 
-app.get('/',                (c) => c.html(mainPageHTML()))
+app.get('/', async (c) => {
+  try {
+    const campaigns = await dbAll('SELECT * FROM campaigns WHERE status = ? ORDER BY created_at DESC', ['active'])
+    return c.html(mainPageHTML(campaigns))
+  } catch {
+    return c.html(mainPageHTML([]))
+  }
+})
 app.get('/admin',           (c) => c.html(adminLoginHTML()))
 app.get('/admin/dashboard', (c) => c.html(adminDashboardHTML()))
 
