@@ -351,6 +351,94 @@ TELEGRAM_CHAT_ID=123456789</pre>
   <div id="appModalContent" class="bg-white rounded-2xl w-full max-w-md mx-4 p-6 shadow-xl max-h-[90vh] overflow-y-auto"></div>
 </div>
 
+<!-- Campaign Edit modal -->
+<div id="editCampModal" class="modal-bg">
+  <div class="bg-white rounded-2xl w-full max-w-lg mx-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+    <div class="px-6 pt-5 pb-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+      <div>
+        <h3 class="font-bold text-gray-900 text-base">Edit Campaign</h3>
+        <p id="editCampSubtitle" class="text-xs text-gray-400 mt-0.5"></p>
+      </div>
+      <button onclick="closeEditCamp()" class="text-gray-300 hover:text-gray-500 text-xl leading-none">×</button>
+    </div>
+    <form id="editCampForm" class="px-6 py-5 space-y-4">
+      <input type="hidden" id="ec_id">
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Campaign Title <span class="text-red-400">*</span></label>
+        <input id="ec_title" type="text" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Category</label>
+        <select id="ec_category" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white">
+          <option>Clinic</option><option>Beauty Shop</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+          업체 설명 <span class="text-gray-300 font-normal normal-case">(영어로 표시됨 · 한글→영어 번역 가능)</span>
+        </label>
+        <div class="relative">
+          <textarea id="ec_desc" rows="4" placeholder="Describe the clinic/beauty shop for applicants…"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none"
+            oninput="onEcDescInput()"></textarea>
+          <button type="button" onclick="translateEcDesc()"
+            class="absolute right-2 bottom-2 text-xs px-2.5 py-1 rounded-lg btn-gold">번역</button>
+        </div>
+        <div id="ec_desc_translated" class="hidden mt-1.5 text-xs text-gray-500 bg-stone-50 rounded-lg px-3 py-2 border border-stone-100">
+          <span class="text-amber-500 font-semibold mr-1">EN</span><span id="ec_desc_en"></span>
+        </div>
+        <input type="hidden" id="ec_desc_final">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+          제공 혜택 <span class="text-gray-300 font-normal normal-case">(한글→영어 번역 가능)</span>
+        </label>
+        <div class="relative">
+          <input id="ec_benefits" type="text" placeholder="e.g. Free consultation + whitening session"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm pr-20"
+            oninput="onEcBenInput()">
+          <button type="button" onclick="translateEcBen()"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-xs px-2.5 py-1 rounded-lg btn-gold">번역</button>
+        </div>
+        <div id="ec_ben_translated" class="hidden mt-1.5 text-xs text-gray-500 bg-stone-50 rounded-lg px-3 py-2 border border-stone-100">
+          <span class="text-amber-500 font-semibold mr-1">EN</span><span id="ec_ben_en"></span>
+        </div>
+        <input type="hidden" id="ec_ben_final">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+          지원 조건 <span class="text-gray-300 font-normal normal-case">(한글→영어 번역 가능)</span>
+        </label>
+        <div class="relative">
+          <input id="ec_req" type="text" placeholder="e.g. 3,000+ followers · travel content"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm pr-20"
+            oninput="onEcReqInput()">
+          <button type="button" onclick="translateEcReq()"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-xs px-2.5 py-1 rounded-lg btn-gold">번역</button>
+        </div>
+        <div id="ec_req_translated" class="hidden mt-1.5 text-xs text-gray-500 bg-stone-50 rounded-lg px-3 py-2 border border-stone-100">
+          <span class="text-amber-500 font-semibold mr-1">EN</span><span id="ec_req_en"></span>
+        </div>
+        <input type="hidden" id="ec_req_final">
+      </div>
+
+      <div id="editCampErr" class="hidden bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3 border border-red-100"></div>
+      <div id="editCampOk"  class="hidden bg-green-50 text-green-700 text-sm rounded-xl px-4 py-3 border border-green-100"></div>
+
+      <div class="flex gap-3 pt-1">
+        <button type="submit" class="btn-gold flex-1 py-2.5 rounded-xl text-sm">저장</button>
+        <button type="button" onclick="closeEditCamp()"
+          class="px-5 bg-stone-100 hover:bg-stone-200 text-gray-600 rounded-xl text-sm font-medium">취소</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════════
 // 1. 전역 변수
@@ -571,9 +659,14 @@ async function loadCamps() {
           <div class="h-1 bg-stone-100 rounded-full mb-2.5">
             <div class="h-full rounded-full" style="width:\${pct}%;background:linear-gradient(90deg,#c9a035,#e8c16a)"></div>
           </div>
-          \${c.status === 'active'
-            ? \`<button onclick="deactivate(\${c.id})" class="w-full text-xs text-red-400 hover:text-red-500 border border-red-100 hover:bg-red-50 py-1.5 rounded-lg transition">Deactivate</button>\`
-            : \`<span class="block text-center text-xs text-gray-300 py-1.5">Inactive</span>\`}
+          <div class="flex gap-1.5 mt-1">
+            <button onclick="openEditCamp(\${JSON.stringify(c).replace(/"/g,'&quot;')})" class="flex-1 text-xs text-amber-600 hover:text-amber-700 border border-amber-100 hover:bg-amber-50 py-1.5 rounded-lg transition font-medium">
+              <i class="fas fa-pen text-[10px] mr-0.5"></i>Edit
+            </button>
+            \${c.status === 'active'
+              ? \`<button onclick="deactivate(\${c.id})" class="flex-1 text-xs text-red-400 hover:text-red-500 border border-red-100 hover:bg-red-50 py-1.5 rounded-lg transition">Deactivate</button>\`
+              : \`<span class="flex-1 block text-center text-xs text-gray-300 py-1.5">Inactive</span>\`}
+          </div>
         </div>
       </div>\`
     }).join('') + '</div>'

@@ -219,6 +219,23 @@ app.post('/api/admin/campaigns', async (c) => {
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
+app.patch('/api/admin/campaigns/:id', async (c) => {
+  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
+  try {
+    const b = await c.req.json()
+    const fields: string[] = []
+    const vals:   any[]    = []
+    const allowed = ['title','description','benefits','requirements','category','place_name','deadline','max_participants','status']
+    for (const key of allowed) {
+      if (key in b) { fields.push(`${key} = ?`); vals.push(b[key]) }
+    }
+    if (!fields.length) return c.json({ success: false, error: 'No fields to update' }, 400)
+    vals.push(c.req.param('id'))
+    await dbRun(`UPDATE campaigns SET ${fields.join(', ')} WHERE id = ?`, vals)
+    return c.json({ success: true })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
 app.delete('/api/admin/campaigns/:id', async (c) => {
   if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try { await dbRun('UPDATE campaigns SET status = ? WHERE id = ?', ['inactive', c.req.param('id')]); return c.json({ success: true }) }
