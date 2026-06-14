@@ -319,8 +319,13 @@ function render(list) {
       else                     dlBadge = \`<span class="text-xs text-gray-400">\${dlDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>\`
     }
 
-    // Short description (first sentence)
-    const shortDesc = c.description ? c.description.split('.')[0] + '.' : ''
+    // Short description (first 2 sentences or full if short)
+    let shortDesc = ''
+    if (c.description) {
+      const sentences = c.description.split(/(?<=[.!?])\s+/)
+      shortDesc = sentences.slice(0, 2).join(' ')
+      if (shortDesc.length > 120) shortDesc = shortDesc.slice(0, 120) + '…'
+    }
 
     return \`
     <article class="card cursor-pointer" onclick="openDetail(\${c.id})">
@@ -351,7 +356,9 @@ function render(list) {
       <!-- Body -->
       <div class="px-5 py-4 flex flex-col flex-1">
         <!-- Description -->
-        <p class="text-[13px] text-gray-500 leading-relaxed mb-3 line-clamp-2">\${shortDesc}</p>
+        \${shortDesc
+          ? \`<p class="text-[13px] text-gray-500 leading-relaxed mb-3 line-clamp-2">\${shortDesc}</p>\`
+          : \`<p class="text-[13px] text-gray-400 leading-relaxed mb-3 italic">Tap for details →</p>\`}
 
         <!-- Benefits -->
         \${c.benefits ? \`<div class="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5 mb-4">

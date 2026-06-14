@@ -261,6 +261,24 @@ export function adminDashboardHTML(): string {
           <input type="hidden" id="nc_req_final">
         </div>
 
+        <!-- Description: 한글 입력 → 영어 자동 번역 -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            업체 설명 <span class="text-gray-300 font-normal normal-case">(신청자에게 표시 · 한글→영어 자동번역)</span>
+          </label>
+          <div class="relative">
+            <textarea id="nc_desc" rows="3" placeholder="예) 인천공항 근처 프리미엄 치과로, 외국인 전문 영어 상담 가능. 미백·교정 등 다양한 시술 제공."
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none"
+              oninput="onKoreanInputDesc()"></textarea>
+            <button type="button" onclick="translateDesc()"
+              class="absolute right-2 bottom-2 text-xs px-2.5 py-1 rounded-lg btn-gold">번역</button>
+          </div>
+          <div id="nc_desc_translated" class="hidden mt-1.5 text-xs text-gray-500 bg-stone-50 rounded-lg px-3 py-2 border border-stone-100">
+            <span class="text-amber-500 font-semibold mr-1">EN</span><span id="nc_desc_en"></span>
+          </div>
+          <input type="hidden" id="nc_desc_final">
+        </div>
+
         <div id="newCampErr" class="hidden bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3 border border-red-100"></div>
         <div id="newCampOk"  class="hidden bg-green-50 text-green-700 text-sm rounded-xl px-4 py-3 border border-green-100"></div>
         <div class="flex gap-3">
@@ -589,6 +607,44 @@ function onKoreanInput(inputId, previewId) {
   }
 }
 
+// Description: 한글 포함 여부 감지
+function onKoreanInputDesc() {
+  const val = document.getElementById('nc_desc').value
+  const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
+  if (!hasKorean) {
+    document.getElementById('nc_desc_translated').classList.add('hidden')
+    document.getElementById('nc_desc_final').value = val
+  }
+}
+
+// Description: 한글 → 영어 번역
+async function translateDesc() {
+  const val = document.getElementById('nc_desc').value.trim()
+  if (!val) return
+  const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
+  if (!hasKorean) {
+    document.getElementById('nc_desc_final').value = val
+    document.getElementById('nc_desc_translated').classList.add('hidden')
+    return
+  }
+  const btn = event.target
+  btn.textContent = '...'
+  btn.disabled = true
+  try {
+    const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(val) + '&langpair=ko|en'
+    const res = await fetch(url)
+    const data = await res.json()
+    const translated = data.responseData?.translatedText || val
+    document.getElementById('nc_desc_en').textContent = translated
+    document.getElementById('nc_desc_final').value = translated
+    document.getElementById('nc_desc_translated').classList.remove('hidden')
+  } catch {
+    document.getElementById('nc_desc_final').value = val
+  }
+  btn.textContent = '번역'
+  btn.disabled = false
+}
+
 // 한글 → 영어 번역 (MyMemory 무료 API)
 async function translateField(inputId, previewId) {
   const val = document.getElementById(inputId).value.trim()
@@ -677,10 +733,13 @@ function resetNewForm() {
   document.getElementById('newCampOk').classList.add('hidden')
   document.getElementById('nc_benefits_translated').classList.add('hidden')
   document.getElementById('nc_req_translated').classList.add('hidden')
+  document.getElementById('nc_desc_translated').classList.add('hidden')
   document.getElementById('nc_benefits_final').value = ''
   document.getElementById('nc_req_final').value = ''
+  document.getElementById('nc_desc_final').value = ''
   document.getElementById('nc_benefits_en').textContent = ''
   document.getElementById('nc_req_en').textContent = ''
+  document.getElementById('nc_desc_en').textContent = ''
 }
 
 document.getElementById('newCampForm').addEventListener('submit', async e => {
@@ -702,9 +761,11 @@ document.getElementById('newCampForm').addEventListener('submit', async e => {
                       document.getElementById('nc_benefits').value
   const reqVal      = document.getElementById('nc_req_final').value ||
                       document.getElementById('nc_req').value
+  const descVal     = document.getElementById('nc_desc_final').value ||
+                      document.getElementById('nc_desc').value
   const body = {
     title:            document.getElementById('nc_title').value,
-    description:      '',
+    description:      descVal,
     place_id:         document.getElementById('nc_place_id').value,
     place_name:       document.getElementById('nc_place_name').value,
     place_address:    document.getElementById('nc_address').value,
