@@ -39,17 +39,70 @@ app.get('/api/campaigns/:id', async (c) => {
 })
 
 // ── API: Google Places ────────────────────────
-app.get('/api/places/search', async (c) => {
-  const query = c.req.query('q')
-  if (!query) return c.json({ success: false, error: 'Query required' }, 400)
-  const apiKey = c.env.GOOGLE_PLACES_API_KEY
-  if (!apiKey) return c.json({ success: false, error: 'API key not configured' }, 500)
+
+// Extract place_id from any Google Maps URL (short or full)
+async function resolvePlaceIdFromUrl(mapsUrl: string, apiKey: string): Promise<{ place_id: string; name: string; address: string; rating: number; photo: string } | null> {
   try {
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}&language=en`
-    const res = await fetch(url)
-    const data = await res.json()
-    return c.json({ success: true, data })
-  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+    // Follow redirects to get final URL
+    let finalUrl = mapsUrl
+    if (mapsUrl.includes('maps.app.goo.gl') || mapsUrl.includes('goo.gl/maps')) {
+      const r = await fetch(mapsUrl, { redirect: 'follow' })
+      finalUrl = r.url
+    }
+
+    // Try to extract place_id from URL directly
+    const pidMatch = finalUrl.match(/[?&]place_id=([^&]+)/)
+    if (pidMatch) {
+      return await fetchPlaceDetails(pidMatch[1], apiKey)
+    }
+
+    // Extract coordinates or place name from URL
+    const coordMatch = finalUrl.match(/@(-?[\d.]+),(-?[\d.]+)/)
+    const nameMatch  = finalUrl.match(/\/place\/([^/@]+)/)
+    
+    let searchQuery = ''
+    if (nameMatch) {
+      searchQuery = decodeURIComponent(nameMatch[1].replace(/\+/g, ' '))
+    } else if (coordMatch) {
+      searchQuery = `${coordMatch[1]},${coordMatch[2]}`
+    }
+    if (!searchQuery) return null
+
+    // Search by name/coords
+    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&key=${apiKey}&language=en`
+    const sRes  = await fetch(searchUrl)
+    const sData: any = await sRes.json()
+    const first = sData.results?.[0]
+    if (!first) return null
+    return await fetchPlaceDetails(first.place_id, apiKey)
+  } catch { return null }
+}
+
+async function fetchPlaceDetails(placeId: string, apiKey: string) {
+  const fields = 'place_id,name,formatted_address,rating,photos'
+  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${apiKey}&language=en`
+  const res  = await fetch(url)
+  const data: any = await res.json()
+  const r = data.result
+  if (!r) return null
+  return {
+    place_id: r.place_id,
+    name:     r.name,
+    address:  r.formatted_address || '',
+    rating:   r.rating || 0,
+    photo:    r.photos?.[0]?.photo_reference || '',
+  }
+}
+
+// POST /api/places/resolve  body: { url: "https://maps.app.goo.gl/..." }
+app.post('/api/places/resolve', async (c) => {
+  const { url } = await c.req.json<{ url: string }>()
+  if (!url) return c.json({ success: false, error: 'URL required' }, 400)
+  const apiKey = c.env.GOOGLE_PLACES_API_KEY
+  if (!apiKey) return c.json({ success: false, error: 'Google API key not configured' }, 500)
+  const place = await resolvePlaceIdFromUrl(url, apiKey)
+  if (!place) return c.json({ success: false, error: 'Could not resolve place from this URL' }, 400)
+  return c.json({ success: true, data: place })
 })
 
 app.get('/api/places/photo', async (c) => {
@@ -832,52 +885,71 @@ function adminDashboardHTML(): string {
   <!-- New campaign panel -->
   <div id="panel-new" class="hidden">
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 max-w-2xl">
-      <h2 class="font-semibold text-gray-900 mb-5">New Campaign</h2>
-      <div class="mb-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
-        <p class="text-xs font-semibold text-gray-500 mb-2"><i class="fab fa-google text-blue-500 mr-1"></i>Find place via Google</p>
+      <h2 class="font-semibold text-gray-900 mb-1">New Campaign</h2>
+      <p class="text-xs text-gray-400 mb-5">Paste a Google Maps link to auto-fill the place info.</p>
+
+      <!-- Step 1: Google Maps URL -->
+      <div class="mb-5">
+        <label class="block text-xs font-semibold text-gray-600 mb-1">
+          <i class="fab fa-google text-blue-500 mr-1"></i>Google Maps Link <span class="text-red-400">*</span>
+        </label>
         <div class="flex gap-2">
-          <input id="adminPlaceQ" type="text" placeholder="e.g. Gangnam plastic surgery" class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white">
-          <button onclick="adminSearchPlace()" class="bg-blue-600 text-white px-3 py-2 rounded-xl text-xs font-medium hover:bg-blue-700">Search</button>
+          <input id="nc_maps_url" type="text" placeholder="https://maps.app.goo.gl/..." class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white" oninput="onMapsUrlChange()">
+          <button id="nc_resolve_btn" onclick="resolveMapsUrl()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 whitespace-nowrap flex items-center gap-1.5">
+            <i class="fas fa-search text-xs"></i> Fetch
+          </button>
         </div>
-        <div id="adminPlaceRes" class="mt-2 max-h-48 overflow-y-auto space-y-1"></div>
-        <div id="selectedPlace" class="hidden mt-3 flex items-center gap-3 bg-white rounded-xl p-3 border border-blue-200">
-          <div id="selectedThumb" class="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center text-gray-300">
-            <i class="fas fa-hospital text-sm"></i>
-          </div>
-          <div>
-            <p id="selectedName" class="font-semibold text-sm text-gray-900"></p>
-            <p id="selectedAddr" class="text-xs text-gray-400"></p>
-          </div>
-          <span class="ml-auto text-xs text-blue-600 font-medium">Selected ✓</span>
-        </div>
+        <p class="text-xs text-gray-400 mt-1">e.g. <span class="text-blue-500 cursor-pointer underline" onclick="document.getElementById('nc_maps_url').value='https://maps.app.goo.gl/8dfo2L1jhz1d8uYr9'">https://maps.app.goo.gl/8dfo2L1jhz1d8uYr9</span></p>
+        <div id="nc_resolve_status" class="hidden mt-2 text-xs rounded-lg px-3 py-2"></div>
       </div>
+
+      <!-- Place Preview Card (shown after fetch) -->
+      <div id="placePreview" class="hidden mb-5 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-4">
+        <div id="previewThumb" class="w-16 h-16 rounded-xl bg-white overflow-hidden flex-shrink-0 flex items-center justify-center text-gray-300 border border-gray-200 shadow-sm">
+          <i class="fas fa-hospital text-2xl"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p id="previewName" class="font-bold text-gray-900 text-sm"></p>
+          <p id="previewAddr" class="text-xs text-gray-500 mt-0.5 truncate"></p>
+          <div class="flex items-center gap-2 mt-1.5">
+            <span id="previewRating" class="text-xs text-amber-500 font-semibold"></span>
+            <span class="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full border border-green-100">✓ Place confirmed</span>
+          </div>
+        </div>
+        <button onclick="clearPlace()" class="text-gray-300 hover:text-red-400 text-xs flex-shrink-0"><i class="fas fa-times"></i></button>
+      </div>
+
+      <!-- Step 2: Campaign details (revealed after place confirmed) -->
       <form id="newCampForm" class="space-y-4">
         <input type="hidden" id="nc_place_id">
         <input type="hidden" id="nc_photo_ref">
         <input type="hidden" id="nc_rating">
+        <input type="hidden" id="nc_place_name">
+        <input type="hidden" id="nc_address">
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Campaign Title <span class="text-red-400">*</span></label>
+          <input id="nc_title" type="text" placeholder="e.g. Yonsei Midas Dental Experience" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
+        </div>
         <div class="grid grid-cols-2 gap-3">
-          <div class="col-span-2">
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Campaign Title <span class="text-red-400">*</span></label>
-            <input id="nc_title" type="text" placeholder="e.g. Gangnam Skin Clinic Review" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Place Name <span class="text-red-400">*</span></label>
-            <input id="nc_place_name" type="text" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
-          </div>
           <div>
             <label class="block text-xs font-semibold text-gray-600 mb-1">Category</label>
             <select id="nc_category" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
-              <option>Hospital</option><option>Head Spa</option><option>Dental</option><option>Skin</option><option>Wellness</option>
+              <option>Hospital</option><option>Dental</option><option>Skin</option><option>Head Spa</option><option>Wellness</option>
             </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Max Applicants</label>
+            <input id="nc_max" type="number" value="10" min="1" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
           </div>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">Address</label>
-          <input id="nc_address" type="text" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Deadline</label>
+          <input id="nc_deadline" type="date" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1">Description <span class="text-red-400">*</span></label>
-          <textarea id="nc_desc" rows="3" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none" required></textarea>
+          <textarea id="nc_desc" rows="3" placeholder="Describe the experience for applicants..." class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none" required></textarea>
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1">Benefits</label>
@@ -887,16 +959,7 @@ function adminDashboardHTML(): string {
           <label class="block text-xs font-semibold text-gray-600 mb-1">Requirements</label>
           <input id="nc_req" type="text" placeholder="e.g. Min. 3K followers" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Max Applicants</label>
-            <input id="nc_max" type="number" value="10" min="1" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Deadline</label>
-            <input id="nc_deadline" type="date" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
-          </div>
-        </div>
+
         <div id="newCampErr" class="hidden bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3 border border-red-100"></div>
         <div id="newCampOk"  class="hidden bg-green-50 text-green-700 text-sm rounded-xl px-4 py-3 border border-green-100"></div>
         <div class="flex gap-3">
@@ -1159,28 +1222,52 @@ async function deactivate(id) {
 }
 
 // ── New campaign ──────────────────────────────
-async function adminSearchPlace() {
-  const q = document.getElementById('adminPlaceQ').value.trim()
-  if (!q) return
-  const el = document.getElementById('adminPlaceRes')
-  el.innerHTML = '<p class="text-xs text-gray-400 py-2">Searching...</p>'
-  const res  = await fetch('/api/places/search?q='+encodeURIComponent(q))
-  const data = await res.json()
-  if (!data.success||!data.data.results?.length) { el.innerHTML='<p class="text-xs text-gray-400 py-2">No results</p>'; return }
-  el.innerHTML = data.data.results.slice(0,5).map(p => {
-    const photo = p.photos?.[0]?.photo_reference
-    return \`<div class="flex items-center gap-2 px-2 py-2 hover:bg-blue-50 rounded-xl cursor-pointer transition text-xs border border-transparent hover:border-blue-200"
-      onclick='fillPlace({"place_id":"\${p.place_id}","name":\${JSON.stringify(p.name)},"address":\${JSON.stringify(p.formatted_address||"")},"rating":\${p.rating||0},"photo":"\${photo||""}"})'>
-      <div class="w-9 h-9 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center text-gray-300">
-        \${photo?\`<img src="/api/places/photo?ref=\${photo}" class="w-full h-full object-cover">\`:'<i class="fas fa-hospital text-xs"></i>'}
-      </div>
-      <div class="flex-1 min-w-0">
-        <p class="font-semibold truncate text-gray-900">\${p.name}</p>
-        <p class="text-gray-400 truncate">\${p.formatted_address||''}</p>
-      </div>
-      <i class="fas fa-plus text-blue-400 flex-shrink-0"></i>
-    </div>\`
-  }).join('')
+function onMapsUrlChange() {
+  const v = document.getElementById('nc_maps_url').value.trim()
+  // Auto-trigger if it looks like a complete URL
+  if (v.startsWith('http') && v.length > 20) {
+    document.getElementById('nc_resolve_status').classList.add('hidden')
+  }
+}
+
+async function resolveMapsUrl() {
+  const url = document.getElementById('nc_maps_url').value.trim()
+  const statusEl = document.getElementById('nc_resolve_status')
+  const btn = document.getElementById('nc_resolve_btn')
+  if (!url) { showResolveStatus('error', 'Please paste a Google Maps URL.'); return }
+
+  btn.disabled = true
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i> Fetching...'
+  showResolveStatus('loading', 'Looking up place info...')
+
+  try {
+    const res  = await fetch('/api/places/resolve', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    })
+    const data = await res.json()
+    if (!data.success) {
+      showResolveStatus('error', data.error || 'Could not find place.')
+      btn.disabled = false
+      btn.innerHTML = '<i class="fas fa-search text-xs"></i> Fetch'
+      return
+    }
+    fillPlace(data.data)
+    showResolveStatus('success', 'Place found!')
+  } catch (e) {
+    showResolveStatus('error', 'Network error. Please try again.')
+  }
+  btn.disabled = false
+  btn.innerHTML = '<i class="fas fa-search text-xs"></i> Fetch'
+}
+
+function showResolveStatus(type, msg) {
+  const el = document.getElementById('nc_resolve_status')
+  el.classList.remove('hidden','bg-red-50','text-red-600','bg-green-50','text-green-700','bg-blue-50','text-blue-600')
+  if (type === 'error')   { el.className = 'mt-2 text-xs rounded-lg px-3 py-2 bg-red-50 text-red-600 border border-red-100' }
+  if (type === 'success') { el.className = 'mt-2 text-xs rounded-lg px-3 py-2 bg-green-50 text-green-700 border border-green-100' }
+  if (type === 'loading') { el.className = 'mt-2 text-xs rounded-lg px-3 py-2 bg-blue-50 text-blue-600' }
+  el.textContent = msg
 }
 
 function fillPlace(p) {
@@ -1189,19 +1276,34 @@ function fillPlace(p) {
   document.getElementById('nc_address').value    = p.address
   document.getElementById('nc_photo_ref').value  = p.photo
   document.getElementById('nc_rating').value     = p.rating
-  if (!document.getElementById('nc_title').value) document.getElementById('nc_title').value = p.name + ' Experience'
-  document.getElementById('selectedName').textContent = p.name
-  document.getElementById('selectedAddr').textContent = p.address
-  const th = document.getElementById('selectedThumb')
-  th.innerHTML = p.photo ? \`<img src="/api/places/photo?ref=\${p.photo}" class="w-full h-full object-cover">\` : '<i class="fas fa-hospital text-sm text-gray-300"></i>'
-  document.getElementById('selectedPlace').classList.remove('hidden')
-  document.getElementById('adminPlaceRes').innerHTML = ''
+  if (!document.getElementById('nc_title').value) {
+    document.getElementById('nc_title').value = p.name + ' Experience'
+  }
+  // Update preview card
+  document.getElementById('previewName').textContent = p.name
+  document.getElementById('previewAddr').textContent = p.address
+  document.getElementById('previewRating').textContent = p.rating ? '★ ' + p.rating : ''
+  const th = document.getElementById('previewThumb')
+  th.innerHTML = p.photo
+    ? \`<img src="/api/places/photo?ref=\${p.photo}" class="w-full h-full object-cover">\`
+    : '<i class="fas fa-hospital text-2xl text-gray-300"></i>'
+  document.getElementById('placePreview').classList.remove('hidden')
+}
+
+function clearPlace() {
+  document.getElementById('nc_place_id').value = ''
+  document.getElementById('nc_place_name').value = ''
+  document.getElementById('nc_address').value = ''
+  document.getElementById('nc_photo_ref').value = ''
+  document.getElementById('nc_rating').value = ''
+  document.getElementById('nc_maps_url').value = ''
+  document.getElementById('placePreview').classList.add('hidden')
+  document.getElementById('nc_resolve_status').classList.add('hidden')
 }
 
 function resetNewForm() {
   document.getElementById('newCampForm').reset()
-  document.getElementById('selectedPlace').classList.add('hidden')
-  document.getElementById('adminPlaceRes').innerHTML = ''
+  clearPlace()
   document.getElementById('newCampErr').classList.add('hidden')
   document.getElementById('newCampOk').classList.add('hidden')
 }
@@ -1212,7 +1314,7 @@ document.getElementById('newCampForm').addEventListener('submit', async e => {
   const okEl  = document.getElementById('newCampOk')
   errEl.classList.add('hidden'); okEl.classList.add('hidden')
   if (!document.getElementById('nc_place_id').value) {
-    errEl.textContent = 'Please search and select a place first.'; errEl.classList.remove('hidden'); return
+    errEl.textContent = 'Please paste a Google Maps link and click Fetch first.'; errEl.classList.remove('hidden'); return
   }
   const btn = e.target.querySelector('button[type=submit]')
   btn.disabled=true; btn.textContent='Creating...'

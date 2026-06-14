@@ -44,27 +44,16 @@ CREATE TABLE IF NOT EXISTS admins (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Sample campaigns
+-- Sample campaign (Yonsei Midas Dental — Incheon Airport)
+-- place_id from: https://maps.app.goo.gl/8dfo2L1jhz1d8uYr9
 INSERT OR IGNORE INTO campaigns (id, title, description, place_id, place_name, place_address, place_rating, category, max_participants, deadline, benefits, requirements) VALUES
-(1, 'Gangnam Plastic Surgery Review',
- 'Visit one of Seoul''s top plastic surgery clinics and share your honest experience. Consultation and selected treatments provided.',
- 'ChIJN1t_tDeuEmsRUsoyG83frY4', 'Gangnam Aesthetic Clinic', '123 Teheran-ro, Gangnam-gu, Seoul',
- 4.8, 'Hospital', 6, '2025-08-31', 'Free consultation + 30% off selected procedures', 'Min. 5K followers · Post within 2 weeks'),
-(2, 'Seoul Dental Clinic Experience',
- 'Experience premium dental care in Seoul. Checkup, cleaning, and whitening included.',
- 'ChIJgUZiEVKifDURqFxnFCVKqxI', 'Seoul Smile Dental', '45 Sinchon-ro, Mapo-gu, Seoul',
- 4.7, 'Hospital', 8, '2025-09-15', 'Free checkup + cleaning + whitening', 'Min. 3K followers · English content'),
-(3, 'K-Dermatology Skin Treatment',
- 'Try Korean dermatology — laser, skin boosters, anti-aging. Document your skin journey.',
- 'ChIJAWV_rsSlfDURbXzXfCHxOHs', 'Myeongdong Skin Clinic', '88 Myeongdong-gil, Jung-gu, Seoul',
- 4.6, 'Hospital', 10, '2025-09-30', '2 laser sessions + skincare kit', 'Any follower count · Before/after content'),
-(4, 'Luxury Head Spa Experience',
- 'Relax at a premium head spa. Scalp treatment, deep conditioning, and relaxation therapy.',
- 'ChIJ_headspa_1', 'Seoul Head Spa & Scalp Clinic', '33 Apgujeong-ro, Gangnam-gu, Seoul',
- 4.9, 'Head Spa', 8, '2025-09-10', 'Full head spa session (90 min) + scalp care kit', 'Wellness/beauty creators preferred'),
-(5, 'Oriental Medicine & Acupuncture',
- 'Experience authentic Korean traditional medicine. Acupuncture, cupping, and herbal consultations.',
- 'ChIJ_oriental_1', 'Jongno Korean Medicine Clinic', '12 Jongno-ro, Jongno-gu, Seoul',
- 4.5, 'Hospital', 12, '2025-10-15', '3 acupuncture sessions + herbal tea set', 'Open to all nationalities');
+(1, 'Yonsei Midas Dental — Incheon Airport Experience',
+ 'Get premium dental care right at Incheon International Airport! Consultation, cleaning, and whitening available. Perfect for travelers who want to combine a Korea trip with quality dental treatment.',
+ '0x35654f003cce2c49:0x66cbf26aefa82ff4',
+ 'Yonsei Midas Dental - Incheon Airport',
+ 'Incheon International Airport, Incheon, South Korea',
+ 4.8, 'Dental', 8, '2025-09-30',
+ 'Free consultation + teeth cleaning + whitening session',
+ 'Any follower count · English content · Post within 3 weeks');
 
 INSERT OR IGNORE INTO admins (username, password_hash) VALUES ('admin', 'admin1234');
