@@ -1,13 +1,8 @@
 {
   "name": "seoul-beauty-trip",
   "version": "1.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "node --env-file=.env.local -e \"import('@hono/node-server').then(m => import('./src/index.tsx').then(app => m.serve({fetch: app.default.fetch, port: 3000})))\"",
-    "build": "echo 'No build step needed for Vercel serverless'",
-    "vercel-build": "echo 'Vercel handles TypeScript compilation'",
-    "db:init": "node --env-file=.env.local scripts/db-init.mjs",
-    "db:seed": "node --env-file=.env.local scripts/db-seed.mjs"
+    "db:init": "node -r dotenv/config scripts/db-init.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
@@ -18,7 +13,6 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@vercel/node": "^5.0.0",
-    "typescript": "^5.5.0",
-    "wrangler": "^4.4.0"
+    "typescript": "^5.5.0"
   }
 }
