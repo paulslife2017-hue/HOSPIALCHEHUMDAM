@@ -465,7 +465,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '  }\n' +
 '\n' +
 '  var imgPart = thumb\n' +
-'    ? \'<img src="\' + thumb + \'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">\'\n' +
+'    ? \'<img src="\' + thumb + \'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="imgFallback(this)">\'\n' +
 '    : \'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f0ede8;font-size:4rem;color:#d1cdc8">&#x1F3E5;</div>\';\n' +
 '\n' +
 '  var addrPart = c.place_address\n' +
@@ -478,7 +478,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '    : "";\n' +
 '\n' +
 '  var ctaHtml = !full\n' +
-'    ? \'<button onclick="closeDetail();openApply(\' + c.id + \')" class="btn-gold" style="width:100%;padding:16px;border-radius:16px;font-size:14px;font-weight:600;letter-spacing:.3px">Apply Now \u2014 It\'s Free</button>\'\n' +
+'    ? \'<button onclick="closeDetail();openApply(\' + c.id + \')" class="btn-gold" style="width:100%;padding:16px;border-radius:16px;font-size:14px;font-weight:600;letter-spacing:.3px">Apply Now \u2014 It\u2019s Free</button>\'\n' +
 '    : \'<div style="width:100%;text-align:center;padding:16px;border-radius:16px;font-size:14px;font-weight:500;color:#9ca3af;background:#f3f4f6">This program is fully booked</div>\';\n' +
 '\n' +
 '  var ratingPill = c.place_rating\n' +
@@ -492,7 +492,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '      \'<button onclick="closeDetail()" style="position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);backdrop-filter:blur(6px);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">&times;</button>\' +\n' +
 '      \'<div style="position:absolute;bottom:0;left:0;right:0;padding:0 20px 18px">\' +\n' +
 '        \'<p style="font-size:11px;color:rgba(255,255,255,.7);margin:0 0 6px">&#x1F4CD; \' + c.place_name + \'</p>\' +\n' +
-'        \'<h2 style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:24px;font-weight:600;color:#fff;line-height:1.25;margin:0">\' + c.title + \'</h2>\' +\n' +
+'        \'<h2 style="font-family:Cormorant Garamond,Georgia,serif;font-size:24px;font-weight:600;color:#fff;line-height:1.25;margin:0">\' + c.title + \'</h2>\' +\n' +
 '      \'</div>\' +\n' +
 '    \'</div>\' +\n' +
 '    \'<div style="padding:20px 20px 28px;display:flex;flex-direction:column;gap:16px">\' +\n' +
