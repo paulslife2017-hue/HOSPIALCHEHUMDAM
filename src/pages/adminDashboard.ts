@@ -130,25 +130,25 @@ export function adminDashboardHTML(): string {
         <h2 class="font-semibold text-gray-900 text-sm"><i class="fas fa-calendar-alt mr-1.5 text-amber-500"></i>Booking Calendar</h2>
         <div class="flex gap-2 flex-wrap items-center">
           <select id="calCamp" onchange="renderCal()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs bg-white">
-            <option value="">All clinics</option>
+            <option value="">전체 업체</option>
           </select>
           <div class="flex items-center gap-1">
             <button onclick="changeMonth(-1)" class="w-7 h-7 rounded-lg border border-gray-200 text-gray-500 hover:bg-stone-50 text-sm flex items-center justify-center"><i class="fas fa-chevron-left text-xs"></i></button>
             <span id="calMonthLabel" class="text-sm font-semibold text-gray-800 min-w-[120px] text-center"></span>
             <button onclick="changeMonth(1)"  class="w-7 h-7 rounded-lg border border-gray-200 text-gray-500 hover:bg-stone-50 text-sm flex items-center justify-center"><i class="fas fa-chevron-right text-xs"></i></button>
           </div>
-          <button onclick="calYear=new Date().getFullYear();calMonth=new Date().getMonth();renderCal()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs bg-white hover:bg-stone-50 text-gray-500">Today</button>
+          <button onclick="calYear=new Date().getFullYear();calMonth=new Date().getMonth();renderCal()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs bg-white hover:bg-stone-50 text-gray-500">오늘</button>
         </div>
       </div>
       <!-- Calendar grid -->
       <div class="grid grid-cols-7 gap-px bg-stone-200 rounded-xl overflow-hidden mb-4">
-        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Sun</div>
-        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Mon</div>
-        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Tue</div>
-        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Wed</div>
-        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Thu</div>
-        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Fri</div>
-        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Sat</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-red-400 py-2">일</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-500 py-2">월</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-500 py-2">화</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-500 py-2">수</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-500 py-2">목</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-500 py-2">금</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-blue-400 py-2">토</div>
         <div id="calGrid" class="contents"></div>
       </div>
       <!-- Selected day detail -->
@@ -1016,8 +1016,8 @@ function renderCal() {
   const grid  = document.getElementById('calGrid')
   if (!label || !grid) return
 
-  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
-  label.textContent = monthNames[calMonth] + ' ' + calYear
+  const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
+  label.textContent = calYear + '년 ' + monthNames[calMonth]
 
   const campFilter = document.getElementById('calCamp')?.value || ''
 
@@ -1054,7 +1054,7 @@ function renderCal() {
 
     html += \`<div class="bg-white min-h-[80px] p-1.5 cursor-pointer hover:bg-amber-50 transition-colors \${isToday ? 'ring-2 ring-amber-400 ring-inset' : ''}" onclick="selectDay('\${dateStr}')">
       <div class="text-xs font-semibold \${isToday ? 'text-amber-600' : hasBk ? 'text-gray-900' : 'text-gray-400'} mb-1">\${d}</div>
-      \${hasBk ? \`<div class="text-[10px] font-bold text-amber-700 mb-0.5">\${apps.length} appt</div>\` : ''}
+      \${hasBk ? \`<div class="text-[10px] font-bold text-amber-700 mb-0.5">\${apps.length}건</div>\` : ''}
       <div>\${dots}</div>
     </div>\`
   }
@@ -1078,27 +1078,57 @@ function selectDay(dateStr) {
   if (!apps.length) { detail.classList.add('hidden'); return }
 
   const d = new Date(dateStr + 'T00:00:00')
-  title.textContent = d.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) + ' — ' + apps.length + ' appointment' + (apps.length > 1 ? 's' : '')
+  const koDay = ['일','월','화','수','목','금','토'][d.getDay()]
+  title.textContent = calYear + '년 ' + (calMonth+1) + '월 ' + d.getDate() + '일 (' + koDay + ') — ' + apps.length + '건'
   detail.classList.remove('hidden')
 
-  list.innerHTML = apps.map(a => {
-    const timeInfo  = parseApplicantDates(a).filter(d => d.dateStr === dateStr).map(d => d.timeStr).join(', ')
+  list.innerHTML = apps.map(function(a) {
+    const timeInfo  = parseApplicantDates(a).filter(function(x){ return x.dateStr === dateStr }).map(function(x){ return x.timeStr }).join(', ')
     const badgeCls  = a.status === 'approved' ? 'background:#dcfce7;color:#166534' : a.status === 'rejected' ? 'background:#fee2e2;color:#991b1b' : 'background:#fef9c3;color:#854d0e'
-    return \`<div class="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-amber-100 shadow-sm">
-      <div class="flex items-center gap-3">
+    const statusKo  = a.status === 'approved' ? '✅ 승인' : a.status === 'rejected' ? '❌ 거절' : '⏳ 대기'
+    const instaUrl  = a.instagram ? 'https://instagram.com/' + a.instagram : ''
+    const msgLines  = '[ 방문 신청자 정보 ]\\n'
+      + '날짜: ' + dateStr + (timeInfo ? ' ' + timeInfo : '') + '\\n'
+      + '업체: ' + (a.place_name || a.campaign_title || '') + '\\n'
+      + '\\n이름: ' + a.applicant_name + '\\n'
+      + '국적: ' + (a.nationality || '') + '\\n'
+      + '이메일: ' + a.email + '\\n'
+      + (a.phone ? 'WhatsApp: ' + a.phone + '\\n' : '')
+      + (a.instagram ? '인스타: @' + a.instagram + ' (instagram.com/' + a.instagram + ')\\n' : '')
+      + (a.message ? '\\n메모: ' + a.message + '\\n' : '')
+      + '\\n상태: ' + statusKo
+    storeCalMsg(a.id, dateStr, msgLines)
+    return \`<div class="bg-white rounded-xl border border-amber-100 shadow-sm overflow-hidden mb-1">
+      <div class="flex items-center gap-3 px-4 py-3">
         <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">\${a.applicant_name.charAt(0).toUpperCase()}</div>
-        <div>
-          <p class="font-semibold text-sm text-gray-900">\${a.applicant_name}</p>
-          <p class="text-xs text-gray-400">\${a.nationality} · \${timeInfo || 'Time TBD'}</p>
-          <p class="text-xs text-gray-500">\${a.place_name || a.campaign_title || ''}</p>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <p class="font-bold text-sm text-gray-900">\${a.applicant_name}</p>
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" style="\${badgeCls}">\${statusKo}</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-0.5">\${a.nationality || ''} · \${timeInfo ? timeInfo : '시간 미정'}</p>
+          <p class="text-xs text-gray-400">\${a.place_name || a.campaign_title || ''}</p>
         </div>
       </div>
-      <div class="flex flex-col items-end gap-1.5">
-        <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full" style="\${badgeCls}">\${a.status}</span>
-        \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-[11px] text-pink-500 hover:underline">@\${a.instagram}</a>\` : ''}
+      <div class="px-4 pb-3 flex flex-wrap gap-1.5 items-center border-t border-stone-50 pt-2.5">
+        <a href="mailto:\${a.email}" class="text-[11px] text-blue-600 hover:underline flex items-center gap-0.5"><i class="fas fa-envelope text-[10px]"></i> \${a.email}</a>
+        \${a.phone ? \`<a href="https://wa.me/\${a.phone.replace(/[^0-9]/g,'')}" target="_blank" class="text-[11px] text-green-600 hover:underline flex items-center gap-0.5"><i class="fab fa-whatsapp text-[10px]"></i> \${a.phone}</a>\` : ''}
+        \${instaUrl ? \`<a href="\${instaUrl}" target="_blank" class="text-[11px] text-pink-500 hover:underline flex items-center gap-0.5"><i class="fab fa-instagram text-[10px]"></i> @\${a.instagram}</a>\` : ''}
+        <button onclick="copyCalMsg(\${a.id},'\${dateStr}',this)" class="ml-auto text-[11px] px-2.5 py-1 rounded-lg btn-gold flex items-center gap-1"><i class="fas fa-copy text-[10px]"></i>업체 전달 복사</button>
       </div>
     </div>\`
   }).join('')
+}
+
+var _calMsgMap = {}
+
+function storeCalMsg(appId, dateStr, msg) {
+  _calMsgMap[appId + '_' + dateStr] = msg
+}
+
+function copyCalMsg(appId, dateStr, btnEl) {
+  var msg = _calMsgMap[appId + '_' + dateStr] || ''
+  copyToClipboard(msg, btnEl)
 }
 
 // ════════════════════════════════════════════
