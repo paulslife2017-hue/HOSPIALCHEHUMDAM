@@ -193,7 +193,7 @@ app.post('/api/admin/campaigns', async (c) => {
     const b = await c.req.json()
     const r = await dbRun(
       `INSERT INTO campaigns (title,description,place_id,place_name,place_address,place_photo_ref,place_rating,category,max_participants,deadline,benefits,requirements) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [b.title, b.description, b.place_id, b.place_name, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||10, b.deadline, b.benefits||'', b.requirements||'']
+      [b.title, b.description||'', b.place_id, b.place_name, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||9999, b.deadline||'', b.benefits||'', b.requirements||'']
     )
     return c.json({ success: true, id: r.lastInsertRowid })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }

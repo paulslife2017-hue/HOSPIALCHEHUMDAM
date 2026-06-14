@@ -218,44 +218,55 @@ export function adminDashboardHTML(): string {
           <input id="nc_title" type="text" placeholder="e.g. Yonsei Midas Dental Experience"
             class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Category</label>
-            <select id="nc_category" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white">
-              <option>Clinic</option><option>Beauty Shop</option>
-            </select>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Category</label>
+          <select id="nc_category" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white">
+            <option>Clinic</option><option>Beauty Shop</option>
+          </select>
+        </div>
+
+        <!-- Benefits: 한글 입력 → 영어 자동 번역 -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            제공 혜택 <span class="text-gray-300 font-normal normal-case">(한글로 입력하면 자동 번역)</span>
+          </label>
+          <div class="relative">
+            <input id="nc_benefits" type="text" placeholder="예) 무료 상담 + 치아 미백 30% 할인"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm pr-20"
+              oninput="onKoreanInput('nc_benefits', 'nc_benefits_translated')">
+            <button type="button" onclick="translateField('nc_benefits', 'nc_benefits_translated')"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-xs px-2.5 py-1 rounded-lg btn-gold">번역</button>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Max Applicants</label>
-            <input id="nc_max" type="number" value="10" min="1" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+          <div id="nc_benefits_translated" class="hidden mt-1.5 text-xs text-gray-500 bg-stone-50 rounded-lg px-3 py-2 border border-stone-100">
+            <span class="text-amber-500 font-semibold mr-1">EN</span><span id="nc_benefits_en"></span>
           </div>
+          <input type="hidden" id="nc_benefits_final">
         </div>
+
+        <!-- Requirements: 한글 입력 → 영어 자동 번역 -->
         <div>
-          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Deadline</label>
-          <input id="nc_deadline" type="date" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Description <span class="text-red-400">*</span></label>
-          <textarea id="nc_desc" rows="3" placeholder="Describe the experience…"
-            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none" required></textarea>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Benefits</label>
-          <input id="nc_benefits" type="text" placeholder="e.g. Free consultation + 30% off"
-            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Requirements</label>
-          <input id="nc_req" type="text" placeholder="e.g. Min. 3K followers"
-            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            지원 조건 <span class="text-gray-300 font-normal normal-case">(한글로 입력하면 자동 번역)</span>
+          </label>
+          <div class="relative">
+            <input id="nc_req" type="text" placeholder="예) 팔로워 3천명 이상, 여행 콘텐츠 계정"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm pr-20"
+              oninput="onKoreanInput('nc_req', 'nc_req_translated')">
+            <button type="button" onclick="translateField('nc_req', 'nc_req_translated')"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-xs px-2.5 py-1 rounded-lg btn-gold">번역</button>
+          </div>
+          <div id="nc_req_translated" class="hidden mt-1.5 text-xs text-gray-500 bg-stone-50 rounded-lg px-3 py-2 border border-stone-100">
+            <span class="text-amber-500 font-semibold mr-1">EN</span><span id="nc_req_en"></span>
+          </div>
+          <input type="hidden" id="nc_req_final">
         </div>
 
         <div id="newCampErr" class="hidden bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3 border border-red-100"></div>
         <div id="newCampOk"  class="hidden bg-green-50 text-green-700 text-sm rounded-xl px-4 py-3 border border-green-100"></div>
         <div class="flex gap-3">
-          <button type="submit" class="btn-gold flex-1 py-2.5 rounded-xl text-sm">Create Campaign</button>
+          <button type="submit" class="btn-gold flex-1 py-2.5 rounded-xl text-sm">캠페인 만들기</button>
           <button type="button" onclick="resetNewForm()"
-            class="px-5 bg-stone-100 hover:bg-stone-200 text-gray-600 rounded-xl text-sm font-medium">Reset</button>
+            class="px-5 bg-stone-100 hover:bg-stone-200 text-gray-600 rounded-xl text-sm font-medium">초기화</button>
         </div>
       </form>
     </div>
@@ -566,6 +577,51 @@ function onMapsUrlChange() {
   if (v.startsWith('http') && v.length > 20) document.getElementById('nc_resolve_status').classList.add('hidden')
 }
 
+// 한글 포함 여부 감지 → 번역 힌트 표시
+function onKoreanInput(inputId, previewId) {
+  const val = document.getElementById(inputId).value
+  const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
+  if (!hasKorean) {
+    document.getElementById(previewId).classList.add('hidden')
+    // 한글 아니면 그대로 final에 저장
+    const finalId = inputId === 'nc_benefits' ? 'nc_benefits_final' : 'nc_req_final'
+    document.getElementById(finalId).value = val
+  }
+}
+
+// 한글 → 영어 번역 (MyMemory 무료 API)
+async function translateField(inputId, previewId) {
+  const val = document.getElementById(inputId).value.trim()
+  if (!val) return
+  const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
+  if (!hasKorean) {
+    // 한글 없으면 그대로 사용
+    const finalId = inputId === 'nc_benefits' ? 'nc_benefits_final' : 'nc_req_final'
+    document.getElementById(finalId).value = val
+    document.getElementById(previewId).classList.add('hidden')
+    return
+  }
+  const btn = event.target
+  btn.textContent = '...'
+  btn.disabled = true
+  try {
+    const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(val) + '&langpair=ko|en'
+    const res = await fetch(url)
+    const data = await res.json()
+    const translated = data.responseData?.translatedText || val
+    const enSpanId = inputId === 'nc_benefits' ? 'nc_benefits_en' : 'nc_req_en'
+    const finalId  = inputId === 'nc_benefits' ? 'nc_benefits_final' : 'nc_req_final'
+    document.getElementById(enSpanId).textContent = translated
+    document.getElementById(finalId).value = translated
+    document.getElementById(previewId).classList.remove('hidden')
+  } catch {
+    const finalId = inputId === 'nc_benefits' ? 'nc_benefits_final' : 'nc_req_final'
+    document.getElementById(finalId).value = val
+  }
+  btn.textContent = '번역'
+  btn.disabled = false
+}
+
 async function resolveMapsUrl() {
   const url = document.getElementById('nc_maps_url').value.trim()
   const btn = document.getElementById('nc_resolve_btn')
@@ -619,6 +675,12 @@ function resetNewForm() {
   clearPlace()
   document.getElementById('newCampErr').classList.add('hidden')
   document.getElementById('newCampOk').classList.add('hidden')
+  document.getElementById('nc_benefits_translated').classList.add('hidden')
+  document.getElementById('nc_req_translated').classList.add('hidden')
+  document.getElementById('nc_benefits_final').value = ''
+  document.getElementById('nc_req_final').value = ''
+  document.getElementById('nc_benefits_en').textContent = ''
+  document.getElementById('nc_req_en').textContent = ''
 }
 
 document.getElementById('newCampForm').addEventListener('submit', async e => {
@@ -635,19 +697,24 @@ document.getElementById('newCampForm').addEventListener('submit', async e => {
   const btn = e.target.querySelector('button[type=submit]')
   btn.disabled = true
   btn.textContent = 'Creating…'
+  // 번역된 값 우선, 없으면 원본 그대로
+  const benefitsVal = document.getElementById('nc_benefits_final').value ||
+                      document.getElementById('nc_benefits').value
+  const reqVal      = document.getElementById('nc_req_final').value ||
+                      document.getElementById('nc_req').value
   const body = {
     title:            document.getElementById('nc_title').value,
-    description:      document.getElementById('nc_desc').value,
+    description:      '',
     place_id:         document.getElementById('nc_place_id').value,
     place_name:       document.getElementById('nc_place_name').value,
     place_address:    document.getElementById('nc_address').value,
     place_photo_ref:  document.getElementById('nc_photo_ref').value,
     place_rating:     parseFloat(document.getElementById('nc_rating').value) || 0,
     category:         document.getElementById('nc_category').value,
-    max_participants: parseInt(document.getElementById('nc_max').value) || 10,
-    deadline:         document.getElementById('nc_deadline').value,
-    benefits:         document.getElementById('nc_benefits').value,
-    requirements:     document.getElementById('nc_req').value,
+    max_participants: 9999,
+    deadline:         '',
+    benefits:         benefitsVal,
+    requirements:     reqVal,
   }
   try {
     const res  = await fetch('/api/admin/campaigns', { method:'POST', headers:H, body: JSON.stringify(body) })
