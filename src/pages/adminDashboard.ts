@@ -112,6 +112,7 @@ export function adminDashboardHTML(): string {
               <th class="text-left px-4 py-3">Instagram</th>
               <th class="text-left px-4 py-3 hidden lg:table-cell">Available Dates</th>
               <th class="text-left px-4 py-3">Status</th>
+              <th class="text-center px-4 py-3">복사</th>
               <th class="text-center px-4 py-3">Action</th>
             </tr>
           </thead>
@@ -515,12 +516,26 @@ async function loadApps() {
   try {
     const { success, data } = await (await fetch(url, { headers: H })).json()
     if (!success || !data.length) {
-      tb.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-xs text-gray-400">No applicants yet</td></tr>'
+      tb.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-xs text-gray-400">No applicants yet</td></tr>'
       return
     }
-    tb.innerHTML = data.map(a => {
-      const dates    = (a.preferred_dates || '').split('/').map(d => d.trim()).filter(Boolean)
-      const dateHtml = dates.map(d => \`<span style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:500;margin:1px;">\${d}</span>\`).join('')
+    // 메시지 맵 초기화
+    var _appMsgMap = {}
+    tb.innerHTML = data.map(function(a) {
+      const dates    = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
+      const dateHtml = dates.map(function(d){ return '<span style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:500;margin:1px;">' + d + '</span>' }).join('')
+      const statusKo = a.status === 'approved' ? '✅ 승인' : a.status === 'rejected' ? '❌ 거절' : '⏳ 대기'
+      const msg = '[ 방문 신청자 정보 ]\\n'
+        + '업체: ' + (a.place_name || a.campaign_title || '') + '\\n'
+        + '\\n이름: ' + a.applicant_name + '\\n'
+        + '국적: ' + (a.nationality || '') + '\\n'
+        + '이메일: ' + a.email + '\\n'
+        + (a.phone ? 'WhatsApp: ' + a.phone + '\\n' : '')
+        + (a.instagram ? '인스타: @' + a.instagram + ' (instagram.com/' + a.instagram + ')\\n' : '')
+        + (dates.length ? '\\n희망 날짜:\\n' + dates.map(function(d,i){ return (i+1)+'. '+d }).join('\\n') + '\\n' : '')
+        + (a.message ? '\\n메모: ' + a.message + '\\n' : '')
+        + '\\n상태: ' + statusKo
+      _appMsgMap[a.id] = msg
       return \`<tr class="row-hover transition-colors">
         <td class="px-5 py-3.5">
           <p class="font-semibold text-sm text-gray-900">\${a.applicant_name}</p>
@@ -541,19 +556,25 @@ async function loadApps() {
           <div class="flex flex-wrap gap-0.5">\${dateHtml || '<span class="text-xs text-gray-300">—</span>'}</div>
         </td>
         <td class="px-4 py-3.5">
-          <span class="badge badge-\${a.status}">\${{ pending:'Pending', approved:'Approved', rejected:'Rejected' }[a.status] || a.status}</span>
+          <span class="badge badge-\${a.status}">\${{ pending:'⏳ 대기', approved:'✅ 승인', rejected:'❌ 거절' }[a.status] || a.status}</span>
+        </td>
+        <td class="px-3 py-3.5 text-center">
+          <button id="copybtn-\${a.id}" onclick="copyAppMsg(\${a.id},this)" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold btn-gold whitespace-nowrap" title="업체 전달용 메시지 복사">
+            <i class="fas fa-copy text-[10px]"></i>복사
+          </button>
         </td>
         <td class="px-4 py-3.5 text-center">
           <div class="flex items-center justify-center gap-1">
-            <button onclick='openAppDetail(\${JSON.stringify(a).replace(/"/g,"&quot;")})' class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-amber-50 text-gray-500 hover:text-amber-600 flex items-center justify-center text-xs transition" title="Detail">
+            <button onclick='openAppDetail(\${JSON.stringify(a).replace(/"/g,"&quot;")})' class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-amber-50 text-gray-500 hover:text-amber-600 flex items-center justify-center text-xs transition" title="상세">
               <i class="fas fa-eye"></i>
             </button>
-            \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved')" class="w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center text-xs transition" title="Approve"><i class="fas fa-check"></i></button>\` : ''}
-            \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center text-xs transition" title="Reject"><i class="fas fa-times"></i></button>\` : ''}
+            \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved')" class="w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center text-xs transition" title="승인"><i class="fas fa-check"></i></button>\` : ''}
+            \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center text-xs transition" title="거절"><i class="fas fa-times"></i></button>\` : ''}
           </div>
         </td>
       </tr>\`
     }).join('')
+    window._appMsgMap = _appMsgMap
   } catch(e) {
     tb.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-xs text-gray-400">Error loading data</td></tr>'
     console.error('loadApps error', e)
@@ -588,10 +609,15 @@ function buildClinicMsg(a) {
 function copyToClipboard(text, btnEl) {
   navigator.clipboard.writeText(text).then(function() {
     const orig = btnEl.innerHTML
-    btnEl.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!'
+    btnEl.innerHTML = '<i class="fas fa-check mr-1"></i>복사됨!'
     btnEl.style.background = '#16a34a'
     setTimeout(function() { btnEl.innerHTML = orig; btnEl.style.background = '' }, 2000)
   })
+}
+
+function copyAppMsg(id, btnEl) {
+  var msg = (window._appMsgMap || {})[id] || ''
+  copyToClipboard(msg, btnEl)
 }
 
 function openAppDetail(a) {
