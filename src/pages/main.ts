@@ -8,6 +8,28 @@ export function mainPageHTML(): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Seoul Beauty Trip — Influencer Experience Program</title>
+
+  <!-- OG / SNS 미리보기 태그 -->
+  <meta property="og:type"        content="website">
+  <meta property="og:title"       content="Seoul Beauty Trip — Influencer Experience Program">
+  <meta property="og:description" content="Complimentary treatments at Seoul's most prestigious clinics & beauty destinations — crafted for international creators. Apply now for free dental, skincare & beauty experiences!">
+  <meta property="og:image"       content="https://images.unsplash.com/photo-1607017803290-8d2e5b9c4c7b?w=1200&q=80">
+  <meta property="og:image:width"  content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url"         content="https://hospialchehumdam.vercel.app">
+  <meta property="og:site_name"   content="Seoul Beauty Trip">
+  <meta property="og:locale"      content="en_US">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="Seoul Beauty Trip — Free Treatments for International Creators">
+  <meta name="twitter:description" content="Get complimentary dental, skincare & beauty treatments in Seoul. English-speaking staff, all nationalities welcome. Apply free!">
+  <meta name="twitter:image"       content="https://images.unsplash.com/photo-1607017803290-8d2e5b9c4c7b?w=1200&q=80">
+
+  <!-- 검색엔진 -->
+  <meta name="description" content="Complimentary treatments at Seoul's most prestigious clinics & beauty destinations for international influencers. Free dental, skincare & beauty experiences in Korea.">
+  <meta name="keywords"    content="Seoul beauty, Korea clinic, dental whitening, influencer, free treatment, medical tourism, K-beauty">
+  <link rel="canonical"    href="https://hospialchehumdam.vercel.app">
   <script src="https://cdn.tailwindcss.com"><\/script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">

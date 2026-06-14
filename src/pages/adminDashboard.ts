@@ -53,6 +53,7 @@ export function adminDashboardHTML(): string {
 <div class="bg-white border-b border-stone-200 sticky top-14 z-40">
   <div class="max-w-7xl mx-auto px-5 flex overflow-x-auto" style="scrollbar-width:none;">
     <button id="tab-apps"  onclick="showTab('apps')"  class="tab-btn on">Applicants</button>
+    <button id="tab-cal"   onclick="showTab('cal')"   class="tab-btn"><i class="fas fa-calendar-alt mr-1"></i>Calendar</button>
     <button id="tab-camps" onclick="showTab('camps')" class="tab-btn">Campaigns</button>
     <button id="tab-new"   onclick="showTab('new')"   class="tab-btn">+ New</button>
     <button id="tab-tg"    onclick="showTab('tg')"    class="tab-btn">Telegram</button>
@@ -117,6 +118,43 @@ export function adminDashboardHTML(): string {
             <tr><td colspan="6" class="text-center py-10 text-xs text-gray-400">Loading…</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ── Calendar panel ── -->
+  <div id="panel-cal" class="hidden">
+    <div class="card p-5">
+      <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
+        <h2 class="font-semibold text-gray-900 text-sm"><i class="fas fa-calendar-alt mr-1.5 text-amber-500"></i>Booking Calendar</h2>
+        <div class="flex gap-2 flex-wrap items-center">
+          <select id="calCamp" onchange="renderCal()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs bg-white">
+            <option value="">All clinics</option>
+          </select>
+          <div class="flex items-center gap-1">
+            <button onclick="changeMonth(-1)" class="w-7 h-7 rounded-lg border border-gray-200 text-gray-500 hover:bg-stone-50 text-sm flex items-center justify-center"><i class="fas fa-chevron-left text-xs"></i></button>
+            <span id="calMonthLabel" class="text-sm font-semibold text-gray-800 min-w-[120px] text-center"></span>
+            <button onclick="changeMonth(1)"  class="w-7 h-7 rounded-lg border border-gray-200 text-gray-500 hover:bg-stone-50 text-sm flex items-center justify-center"><i class="fas fa-chevron-right text-xs"></i></button>
+          </div>
+          <button onclick="calYear=new Date().getFullYear();calMonth=new Date().getMonth();renderCal()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs bg-white hover:bg-stone-50 text-gray-500">Today</button>
+        </div>
+      </div>
+      <!-- Calendar grid -->
+      <div class="grid grid-cols-7 gap-px bg-stone-200 rounded-xl overflow-hidden mb-4">
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Sun</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Mon</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Tue</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Wed</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Thu</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Fri</div>
+        <div class="bg-stone-50 text-center text-[11px] font-semibold text-gray-400 py-2">Sat</div>
+        <div id="calGrid" class="contents"></div>
+      </div>
+      <!-- Selected day detail -->
+      <div id="calDetail" class="hidden rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 id="calDetailTitle" class="font-semibold text-amber-900 text-sm mb-3"></h3>
+        <div id="calDetailList" class="space-y-2"></div>
       </div>
     </div>
   </div>
@@ -293,13 +331,141 @@ const H = { 'Content-Type':'application/json', 'X-Admin-Token': token }
 function logout() { sessionStorage.removeItem('adminToken'); window.location.href = '/admin' }
 
 function showTab(t) {
-  ['apps','camps','new','tg'].forEach(id => {
+  ['apps','cal','camps','new','tg'].forEach(id => {
     document.getElementById('panel-' + id).classList.toggle('hidden', id !== t)
     const btn = document.getElementById('tab-' + id)
     btn.classList.toggle('on', id === t)
   })
-  if (t === 'apps')  { loadStats(); loadApps() }
+  if (t === 'apps')  { 
+// ── Calendar ──────────────────────────────────
+let calYear  = new Date().getFullYear()
+let calMonth = new Date().getMonth()
+let calApps  = []
+
+function changeMonth(delta) {
+  calMonth += delta
+  if (calMonth > 11) { calMonth = 0; calYear++ }
+  if (calMonth < 0)  { calMonth = 11; calYear-- }
+  renderCal()
+}
+
+async function loadCalData() {
+  try {
+    const { success, data } = await (await fetch('/api/admin/applications', { headers: H })).json()
+    calApps = success ? data : []
+    renderCal()
+  } catch { calApps = []; renderCal() }
+}
+
+function parseApplicantDates(app) {
+  // preferred_dates: "2025-10-15 10:00 AM\n2025-10-20 2:00 PM" 형식
+  const lines = (app.preferred_dates || '').split(/[\n,\/]/).map(s => s.trim()).filter(Boolean)
+  const dates = []
+  lines.forEach(line => {
+    // YYYY-MM-DD 패턴 추출
+    const m = line.match(/(\d{4}-\d{2}-\d{2})/)
+    if (m) dates.push({ dateStr: m[1], timeStr: line.replace(m[1], '').trim() })
+  })
+  return dates
+}
+
+function renderCal() {
+  const label = document.getElementById('calMonthLabel')
+  const grid  = document.getElementById('calGrid')
+  if (!label || !grid) return
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  label.textContent = monthNames[calMonth] + ' ' + calYear
+
+  const campFilter = document.getElementById('calCamp')?.value || ''
+
+  // 해당 월 신청자 날짜 맵 { 'YYYY-MM-DD': [app,...] }
+  const dayMap = {}
+  calApps.forEach(app => {
+    if (campFilter && String(app.campaign_id) !== campFilter) return
+    parseApplicantDates(app).forEach(({ dateStr }) => {
+      if (!dayMap[dateStr]) dayMap[dateStr] = []
+      dayMap[dateStr].push(app)
+    })
+  })
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay()
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
+  const today = new Date()
+  const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0')
+
+  let html = ''
+  // 빈 칸 (이전 달)
+  for (let i = 0; i < firstDay; i++) {
+    html += '<div class="bg-white min-h-[80px] p-1.5"></div>'
+  }
+  // 날짜 칸
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0')
+    const apps    = dayMap[dateStr] || []
+    const isToday = dateStr === todayStr
+    const hasBk   = apps.length > 0
+
+    const dotColors = ['#c9a035','#3b82f6','#ec4899','#10b981','#f59e0b','#6366f1']
+    const dots = apps.slice(0,5).map((a,i) => {
+      const color = dotColors[i % dotColors.length]
+      const status = a.status === 'approved' ? '#10b981' : a.status === 'rejected' ? '#ef4444' : color
+      return \`<span title="\${a.applicant_name}" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:\${status};margin:0 1px;"></span>\`
+    }).join('')
+
+    html += \`<div class="bg-white min-h-[80px] p-1.5 cursor-pointer hover:bg-amber-50 transition-colors \${isToday ? 'ring-2 ring-amber-400 ring-inset' : ''}" onclick="selectDay('\${dateStr}')">
+      <div class="text-xs font-semibold \${isToday ? 'text-amber-600' : hasBk ? 'text-gray-900' : 'text-gray-400'} mb-1">\${d}</div>
+      \${hasBk ? \`<div class="text-[10px] font-bold text-amber-700 mb-0.5">\${apps.length} appt</div>\` : ''}
+      <div>\${dots}</div>
+    </div>\`
+  }
+  grid.innerHTML = html
+
+  // 오늘 날짜 자동 선택
+  if (dayMap[todayStr]) selectDay(todayStr)
+  else document.getElementById('calDetail').classList.add('hidden')
+}
+
+function selectDay(dateStr) {
+  const campFilter = document.getElementById('calCamp')?.value || ''
+  const apps = calApps.filter(app => {
+    if (campFilter && String(app.campaign_id) !== campFilter) return false
+    return parseApplicantDates(app).some(d => d.dateStr === dateStr)
+  })
+
+  const detail = document.getElementById('calDetail')
+  const title  = document.getElementById('calDetailTitle')
+  const list   = document.getElementById('calDetailList')
+
+  if (!apps.length) { detail.classList.add('hidden'); return }
+
+  const d = new Date(dateStr + 'T00:00:00')
+  title.textContent = d.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) + ' — ' + apps.length + ' appointment' + (apps.length > 1 ? 's' : '')
+  detail.classList.remove('hidden')
+
+  list.innerHTML = apps.map(a => {
+    const timeInfo = parseApplicantDates(a).filter(d => d.dateStr === dateStr).map(d => d.timeStr).join(', ')
+    const badgeCls = a.status === 'approved' ? 'background:#dcfce7;color:#166534' : a.status === 'rejected' ? 'background:#fee2e2;color:#991b1b' : 'background:#fef9c3;color:#854d0e'
+    return \`<div class="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-amber-100 shadow-sm">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">\${a.applicant_name.charAt(0).toUpperCase()}</div>
+        <div>
+          <p class="font-semibold text-sm text-gray-900">\${a.applicant_name}</p>
+          <p class="text-xs text-gray-400">\${a.nationality} · \${timeInfo || 'Time TBD'}</p>
+          <p class="text-xs text-gray-500">\${a.place_name || a.campaign_title || ''}</p>
+        </div>
+      </div>
+      <div class="flex flex-col items-end gap-1.5">
+        <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full" style="\${badgeCls}">\${a.status}</span>
+        \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-[11px] text-pink-500 hover:underline">@\${a.instagram}</a>\` : ''}
+      </div>
+    </div>\`
+  }).join('')
+}
+
+loadStats(); loadApps() }
   if (t === 'camps') loadCamps()
+  if (t === 'cal')   { loadCalData(); }
 }
 
 async function loadStats() {
@@ -318,6 +484,13 @@ async function loadStats() {
       const cur = sel.value
       sel.innerHTML = '<option value="">All campaigns</option>' +
         camps.data.map(c => \`<option value="\${c.id}" \${cur == c.id ? 'selected' : ''}>\${c.place_name}</option>\`).join('')
+      // calendar clinic filter
+      const calSel = document.getElementById('calCamp')
+      if (calSel) {
+        const calCur = calSel.value
+        calSel.innerHTML = '<option value="">All clinics</option>' +
+          camps.data.map(c => \`<option value="\${c.id}" \${calCur == c.id ? 'selected' : ''}>\${c.place_name}</option>\`).join('')
+      }
     }
     if (camps.success) document.getElementById('s-camps').textContent = camps.data.filter(c => c.status === 'active').length
   } catch {}
@@ -438,7 +611,134 @@ function openAppDetail(a) {
 
 async function setStatus(id, status) {
   await fetch('/api/admin/applications/' + id, { method:'PATCH', headers:H, body: JSON.stringify({ status }) })
-  loadStats(); loadApps()
+  
+// ── Calendar ──────────────────────────────────
+let calYear  = new Date().getFullYear()
+let calMonth = new Date().getMonth()
+let calApps  = []
+
+function changeMonth(delta) {
+  calMonth += delta
+  if (calMonth > 11) { calMonth = 0; calYear++ }
+  if (calMonth < 0)  { calMonth = 11; calYear-- }
+  renderCal()
+}
+
+async function loadCalData() {
+  try {
+    const { success, data } = await (await fetch('/api/admin/applications', { headers: H })).json()
+    calApps = success ? data : []
+    renderCal()
+  } catch { calApps = []; renderCal() }
+}
+
+function parseApplicantDates(app) {
+  // preferred_dates: "2025-10-15 10:00 AM\n2025-10-20 2:00 PM" 형식
+  const lines = (app.preferred_dates || '').split(/[\n,\/]/).map(s => s.trim()).filter(Boolean)
+  const dates = []
+  lines.forEach(line => {
+    // YYYY-MM-DD 패턴 추출
+    const m = line.match(/(\d{4}-\d{2}-\d{2})/)
+    if (m) dates.push({ dateStr: m[1], timeStr: line.replace(m[1], '').trim() })
+  })
+  return dates
+}
+
+function renderCal() {
+  const label = document.getElementById('calMonthLabel')
+  const grid  = document.getElementById('calGrid')
+  if (!label || !grid) return
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  label.textContent = monthNames[calMonth] + ' ' + calYear
+
+  const campFilter = document.getElementById('calCamp')?.value || ''
+
+  // 해당 월 신청자 날짜 맵 { 'YYYY-MM-DD': [app,...] }
+  const dayMap = {}
+  calApps.forEach(app => {
+    if (campFilter && String(app.campaign_id) !== campFilter) return
+    parseApplicantDates(app).forEach(({ dateStr }) => {
+      if (!dayMap[dateStr]) dayMap[dateStr] = []
+      dayMap[dateStr].push(app)
+    })
+  })
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay()
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
+  const today = new Date()
+  const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0')
+
+  let html = ''
+  // 빈 칸 (이전 달)
+  for (let i = 0; i < firstDay; i++) {
+    html += '<div class="bg-white min-h-[80px] p-1.5"></div>'
+  }
+  // 날짜 칸
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0')
+    const apps    = dayMap[dateStr] || []
+    const isToday = dateStr === todayStr
+    const hasBk   = apps.length > 0
+
+    const dotColors = ['#c9a035','#3b82f6','#ec4899','#10b981','#f59e0b','#6366f1']
+    const dots = apps.slice(0,5).map((a,i) => {
+      const color = dotColors[i % dotColors.length]
+      const status = a.status === 'approved' ? '#10b981' : a.status === 'rejected' ? '#ef4444' : color
+      return \`<span title="\${a.applicant_name}" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:\${status};margin:0 1px;"></span>\`
+    }).join('')
+
+    html += \`<div class="bg-white min-h-[80px] p-1.5 cursor-pointer hover:bg-amber-50 transition-colors \${isToday ? 'ring-2 ring-amber-400 ring-inset' : ''}" onclick="selectDay('\${dateStr}')">
+      <div class="text-xs font-semibold \${isToday ? 'text-amber-600' : hasBk ? 'text-gray-900' : 'text-gray-400'} mb-1">\${d}</div>
+      \${hasBk ? \`<div class="text-[10px] font-bold text-amber-700 mb-0.5">\${apps.length} appt</div>\` : ''}
+      <div>\${dots}</div>
+    </div>\`
+  }
+  grid.innerHTML = html
+
+  // 오늘 날짜 자동 선택
+  if (dayMap[todayStr]) selectDay(todayStr)
+  else document.getElementById('calDetail').classList.add('hidden')
+}
+
+function selectDay(dateStr) {
+  const campFilter = document.getElementById('calCamp')?.value || ''
+  const apps = calApps.filter(app => {
+    if (campFilter && String(app.campaign_id) !== campFilter) return false
+    return parseApplicantDates(app).some(d => d.dateStr === dateStr)
+  })
+
+  const detail = document.getElementById('calDetail')
+  const title  = document.getElementById('calDetailTitle')
+  const list   = document.getElementById('calDetailList')
+
+  if (!apps.length) { detail.classList.add('hidden'); return }
+
+  const d = new Date(dateStr + 'T00:00:00')
+  title.textContent = d.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) + ' — ' + apps.length + ' appointment' + (apps.length > 1 ? 's' : '')
+  detail.classList.remove('hidden')
+
+  list.innerHTML = apps.map(a => {
+    const timeInfo = parseApplicantDates(a).filter(d => d.dateStr === dateStr).map(d => d.timeStr).join(', ')
+    const badgeCls = a.status === 'approved' ? 'background:#dcfce7;color:#166534' : a.status === 'rejected' ? 'background:#fee2e2;color:#991b1b' : 'background:#fef9c3;color:#854d0e'
+    return \`<div class="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-amber-100 shadow-sm">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">\${a.applicant_name.charAt(0).toUpperCase()}</div>
+        <div>
+          <p class="font-semibold text-sm text-gray-900">\${a.applicant_name}</p>
+          <p class="text-xs text-gray-400">\${a.nationality} · \${timeInfo || 'Time TBD'}</p>
+          <p class="text-xs text-gray-500">\${a.place_name || a.campaign_title || ''}</p>
+        </div>
+      </div>
+      <div class="flex flex-col items-end gap-1.5">
+        <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full" style="\${badgeCls}">\${a.status}</span>
+        \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-[11px] text-pink-500 hover:underline">@\${a.instagram}</a>\` : ''}
+      </div>
+    </div>\`
+  }).join('')
+}
+
+loadStats(); loadApps()
 }
 
 async function loadCamps() {
@@ -578,6 +878,133 @@ async function testTelegram() {
 }
 
 document.getElementById('appModal').addEventListener('click', e => { if (e.target === document.getElementById('appModal')) document.getElementById('appModal').classList.remove('open') })
+
+
+// ── Calendar ──────────────────────────────────
+let calYear  = new Date().getFullYear()
+let calMonth = new Date().getMonth()
+let calApps  = []
+
+function changeMonth(delta) {
+  calMonth += delta
+  if (calMonth > 11) { calMonth = 0; calYear++ }
+  if (calMonth < 0)  { calMonth = 11; calYear-- }
+  renderCal()
+}
+
+async function loadCalData() {
+  try {
+    const { success, data } = await (await fetch('/api/admin/applications', { headers: H })).json()
+    calApps = success ? data : []
+    renderCal()
+  } catch { calApps = []; renderCal() }
+}
+
+function parseApplicantDates(app) {
+  // preferred_dates: "2025-10-15 10:00 AM\n2025-10-20 2:00 PM" 형식
+  const lines = (app.preferred_dates || '').split(/[\n,\/]/).map(s => s.trim()).filter(Boolean)
+  const dates = []
+  lines.forEach(line => {
+    // YYYY-MM-DD 패턴 추출
+    const m = line.match(/(\d{4}-\d{2}-\d{2})/)
+    if (m) dates.push({ dateStr: m[1], timeStr: line.replace(m[1], '').trim() })
+  })
+  return dates
+}
+
+function renderCal() {
+  const label = document.getElementById('calMonthLabel')
+  const grid  = document.getElementById('calGrid')
+  if (!label || !grid) return
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  label.textContent = monthNames[calMonth] + ' ' + calYear
+
+  const campFilter = document.getElementById('calCamp')?.value || ''
+
+  // 해당 월 신청자 날짜 맵 { 'YYYY-MM-DD': [app,...] }
+  const dayMap = {}
+  calApps.forEach(app => {
+    if (campFilter && String(app.campaign_id) !== campFilter) return
+    parseApplicantDates(app).forEach(({ dateStr }) => {
+      if (!dayMap[dateStr]) dayMap[dateStr] = []
+      dayMap[dateStr].push(app)
+    })
+  })
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay()
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate()
+  const today = new Date()
+  const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0')
+
+  let html = ''
+  // 빈 칸 (이전 달)
+  for (let i = 0; i < firstDay; i++) {
+    html += '<div class="bg-white min-h-[80px] p-1.5"></div>'
+  }
+  // 날짜 칸
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0')
+    const apps    = dayMap[dateStr] || []
+    const isToday = dateStr === todayStr
+    const hasBk   = apps.length > 0
+
+    const dotColors = ['#c9a035','#3b82f6','#ec4899','#10b981','#f59e0b','#6366f1']
+    const dots = apps.slice(0,5).map((a,i) => {
+      const color = dotColors[i % dotColors.length]
+      const status = a.status === 'approved' ? '#10b981' : a.status === 'rejected' ? '#ef4444' : color
+      return \`<span title="\${a.applicant_name}" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:\${status};margin:0 1px;"></span>\`
+    }).join('')
+
+    html += \`<div class="bg-white min-h-[80px] p-1.5 cursor-pointer hover:bg-amber-50 transition-colors \${isToday ? 'ring-2 ring-amber-400 ring-inset' : ''}" onclick="selectDay('\${dateStr}')">
+      <div class="text-xs font-semibold \${isToday ? 'text-amber-600' : hasBk ? 'text-gray-900' : 'text-gray-400'} mb-1">\${d}</div>
+      \${hasBk ? \`<div class="text-[10px] font-bold text-amber-700 mb-0.5">\${apps.length} appt</div>\` : ''}
+      <div>\${dots}</div>
+    </div>\`
+  }
+  grid.innerHTML = html
+
+  // 오늘 날짜 자동 선택
+  if (dayMap[todayStr]) selectDay(todayStr)
+  else document.getElementById('calDetail').classList.add('hidden')
+}
+
+function selectDay(dateStr) {
+  const campFilter = document.getElementById('calCamp')?.value || ''
+  const apps = calApps.filter(app => {
+    if (campFilter && String(app.campaign_id) !== campFilter) return false
+    return parseApplicantDates(app).some(d => d.dateStr === dateStr)
+  })
+
+  const detail = document.getElementById('calDetail')
+  const title  = document.getElementById('calDetailTitle')
+  const list   = document.getElementById('calDetailList')
+
+  if (!apps.length) { detail.classList.add('hidden'); return }
+
+  const d = new Date(dateStr + 'T00:00:00')
+  title.textContent = d.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) + ' — ' + apps.length + ' appointment' + (apps.length > 1 ? 's' : '')
+  detail.classList.remove('hidden')
+
+  list.innerHTML = apps.map(a => {
+    const timeInfo = parseApplicantDates(a).filter(d => d.dateStr === dateStr).map(d => d.timeStr).join(', ')
+    const badgeCls = a.status === 'approved' ? 'background:#dcfce7;color:#166534' : a.status === 'rejected' ? 'background:#fee2e2;color:#991b1b' : 'background:#fef9c3;color:#854d0e'
+    return \`<div class="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-amber-100 shadow-sm">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">\${a.applicant_name.charAt(0).toUpperCase()}</div>
+        <div>
+          <p class="font-semibold text-sm text-gray-900">\${a.applicant_name}</p>
+          <p class="text-xs text-gray-400">\${a.nationality} · \${timeInfo || 'Time TBD'}</p>
+          <p class="text-xs text-gray-500">\${a.place_name || a.campaign_title || ''}</p>
+        </div>
+      </div>
+      <div class="flex flex-col items-end gap-1.5">
+        <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full" style="\${badgeCls}">\${a.status}</span>
+        \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-[11px] text-pink-500 hover:underline">@\${a.instagram}</a>\` : ''}
+      </div>
+    </div>\`
+  }).join('')
+}
 
 loadStats(); loadApps()
 </script>
