@@ -684,23 +684,27 @@ async function deactivate(id) {
 // 5. New Campaign Form
 // ════════════════════════════════════════════
 
-// MyMemory 번역 결과 정제 — "EN ..." / "MYMEMORY WARNING" 등 제거
-function cleanTranslation(raw) {
-  if (!raw) return raw
-  // MyMemory가 "EN text" 형태로 반환하는 경우 제거
-  let t = raw.trim()
-  // 패턴 1: 앞에 "EN " 접두사
-  if (/^EN\s+/i.test(t)) t = t.replace(/^EN\s+/i, '')
-  // 패턴 2: MyMemory warning 메시지 전체가 반환될 때
-  if (t.toUpperCase().startsWith('MYMEMORY WARNING')) return ''
-  // 패턴 3: "EN:" 형태
-  if (/^EN:\s*/i.test(t)) t = t.replace(/^EN:\s*/i, '')
-  return t.trim()
-}
-
 function onMapsUrlChange() {
   const v = document.getElementById('nc_maps_url').value.trim()
   if (v.startsWith('http') && v.length > 20) document.getElementById('nc_resolve_status').classList.add('hidden')
+}
+
+// ── 번역 공통 헬퍼 (Google Translate 비공식 API) ──────────────────────────
+async function gtTranslate(text) {
+  // 한글 없으면 원문 그대로
+  if (!/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(text)) return text
+  try {
+    // Google Translate 비공식 endpoint (브라우저에서 직접 호출 가능)
+    const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=ko&tl=en&dt=t&q=' + encodeURIComponent(text)
+    const res  = await fetch(url)
+    const json = await res.json()
+    // 결과 구조: [[['translated','original',...], ...], ...]
+    const parts = json[0]
+    if (!Array.isArray(parts)) return text
+    return parts.map((p) => (p[0] || '')).join('').trim() || text
+  } catch {
+    return text
+  }
 }
 
 // 한글 포함 여부 감지 → 번역 힌트 표시
@@ -709,7 +713,6 @@ function onKoreanInput(inputId, previewId) {
   const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
   if (!hasKorean) {
     document.getElementById(previewId).classList.add('hidden')
-    // 한글 아니면 그대로 final에 저장
     const finalId = inputId === 'nc_benefits' ? 'nc_benefits_final' : 'nc_req_final'
     document.getElementById(finalId).value = val
   }
@@ -729,58 +732,35 @@ function onKoreanInputDesc() {
 async function translateDesc() {
   const val = document.getElementById('nc_desc').value.trim()
   if (!val) return
-  const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
-  if (!hasKorean) {
-    document.getElementById('nc_desc_final').value = val
-    document.getElementById('nc_desc_translated').classList.add('hidden')
-    return
-  }
   const btn = event.target
   btn.textContent = '...'
   btn.disabled = true
-  try {
-    const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(val) + '&langpair=ko|en'
-    const res = await fetch(url)
-    const data = await res.json()
-    const translated = cleanTranslation(data.responseData?.translatedText) || val
-    document.getElementById('nc_desc_en').textContent = translated
-    document.getElementById('nc_desc_final').value = translated
+  const translated = await gtTranslate(val)
+  document.getElementById('nc_desc_en').textContent = translated
+  document.getElementById('nc_desc_final').value = translated
+  if (/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)) {
     document.getElementById('nc_desc_translated').classList.remove('hidden')
-  } catch {
-    document.getElementById('nc_desc_final').value = val
   }
   btn.textContent = '번역'
   btn.disabled = false
 }
 
-// 한글 → 영어 번역 (MyMemory 무료 API)
+// Benefits / Requirements: 한글 → 영어 번역
 async function translateField(inputId, previewId) {
   const val = document.getElementById(inputId).value.trim()
   if (!val) return
-  const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
-  if (!hasKorean) {
-    // 한글 없으면 그대로 사용
-    const finalId = inputId === 'nc_benefits' ? 'nc_benefits_final' : 'nc_req_final'
-    document.getElementById(finalId).value = val
-    document.getElementById(previewId).classList.add('hidden')
-    return
-  }
   const btn = event.target
   btn.textContent = '...'
   btn.disabled = true
-  try {
-    const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(val) + '&langpair=ko|en'
-    const res = await fetch(url)
-    const data = await res.json()
-    const translated = cleanTranslation(data.responseData?.translatedText) || val
-    const enSpanId = inputId === 'nc_benefits' ? 'nc_benefits_en' : 'nc_req_en'
-    const finalId  = inputId === 'nc_benefits' ? 'nc_benefits_final' : 'nc_req_final'
-    document.getElementById(enSpanId).textContent = translated
-    document.getElementById(finalId).value = translated
+  const translated = await gtTranslate(val)
+  const enSpanId = inputId === 'nc_benefits' ? 'nc_benefits_en' : 'nc_req_en'
+  const finalId  = inputId === 'nc_benefits' ? 'nc_benefits_final' : 'nc_req_final'
+  document.getElementById(enSpanId).textContent = translated
+  document.getElementById(finalId).value = translated
+  if (/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)) {
     document.getElementById(previewId).classList.remove('hidden')
-  } catch {
-    const finalId = inputId === 'nc_benefits' ? 'nc_benefits_final' : 'nc_req_final'
-    document.getElementById(finalId).value = val
+  } else {
+    document.getElementById(previewId).classList.add('hidden')
   }
   btn.textContent = '번역'
   btn.disabled = false
@@ -826,6 +806,20 @@ function fillPlace(p) {
     ? \`<img src="/api/places/photo?ref=\${p.photo}" class="w-full h-full object-cover">\`
     : '<i class="fas fa-hospital text-xl text-gray-300"></i>'
   document.getElementById('placePreview').classList.remove('hidden')
+
+  // ── 기본값 자동세팅 ─────────────────────────────────────
+  // 비어있을 때만 채움 (이미 입력된 경우 덮어쓰지 않음)
+  const reqEl = document.getElementById('nc_req') as HTMLInputElement
+  const benEl = document.getElementById('nc_benefits') as HTMLInputElement
+  if (!reqEl.value) {
+    const defaultReq = '3,000+ Instagram followers · Travel or beauty content preferred · Post 1 Reel within 3 weeks of visit · Tag @' + p.name.toLowerCase().replace(/[^a-z0-9]/g, '_')
+    reqEl.value = defaultReq
+    ;(document.getElementById('nc_req_final') as HTMLInputElement).value = defaultReq
+  }
+  if (!benEl.value) {
+    benEl.value = 'Complimentary treatment session · Personalized consultation'
+    ;(document.getElementById('nc_benefits_final') as HTMLInputElement).value = benEl.value
+  }
 }
 
 function clearPlace() {
@@ -1143,28 +1137,20 @@ function onEcReqInput() {
   }
 }
 
-// MyMemory 번역 공통 헬퍼
+// Edit Camp 번역 공통 헬퍼 (Google Translate)
 async function _ecTranslate(inputId, enSpanId, finalId, previewId, btn) {
   const val = document.getElementById(inputId).value.trim()
   if (!val) return
-  const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
-  if (!hasKorean) {
-    document.getElementById(finalId).value = val
-    document.getElementById(previewId).classList.add('hidden')
-    return
-  }
   const origText = btn.textContent
   btn.textContent = '...'
   btn.disabled = true
-  try {
-    const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(val) + '&langpair=ko|en'
-    const data = await (await fetch(url)).json()
-    const translated = cleanTranslation(data.responseData?.translatedText) || val
-    document.getElementById(enSpanId).textContent = translated
-    document.getElementById(finalId).value = translated
+  const translated = await gtTranslate(val)
+  document.getElementById(enSpanId).textContent = translated
+  document.getElementById(finalId).value = translated
+  if (/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)) {
     document.getElementById(previewId).classList.remove('hidden')
-  } catch {
-    document.getElementById(finalId).value = val
+  } else {
+    document.getElementById(previewId).classList.add('hidden')
   }
   btn.textContent = origText
   btn.disabled = false
