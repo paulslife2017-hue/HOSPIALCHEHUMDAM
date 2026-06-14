@@ -268,8 +268,11 @@ function mainPageHTML(): string {
   <style>
     body { font-family:'Inter',sans-serif; background:#f8f7f5; }
     .serif { font-family:'Playfair Display',serif; }
-    .card-hover { transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s; }
-    .card-hover:hover { transform:translateY(-6px); box-shadow:0 24px 48px rgba(0,0,0,.10); }
+    .card-hover { transition:box-shadow .25s ease, border-color .25s ease; }
+    .card-hover:hover { box-shadow:0 12px 36px rgba(0,0,0,.12); border-color:#e8d9bf !important; }
+    .card-img { transition:none; }
+    .days-badge { animation:none; }
+    .spot-badge { display:inline-flex; align-items:center; gap:3px; }
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(10,10,10,.6); z-index:999; backdrop-filter:blur(6px); }
     .modal-overlay.active { display:flex; align-items:center; justify-content:center; }
     .progress-bar { height:4px; background:#e5e7eb; border-radius:99px; overflow:hidden; }
@@ -510,42 +513,81 @@ function render(list) {
   }
 
   grid.innerHTML = list.map(c => {
-    const full  = c.current_participants >= c.max_participants
-    const pct   = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
-    const thumb = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
-    const col   = catColors[c.category] || { bg:'#f3f4f6', text:'#374151' }
-    const dl    = c.deadline ? new Date(c.deadline).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'Open'
+    const full      = c.current_participants >= c.max_participants
+    const pct       = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
+    const thumb     = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
+    const col       = catColors[c.category] || { bg:'#f3f4f6', text:'#374151' }
     const spotsLeft = c.max_participants - c.current_participants
+    const mapsUrl   = c.place_id ? \`https://www.google.com/maps/place/?q=place_id:\${c.place_id}\` : ''
+
+    // Deadline display: days remaining
+    let deadlineHtml = ''
+    if (c.deadline) {
+      const dlDate = new Date(c.deadline)
+      const today  = new Date(); today.setHours(0,0,0,0)
+      const daysLeft = Math.ceil((dlDate - today) / 86400000)
+      if (daysLeft < 0) {
+        deadlineHtml = \`<span class="text-xs text-gray-300">Closed</span>\`
+      } else if (daysLeft === 0) {
+        deadlineHtml = \`<span class="text-xs font-semibold text-red-500">⚡ Last day!</span>\`
+      } else if (daysLeft <= 7) {
+        deadlineHtml = \`<span class="text-xs font-semibold text-orange-500">⚡ \${daysLeft}d left</span>\`
+      } else {
+        const dlFmt = dlDate.toLocaleDateString('en-US',{month:'short',day:'numeric'})
+        deadlineHtml = \`<span class="text-xs text-gray-400">Until \${dlFmt}</span>\`
+      }
+    } else {
+      deadlineHtml = \`<span class="text-xs text-gray-400">Open</span>\`
+    }
+
     return \`
-    <article class="card-hover bg-white rounded-2xl overflow-hidden border border-stone-100 cursor-pointer group" onclick="openDetail(\${c.id})">
-      <div class="relative h-48 bg-stone-100 overflow-hidden">
+    <article class="card-hover bg-white rounded-2xl overflow-hidden border border-stone-100 cursor-pointer flex flex-col" onclick="openDetail(\${c.id})">
+      <div class="relative h-48 bg-stone-100 overflow-hidden flex-shrink-0">
         \${thumb
-          ? \`<img src="\${thumb}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="\${c.place_name}" onerror="this.parentElement.innerHTML='<div class=\\"w-full h-full flex items-center justify-center bg-stone-100\\"><i class=\\"fas fa-clinic-medical text-5xl text-stone-300\\"></i></div>'">\`
+          ? \`<img src="\${thumb}" class="card-img w-full h-full object-cover" alt="\${c.place_name}" onerror="this.parentElement.innerHTML='<div class=&quot;w-full h-full flex items-center justify-center bg-stone-100&quot;><i class=&quot;fas fa-clinic-medical text-5xl text-stone-300&quot;></i></div>'">\`
           : \`<div class="w-full h-full flex items-center justify-center bg-stone-100"><i class="fas fa-clinic-medical text-5xl text-stone-300"></i></div>\`}
-        <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-        \${full ? '<div class="absolute inset-0 bg-black/50 flex items-center justify-center"><span class="bg-white/20 backdrop-blur text-white text-xs font-bold px-4 py-1.5 rounded-full border border-white/30">FULLY BOOKED</span></div>' : ''}
-        <div class="absolute top-3 left-3">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+        \${full ? '<div class="absolute inset-0 bg-black/55 flex items-center justify-center"><span class="bg-white/20 backdrop-blur text-white text-xs font-bold px-4 py-1.5 rounded-full border border-white/30 tracking-wide">FULLY BOOKED</span></div>' : ''}
+
+        <!-- Top-left: category + rating side by side -->
+        <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5">
           <span class="pill text-xs" style="background:\${col.bg};color:\${col.text}">\${c.category}</span>
+          \${c.place_rating ? \`<span class="flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-2 py-0.5"><span class="text-amber-400 text-xs">★</span><span class="text-white text-xs font-semibold">\${c.place_rating}</span></span>\` : ''}
         </div>
-        \${c.place_rating ? \`<div class="absolute top-3 right-3 flex items-center gap-1 bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1"><span class="text-amber-400 text-xs">★</span><span class="text-white text-xs font-semibold">\${c.place_rating}</span></div>\` : ''}
+
+        <!-- Bottom of image: place name + maps link -->
+        <div class="absolute bottom-0 left-0 right-0 px-3 pb-2.5 flex items-end justify-between">
+          <p class="text-white text-xs font-medium drop-shadow truncate max-w-[70%]">
+            <i class="fas fa-location-dot text-red-400 mr-1"></i>\${c.place_name}
+          </p>
+          \${mapsUrl ? \`<a href="\${mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex items-center gap-1 bg-white/20 hover:bg-white/35 backdrop-blur-sm border border-white/30 rounded-full px-2.5 py-1 text-white text-xs font-medium transition-colors whitespace-nowrap">
+            <i class="fas fa-map text-xs"></i> Map
+          </a>\` : ''}
+        </div>
       </div>
-      <div class="p-5">
-        <p class="text-xs text-gray-400 mb-1 flex items-center gap-1"><i class="fas fa-map-marker-alt text-red-400"></i>\${c.place_name}</p>
-        <h3 class="font-semibold text-gray-900 text-sm mb-3 line-clamp-2 leading-snug">\${c.title}</h3>
+
+      <div class="p-4 flex flex-col flex-1">
+        <h3 class="font-semibold text-gray-900 text-sm mb-2.5 line-clamp-2 leading-snug flex-1">\${c.title}</h3>
         \${c.benefits ? \`<p class="text-xs text-stone-500 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-3 line-clamp-1"><i class="fas fa-gift text-amber-500 mr-1.5"></i>\${c.benefits}</p>\` : ''}
-        <div class="space-y-1.5 mb-4">
-          <div class="flex justify-between text-xs">
+
+        <!-- Spots progress -->
+        <div class="space-y-1.5 mb-3">
+          <div class="flex justify-between items-center text-xs">
             <span class="text-gray-400">\${c.current_participants}/\${c.max_participants} applicants</span>
-            <span class="font-semibold \${full?'text-red-400':'text-amber-600'}">\${full?'Full':spotsLeft+' left'}</span>
+            <span class="font-semibold spot-badge \${full ? 'text-red-400' : spotsLeft <= 3 ? 'text-orange-500' : 'text-amber-600'}">
+              \${full ? '🔴 Full' : spotsLeft <= 3 ? '🟡 ' + spotsLeft + ' left' : '🟢 ' + spotsLeft + ' spots'}
+            </span>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width:\${pct}%"></div></div>
         </div>
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-1 text-xs text-gray-400">
-            <i class="far fa-calendar"></i>
-            <span>Until \${dl}</span>
+
+        <!-- Footer: deadline + apply button -->
+        <div class="flex items-center justify-between pt-1">
+          <div class="flex items-center gap-1">
+            <i class="far fa-calendar text-amber-400 text-xs"></i>
+            \${deadlineHtml}
           </div>
-          <button onclick="event.stopPropagation(); openApply(\${c.id})" \${full?'disabled':''} class="\${full?'bg-gray-100 text-gray-300 cursor-not-allowed':'btn-gold'} px-4 py-1.5 rounded-xl text-xs font-semibold transition-all">
+          <button onclick="event.stopPropagation(); openApply(\${c.id})" \${full ? 'disabled' : ''} class="\${full ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'btn-gold'} px-4 py-1.5 rounded-xl text-xs font-semibold transition-all">
             \${full ? 'Full' : 'Apply Now'}
           </button>
         </div>
@@ -561,41 +603,96 @@ function filterBy(cat) {
 
 async function openDetail(id) {
   const { data: c } = await (await fetch('/api/campaigns/' + id)).json()
-  const full  = c.current_participants >= c.max_participants
-  const pct   = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
-  const thumb = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
-  const dl    = c.deadline ? new Date(c.deadline).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : 'Open'
+  const full      = c.current_participants >= c.max_participants
+  const pct       = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
+  const thumb     = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
+  const spotsLeft = c.max_participants - c.current_participants
+  const mapsUrl   = c.place_id ? \`https://www.google.com/maps/place/?q=place_id:\${c.place_id}\` : ''
+
+  // Deadline display
+  let deadlineDisplay = 'Open'
+  if (c.deadline) {
+    const dlDate   = new Date(c.deadline)
+    const today    = new Date(); today.setHours(0,0,0,0)
+    const daysLeft = Math.ceil((dlDate - today) / 86400000)
+    const dlFmt    = dlDate.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
+    if (daysLeft < 0)       deadlineDisplay = 'Closed'
+    else if (daysLeft === 0) deadlineDisplay = \`⚡ Last day! (\${dlFmt})\`
+    else if (daysLeft <= 7) deadlineDisplay = \`⚡ \${daysLeft} days left (\${dlFmt})\`
+    else                    deadlineDisplay = dlFmt
+  }
+
   document.getElementById('detailContent').innerHTML = \`
     <div class="relative">
       <div class="h-56 bg-stone-100">
         \${thumb ? \`<img src="\${thumb}" class="w-full h-full object-cover">\` : \`<div class="w-full h-full flex items-center justify-center bg-stone-100"><i class="fas fa-clinic-medical text-6xl text-stone-300"></i></div>\`}
         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-      </div>
-      <button onclick="closeDetail()" class="absolute top-4 right-4 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition">
-        <i class="fas fa-times text-sm"></i>
-      </button>
-      <div class="absolute bottom-4 left-5 text-white">
-        <p class="text-xs text-white/70 mb-1"><i class="fas fa-map-marker-alt mr-1 text-red-400"></i>\${c.place_name}</p>
-        <h2 class="font-bold text-xl leading-tight">\${c.title}</h2>
+        <button onclick="closeDetail()" class="absolute top-4 right-4 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition">
+          <i class="fas fa-times text-sm"></i>
+        </button>
+        <div class="absolute bottom-4 left-5 right-5 flex items-end justify-between">
+          <div class="text-white">
+            <p class="text-xs text-white/70 mb-1"><i class="fas fa-map-marker-alt mr-1 text-red-400"></i>\${c.place_name}</p>
+            <h2 class="font-bold text-xl leading-tight">\${c.title}</h2>
+          </div>
+          \${mapsUrl ? \`<a href="\${mapsUrl}" target="_blank" rel="noopener" class="flex-shrink-0 flex items-center gap-1.5 bg-white/20 hover:bg-white/35 backdrop-blur-sm border border-white/30 rounded-full px-3 py-1.5 text-white text-xs font-medium transition-colors">
+            <i class="fas fa-map-location-dot"></i> Open in Maps
+          </a>\` : ''}
+        </div>
       </div>
     </div>
-    <div class="p-6 space-y-5">
+    <div class="p-6 space-y-4">
+      <!-- Info pills row -->
       <div class="flex flex-wrap gap-2">
         <span class="pill bg-stone-100 text-stone-600">\${c.category}</span>
-        \${c.place_rating ? \`<span class="pill bg-amber-50 text-amber-700">★ \${c.place_rating}</span>\` : ''}
-        <span class="pill bg-stone-100 text-stone-500">\${c.current_participants}/\${c.max_participants} spots</span>
+        \${c.place_rating ? \`<span class="pill bg-amber-50 text-amber-700"><i class="fas fa-star text-amber-400 mr-0.5"></i>\${c.place_rating} Rating</span>\` : ''}
+        <span class="pill \${full ? 'bg-red-50 text-red-600' : spotsLeft <= 3 ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-700'}">
+          \${full ? '🔴 Fully Booked' : spotsLeft <= 3 ? '🟡 ' + spotsLeft + ' spots left' : '🟢 ' + spotsLeft + ' spots open'}
+        </span>
       </div>
-      \${c.place_address ? \`<p class="text-sm text-gray-500 flex items-start gap-2"><i class="fas fa-location-dot text-red-400 mt-0.5"></i><span>\${c.place_address}</span></p>\` : ''}
+
+      <!-- Address + Maps link -->
+      \${c.place_address ? \`<div class="flex items-start gap-2 bg-stone-50 rounded-xl px-4 py-3">
+        <i class="fas fa-location-dot text-red-400 mt-0.5 flex-shrink-0"></i>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-700">\${c.place_address}</p>
+          \${mapsUrl ? \`<a href="\${mapsUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 mt-1 font-medium"><i class="fas fa-external-link-alt"></i> View on Google Maps</a>\` : ''}
+        </div>
+      </div>\` : ''}
+
+      <!-- Progress bar -->
       <div>
-        <div class="flex justify-between text-xs mb-1.5"><span class="text-gray-400">Spots filled</span><span class="font-semibold \${full?'text-red-400':'text-amber-600'}">\${pct}%</span></div>
+        <div class="flex justify-between text-xs mb-1.5">
+          <span class="text-gray-400">\${c.current_participants} of \${c.max_participants} spots filled</span>
+          <span class="font-semibold \${full ? 'text-red-400' : 'text-amber-600'}">\${pct}%</span>
+        </div>
         <div class="progress-bar"><div class="progress-fill" style="width:\${pct}%"></div></div>
       </div>
-      <p class="text-sm text-gray-600 leading-relaxed">\${c.description || ''}</p>
-      \${c.benefits ? \`<div class="bg-amber-50 border border-amber-100 rounded-xl p-4"><p class="text-xs font-semibold text-amber-800 mb-1.5"><i class="fas fa-gift mr-1.5"></i>What You Get</p><p class="text-sm text-amber-900">\${c.benefits}</p></div>\` : ''}
-      \${c.requirements ? \`<div class="bg-stone-50 rounded-xl p-4"><p class="text-xs font-semibold text-stone-500 mb-1.5"><i class="fas fa-circle-check mr-1.5"></i>Requirements</p><p class="text-sm text-stone-600">\${c.requirements}</p></div>\` : ''}
-      <div class="flex items-center gap-2 text-xs text-gray-400 pb-1"><i class="far fa-calendar text-amber-500"></i>Application deadline: <span class="font-medium text-gray-600">\${dl}</span></div>
+
+      <!-- Description -->
+      \${c.description ? \`<p class="text-sm text-gray-600 leading-relaxed">\${c.description}</p>\` : ''}
+
+      <!-- Benefits -->
+      \${c.benefits ? \`<div class="bg-amber-50 border border-amber-100 rounded-xl p-4">
+        <p class="text-xs font-semibold text-amber-800 mb-1.5"><i class="fas fa-gift mr-1.5"></i>What You Get</p>
+        <p class="text-sm text-amber-900">\${c.benefits}</p>
+      </div>\` : ''}
+
+      <!-- Requirements -->
+      \${c.requirements ? \`<div class="bg-stone-50 rounded-xl p-4">
+        <p class="text-xs font-semibold text-stone-500 mb-1.5"><i class="fas fa-circle-check mr-1.5"></i>Requirements</p>
+        <p class="text-sm text-stone-600">\${c.requirements}</p>
+      </div>\` : ''}
+
+      <!-- Deadline -->
+      <div class="flex items-center gap-2 text-xs pb-1 \${c.deadline && Math.ceil((new Date(c.deadline)-new Date().setHours(0,0,0,0))/86400000)<=7 ? 'text-orange-500 font-semibold' : 'text-gray-400'}">
+        <i class="far fa-calendar \${c.deadline && Math.ceil((new Date(c.deadline)-new Date().setHours(0,0,0,0))/86400000)<=7 ? 'text-orange-400' : 'text-amber-400'}"></i>
+        Application deadline: <span class="font-medium">\${deadlineDisplay}</span>
+      </div>
+
+      <!-- CTA -->
       \${!full
-        ? \`<button onclick="closeDetail(); openApply(\${c.id})" class="btn-gold w-full py-3 rounded-xl text-sm">Apply Now</button>\`
+        ? \`<button onclick="closeDetail(); openApply(\${c.id})" class="btn-gold w-full py-3 rounded-xl text-sm font-semibold">Apply Now — Free!</button>\`
         : \`<div class="w-full bg-stone-100 text-stone-400 font-semibold py-3 rounded-xl text-sm text-center">This program is fully booked</div>\`}
     </div>\`
   document.getElementById('detailModal').classList.add('active')
