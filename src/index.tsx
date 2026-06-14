@@ -814,12 +814,8 @@ function adminLoginHTML(): string {
     <div class="rounded-2xl p-6 border" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08);backdrop-filter:blur(12px)">
       <form id="loginForm" class="space-y-4">
         <div>
-          <label class="block text-xs font-medium text-stone-400 mb-1.5">Username</label>
-          <input id="uname" type="text" value="admin" class="w-full rounded-xl px-4 py-3 text-white text-sm border transition-all" style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.1)">
-        </div>
-        <div>
           <label class="block text-xs font-medium text-stone-400 mb-1.5">Password</label>
-          <input id="pw" type="password" placeholder="••••••••" class="w-full rounded-xl px-4 py-3 text-white text-sm border transition-all" style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.1)">
+          <input id="pw" type="password" placeholder="••••••••" autocomplete="current-password" class="w-full rounded-xl px-4 py-3 text-white text-sm border transition-all" style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.1)">
         </div>
         <div id="loginErr" class="hidden text-red-400 text-xs text-center bg-red-950/50 rounded-xl py-2.5 px-3 border border-red-900/50"></div>
         <button type="submit" class="w-full font-semibold py-3 rounded-xl text-sm text-white transition-all mt-2" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">
@@ -839,7 +835,7 @@ function adminLoginHTML(): string {
       const btn = e.target.querySelector('button')
       btn.disabled = true; btn.textContent = 'Signing in...'
       try {
-        const res  = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: document.getElementById('uname').value, password: document.getElementById('pw').value }) })
+        const res  = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: 'admin', password: document.getElementById('pw').value }) })
         const data = await res.json()
         if (data.success) { sessionStorage.setItem('adminToken', data.token); window.location.href = '/admin/dashboard' }
         else { err.textContent = data.error; err.classList.remove('hidden'); btn.disabled=false; btn.textContent='Sign In' }

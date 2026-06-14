@@ -60,4 +60,4 @@ INSERT OR IGNORE INTO campaigns (id, title, description, place_id, place_name, p
 
 
 
-INSERT OR IGNORE INTO admins (username, password_hash) VALUES ('admin', 'admin1234');
+INSERT OR IGNORE INTO admins (username, password_hash) VALUES ('admin', '0907');
