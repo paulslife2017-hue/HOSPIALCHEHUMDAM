@@ -809,16 +809,16 @@ function fillPlace(p) {
 
   // ── 기본값 자동세팅 ─────────────────────────────────────
   // 비어있을 때만 채움 (이미 입력된 경우 덮어쓰지 않음)
-  const reqEl = document.getElementById('nc_req') as HTMLInputElement
-  const benEl = document.getElementById('nc_benefits') as HTMLInputElement
+  const reqEl = document.getElementById('nc_req')
+  const benEl = document.getElementById('nc_benefits')
   if (!reqEl.value) {
     const defaultReq = '3,000+ Instagram followers · Travel or beauty content preferred · Post 1 Reel within 3 weeks of visit · Tag @' + p.name.toLowerCase().replace(/[^a-z0-9]/g, '_')
     reqEl.value = defaultReq
-    ;(document.getElementById('nc_req_final') as HTMLInputElement).value = defaultReq
+    document.getElementById('nc_req_final').value = defaultReq
   }
   if (!benEl.value) {
     benEl.value = 'Complimentary treatment session · Personalized consultation'
-    ;(document.getElementById('nc_benefits_final') as HTMLInputElement).value = benEl.value
+    document.getElementById('nc_benefits_final').value = benEl.value
   }
 }
 
