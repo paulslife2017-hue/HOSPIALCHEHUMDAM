@@ -274,7 +274,8 @@ function handleLogoClick() {
     window.location.href = '/admin'
     return
   }
-  _logoTimer = setTimeout(() => { _logoClicks = 0 }, 600)
+  // 1초 안에 3번 클릭
+  _logoTimer = setTimeout(() => { _logoClicks = 0 }, 1000)
 }
 
 async function loadCampaigns() {
