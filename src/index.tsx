@@ -234,7 +234,7 @@ app.post('/api/admin/campaigns', async (c) => {
     const r = await c.env.DB.prepare(
       `INSERT INTO campaigns (title, description, place_id, place_name, place_address, place_photo_ref, place_rating, category, max_participants, deadline, benefits, requirements)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(b.title, b.description, b.place_id, b.place_name, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Hospital', b.max_participants||10, b.deadline, b.benefits||'', b.requirements||'').run()
+    ).bind(b.title, b.description, b.place_id, b.place_name, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||10, b.deadline, b.benefits||'', b.requirements||'').run()
     return c.json({ success: true, id: r.meta.last_row_id })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
@@ -336,11 +336,8 @@ function mainPageHTML(): string {
 <div class="bg-white border-b border-stone-100 sticky top-16 z-40 shadow-sm">
   <div class="max-w-6xl mx-auto px-5 py-3 flex gap-2 overflow-x-auto scrollbar-none">
     <button onclick="filterBy('all')" data-f="all" class="filter-btn active whitespace-nowrap px-4 py-2 rounded-full font-medium">All</button>
-    <button onclick="filterBy('Hospital')" data-f="Hospital" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">🏥 Hospital</button>
-    <button onclick="filterBy('Dental')" data-f="Dental" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">🦷 Dental</button>
-    <button onclick="filterBy('Skin')" data-f="Skin" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">✨ Skin</button>
-    <button onclick="filterBy('Head Spa')" data-f="Head Spa" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">💆 Head Spa</button>
-    <button onclick="filterBy('Wellness')" data-f="Wellness" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">🌿 Wellness</button>
+    <button onclick="filterBy('Clinic')" data-f="Clinic" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">🏥 Clinic</button>
+    <button onclick="filterBy('Beauty Shop')" data-f="Beauty Shop" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">💄 Beauty Shop</button>
   </div>
 </div>
 
@@ -508,11 +505,8 @@ function render(list) {
   empty.classList.add('hidden'); grid.classList.remove('hidden')
 
   const catColors = {
-    Hospital:  { pill:'#dbeafe','#1d4ed8', text:'#1d4ed8', bg:'#dbeafe' },
-    Dental:    { bg:'#cffafe', text:'#0e7490' },
-    Skin:      { bg:'#fce7f3', text:'#be185d' },
-    'Head Spa':{ bg:'#ede9fe', text:'#6d28d9' },
-    Wellness:  { bg:'#dcfce7', text:'#15803d' },
+    Clinic:         { bg:'#dbeafe', text:'#1d4ed8' },
+    'Beauty Shop':  { bg:'#fce7f3', text:'#be185d' },
   }
 
   grid.innerHTML = list.map(c => {
@@ -958,7 +952,7 @@ function adminDashboardHTML(): string {
           <div>
             <label class="block text-xs font-semibold text-gray-600 mb-1">Category</label>
             <select id="nc_category" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
-              <option>Hospital</option><option>Dental</option><option>Skin</option><option>Head Spa</option><option>Wellness</option>
+              <option>Clinic</option><option>Beauty Shop</option>
             </select>
           </div>
           <div>
