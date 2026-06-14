@@ -683,6 +683,21 @@ async function deactivate(id) {
 // ════════════════════════════════════════════
 // 5. New Campaign Form
 // ════════════════════════════════════════════
+
+// MyMemory 번역 결과 정제 — "EN ..." / "MYMEMORY WARNING" 등 제거
+function cleanTranslation(raw) {
+  if (!raw) return raw
+  // MyMemory가 "EN text" 형태로 반환하는 경우 제거
+  let t = raw.trim()
+  // 패턴 1: 앞에 "EN " 접두사
+  if (/^EN\s+/i.test(t)) t = t.replace(/^EN\s+/i, '')
+  // 패턴 2: MyMemory warning 메시지 전체가 반환될 때
+  if (t.toUpperCase().startsWith('MYMEMORY WARNING')) return ''
+  // 패턴 3: "EN:" 형태
+  if (/^EN:\s*/i.test(t)) t = t.replace(/^EN:\s*/i, '')
+  return t.trim()
+}
+
 function onMapsUrlChange() {
   const v = document.getElementById('nc_maps_url').value.trim()
   if (v.startsWith('http') && v.length > 20) document.getElementById('nc_resolve_status').classList.add('hidden')
@@ -727,7 +742,7 @@ async function translateDesc() {
     const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(val) + '&langpair=ko|en'
     const res = await fetch(url)
     const data = await res.json()
-    const translated = data.responseData?.translatedText || val
+    const translated = cleanTranslation(data.responseData?.translatedText) || val
     document.getElementById('nc_desc_en').textContent = translated
     document.getElementById('nc_desc_final').value = translated
     document.getElementById('nc_desc_translated').classList.remove('hidden')
@@ -757,7 +772,7 @@ async function translateField(inputId, previewId) {
     const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(val) + '&langpair=ko|en'
     const res = await fetch(url)
     const data = await res.json()
-    const translated = data.responseData?.translatedText || val
+    const translated = cleanTranslation(data.responseData?.translatedText) || val
     const enSpanId = inputId === 'nc_benefits' ? 'nc_benefits_en' : 'nc_req_en'
     const finalId  = inputId === 'nc_benefits' ? 'nc_benefits_final' : 'nc_req_final'
     document.getElementById(enSpanId).textContent = translated
@@ -1144,7 +1159,7 @@ async function _ecTranslate(inputId, enSpanId, finalId, previewId, btn) {
   try {
     const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(val) + '&langpair=ko|en'
     const data = await (await fetch(url)).json()
-    const translated = data.responseData?.translatedText || val
+    const translated = cleanTranslation(data.responseData?.translatedText) || val
     document.getElementById(enSpanId).textContent = translated
     document.getElementById(finalId).value = translated
     document.getElementById(previewId).classList.remove('hidden')
