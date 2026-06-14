@@ -14,7 +14,19 @@ function getDB() {
 async function dbAll(sql: string, args: any[] = []) {
   const db = getDB()
   const rs = await db.execute({ sql, args })
-  return rs.rows as any[]
+  // rows가 객체면 그대로, 배열이면 columns와 매핑해서 객체로 변환
+  if (!rs.rows || rs.rows.length === 0) return []
+  const first = rs.rows[0]
+  if (typeof first === 'object' && !Array.isArray(first)) {
+    return rs.rows as any[]
+  }
+  // 배열 형태일 때 columns로 객체 변환
+  const cols = rs.columns || []
+  return rs.rows.map((row: any) => {
+    const obj: any = {}
+    cols.forEach((col: string, i: number) => { obj[col] = row[i] })
+    return obj
+  })
 }
 async function dbFirst(sql: string, args: any[] = []) {
   const rows = await dbAll(sql, args)
