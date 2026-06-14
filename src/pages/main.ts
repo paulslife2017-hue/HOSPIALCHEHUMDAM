@@ -323,7 +323,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '      </div>\n' +
 '      <div class="sb-stat">\n' +
 '        <span class="sb-stat-label">Open spots</span>\n' +
-'        <span class="sb-stat-val" id="sbStatSpots">—</span>\n' +
+'        <span class="sb-stat-val">Unlimited</span>\n' +
 '      </div>\n' +
 '      <div class="sb-stat">\n' +
 '        <span class="sb-stat-label">Nationalities</span>\n' +
@@ -795,11 +795,7 @@ export function mainPageHTML(campaigns: any[]): string {
 'if (statEl) statEl.textContent = allCampaigns.length;\n' +
 'var sbStatActive = document.getElementById("sbStatActive");\n' +
 'if (sbStatActive) sbStatActive.textContent = allCampaigns.length;\n' +
-'var sbStatSpots = document.getElementById("sbStatSpots");\n' +
-'if (sbStatSpots) {\n' +
-'  var totalSpots = allCampaigns.reduce(function(s,c){ return s + Math.max(0,(c.max_participants||0)-(c.current_participants||0)); }, 0);\n' +
-'  sbStatSpots.textContent = totalSpots > 0 ? totalSpots : "Open";\n' +
-'}\n' +
+
 '\n' +
 '// 초기 렌더링\n' +
 'render(allCampaigns);\n' +
