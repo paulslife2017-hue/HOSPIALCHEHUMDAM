@@ -261,106 +261,149 @@ function mainPageHTML(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Korea Medical Experience</title>
+  <title>Seoul Beauty & Medical — Influencer Program</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * { font-family: 'Inter', sans-serif; }
-    .card-hover { transition: transform .25s, box-shadow .25s; }
-    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,.10); }
-    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:999; backdrop-filter:blur(3px); }
+    body { font-family:'Inter',sans-serif; background:#f8f7f5; }
+    .serif { font-family:'Playfair Display',serif; }
+    .card-hover { transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s; }
+    .card-hover:hover { transform:translateY(-6px); box-shadow:0 24px 48px rgba(0,0,0,.10); }
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(10,10,10,.6); z-index:999; backdrop-filter:blur(6px); }
     .modal-overlay.active { display:flex; align-items:center; justify-content:center; }
-    .progress-bar { height:5px; background:#e5e7eb; border-radius:99px; overflow:hidden; }
-    .progress-fill { height:100%; background:#2563eb; border-radius:99px; }
-    .tag { display:inline-block; padding:2px 10px; border-radius:99px; font-size:11px; font-weight:600; }
-    .filter-btn { border:1.5px solid #e5e7eb; color:#6b7280; transition:all .2s; }
-    .filter-btn.active { border-color:#2563eb; background:#eff6ff; color:#2563eb; }
-    .date-chip { display:inline-flex; align-items:center; gap:4px; background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; border-radius:8px; padding:4px 10px; font-size:13px; font-weight:500; }
-    .date-chip button { color:#93c5fd; hover:color:#1d4ed8; line-height:1; background:none; border:none; cursor:pointer; font-size:15px; padding:0 0 0 2px; }
-    .time-select { border:1px solid #e5e7eb; border-radius:8px; padding:6px 8px; font-size:12px; color:#374151; background:#fff; cursor:pointer; }
-    .time-select:focus { outline:none; border-color:#2563eb; }
-    input:focus, textarea:focus, select:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+    .progress-bar { height:4px; background:#e5e7eb; border-radius:99px; overflow:hidden; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,#b5935a,#d4af7a); border-radius:99px; }
+    .pill { display:inline-block; padding:3px 11px; border-radius:99px; font-size:11px; font-weight:600; letter-spacing:.3px; }
+    .filter-btn { border:1.5px solid #e2ddd6; color:#888; transition:all .2s; background:#fff; font-size:13px; }
+    .filter-btn.active { border-color:#b5935a; background:#fdf8f0; color:#8a6d3b; }
+    .date-chip { display:inline-flex; align-items:center; gap:4px; background:#fdf8f0; border:1px solid #e8d9bf; color:#8a6d3b; border-radius:8px; padding:4px 10px; font-size:12px; font-weight:500; }
+    .date-chip button { color:#c9a96e; line-height:1; background:none; border:none; cursor:pointer; font-size:14px; padding:0 0 0 2px; }
+    .time-select { border:1px solid #e2ddd6; border-radius:8px; padding:7px 8px; font-size:12px; color:#374151; background:#fff; cursor:pointer; }
+    .time-select:focus { outline:none; border-color:#b5935a; }
+    input:focus, textarea:focus, select:focus { outline:none; border-color:#b5935a !important; box-shadow:0 0 0 3px rgba(181,147,90,.12); }
+    .btn-gold { background:linear-gradient(135deg,#c9a035,#e8c16a); color:#fff; font-weight:600; transition:all .2s; }
+    .btn-gold:hover { background:linear-gradient(135deg,#b5900a,#d4aa50); box-shadow:0 4px 16px rgba(181,147,90,.35); }
+    .hero-bg { background:linear-gradient(135deg,#0a0a0a 0%,#1a1209 50%,#0d0d0d 100%); }
+    ::-webkit-scrollbar { width:4px; } ::-webkit-scrollbar-track { background:#f1f1f1; } ::-webkit-scrollbar-thumb { background:#d4b896; border-radius:99px; }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen">
 
 <!-- Nav -->
-<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
-  <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-    <a href="/" class="flex items-center gap-2">
-      <div class="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
-        <i class="fas fa-plus text-white text-xs"></i>
+<nav class="bg-white/95 backdrop-blur-md border-b border-stone-100 sticky top-0 z-50 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">
+        <i class="fas fa-star text-white text-xs"></i>
       </div>
-      <span class="font-bold text-gray-900">Korea Medical Experience</span>
+      <div>
+        <span class="font-bold text-gray-900 text-sm tracking-wide">SEOUL BEAUTY TRIP</span>
+        <span class="hidden sm:inline text-gray-300 mx-2">·</span>
+        <span class="hidden sm:inline text-xs text-gray-400">Influencer Experience Program</span>
+      </div>
     </a>
-    <a href="/admin" class="text-xs text-gray-400 hover:text-gray-600 px-2 py-1">Admin</a>
+    <a href="/admin" class="text-xs text-gray-300 hover:text-gray-500 transition-colors">Admin</a>
   </div>
 </nav>
 
 <!-- Hero -->
-<section class="bg-white border-b border-gray-100 py-10 px-4">
-  <div class="max-w-6xl mx-auto">
-    <div class="max-w-xl">
-      <span class="tag bg-blue-50 text-blue-600 mb-3">For Foreigners in Korea</span>
-      <h1 class="text-3xl font-bold text-gray-900 mt-2 mb-3 leading-snug">
-        Try Korea's Best<br>Medical &amp; Wellness Services
+<section class="hero-bg text-white py-20 px-5 relative overflow-hidden">
+  <div class="absolute inset-0 opacity-5" style="background-image:url('data:image/svg+xml,<svg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M30 5 L55 20 L55 40 L30 55 L5 40 L5 20Z\" fill=\"none\" stroke=\"white\" stroke-width=\"0.5\"/></svg>'); background-size:60px;"></div>
+  <div class="max-w-6xl mx-auto relative">
+    <div class="max-w-2xl">
+      <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-xs font-medium text-amber-300 mb-6 backdrop-blur-sm">
+        <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></span>
+        Exclusive for International Creators
+      </div>
+      <h1 class="serif text-4xl sm:text-5xl font-bold leading-tight mb-5">
+        Experience Seoul's<br>
+        <span style="background:linear-gradient(90deg,#c9a035,#f0d080);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Premium Clinics</span>
       </h1>
-      <p class="text-gray-500 text-sm leading-relaxed">
-        Get free or discounted treatments at top Korean clinics —<br>just share your honest experience on Instagram.
+      <p class="text-stone-300 text-base leading-relaxed mb-8 max-w-lg">
+        Get complimentary treatments at Seoul's top-rated medical &amp; wellness clinics. Share your authentic experience with your audience.
       </p>
+      <div class="flex flex-wrap gap-5 text-sm text-stone-300">
+        <div class="flex items-center gap-2"><i class="fas fa-check-circle text-amber-400"></i> Free treatments</div>
+        <div class="flex items-center gap-2"><i class="fas fa-check-circle text-amber-400"></i> English support</div>
+        <div class="flex items-center gap-2"><i class="fas fa-check-circle text-amber-400"></i> All nationalities welcome</div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- Filter -->
-<div class="bg-white border-b border-gray-100 sticky top-14 z-40">
-  <div class="max-w-6xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto">
-    <button onclick="filterBy('all')" data-f="all" class="filter-btn active whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium">All</button>
-    <button onclick="filterBy('Hospital')" data-f="Hospital" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium">🏥 Hospital</button>
-    <button onclick="filterBy('Head Spa')" data-f="Head Spa" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium">💆 Head Spa</button>
-    <button onclick="filterBy('Dental')" data-f="Dental" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium">🦷 Dental</button>
-    <button onclick="filterBy('Skin')" data-f="Skin" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium">✨ Skin</button>
-    <button onclick="filterBy('Wellness')" data-f="Wellness" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium">🌿 Wellness</button>
+<div class="bg-white border-b border-stone-100 sticky top-16 z-40 shadow-sm">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex gap-2 overflow-x-auto scrollbar-none">
+    <button onclick="filterBy('all')" data-f="all" class="filter-btn active whitespace-nowrap px-4 py-2 rounded-full font-medium">All</button>
+    <button onclick="filterBy('Hospital')" data-f="Hospital" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">🏥 Hospital</button>
+    <button onclick="filterBy('Dental')" data-f="Dental" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">🦷 Dental</button>
+    <button onclick="filterBy('Skin')" data-f="Skin" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">✨ Skin</button>
+    <button onclick="filterBy('Head Spa')" data-f="Head Spa" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">💆 Head Spa</button>
+    <button onclick="filterBy('Wellness')" data-f="Wellness" class="filter-btn whitespace-nowrap px-4 py-2 rounded-full font-medium">🌿 Wellness</button>
   </div>
 </div>
 
 <!-- Campaigns -->
-<main class="max-w-6xl mx-auto px-4 py-8">
-  <div id="loading" class="flex justify-center py-20">
-    <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+<main class="max-w-6xl mx-auto px-5 py-10">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-lg font-bold text-gray-900">Open Programs</h2>
+      <p class="text-sm text-gray-400 mt-0.5">Apply now — limited spots available</p>
+    </div>
+    <div id="campaignCount" class="text-xs text-gray-400 bg-stone-100 px-3 py-1.5 rounded-full"></div>
   </div>
-  <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 hidden"></div>
-  <div id="empty" class="hidden text-center py-20 text-gray-400">
-    <i class="fas fa-search text-4xl mb-3 block text-gray-200"></i>No campaigns found
+  <div id="loading" class="flex flex-col items-center justify-center py-24 gap-3">
+    <div class="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+    <p class="text-sm text-gray-400">Loading programs...</p>
+  </div>
+  <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 hidden"></div>
+  <div id="empty" class="hidden text-center py-24">
+    <div class="w-16 h-16 bg-stone-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+      <i class="fas fa-search text-2xl text-stone-300"></i>
+    </div>
+    <p class="text-gray-400 font-medium">No programs found</p>
+    <p class="text-sm text-gray-300 mt-1">Try a different category</p>
   </div>
 </main>
 
+<!-- Footer -->
+<footer class="border-t border-stone-200 bg-white mt-8 py-8 px-5">
+  <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">
+        <i class="fas fa-star text-white text-xs" style="font-size:8px"></i>
+      </div>
+      <span class="text-sm font-semibold text-gray-700">Seoul Beauty Trip</span>
+    </div>
+    <p class="text-xs text-gray-400">© 2025 Seoul Beauty Trip · Influencer Experience Program</p>
+  </div>
+</footer>
+
 <!-- Apply Modal -->
 <div id="applyModal" class="modal-overlay">
-  <div class="bg-white rounded-2xl w-full max-w-md mx-4 shadow-xl overflow-hidden max-h-[95vh] flex flex-col">
-    <div class="px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
+  <div class="bg-white rounded-2xl w-full max-w-md mx-4 shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
+    <div class="px-6 pt-5 pb-4 border-b border-gray-100 flex-shrink-0" style="background:linear-gradient(135deg,#0a0a0a,#1a1209)">
       <div class="flex items-start justify-between">
         <div>
-          <h3 class="font-bold text-gray-900 text-lg">Apply Now</h3>
-          <p id="applySubtitle" class="text-xs text-gray-400 mt-0.5"></p>
+          <h3 class="font-bold text-white text-base">Apply for Program</h3>
+          <p id="applySubtitle" class="text-xs text-amber-300/80 mt-0.5 truncate max-w-xs"></p>
         </div>
-        <button onclick="closeApply()" class="text-gray-300 hover:text-gray-500 ml-4">
-          <i class="fas fa-times text-lg"></i>
+        <button onclick="closeApply()" class="text-white/40 hover:text-white/80 ml-4 transition-colors">
+          <i class="fas fa-times"></i>
         </button>
       </div>
     </div>
     <form id="applyForm" class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
       <input type="hidden" id="applyCapId">
 
-      <!-- Name + Nationality -->
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">Full Name <span class="text-red-400">*</span></label>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5">Full Name <span class="text-red-400">*</span></label>
           <input id="fName" type="text" placeholder="Your name" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">Nationality <span class="text-red-400">*</span></label>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5">Nationality <span class="text-red-400">*</span></label>
           <select id="fNation" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
             <option value="">Select</option>
             <option>🇺🇸 American</option><option>🇬🇧 British</option><option>🇦🇺 Australian</option>
@@ -376,86 +419,65 @@ function mainPageHTML(): string {
         </div>
       </div>
 
-      <!-- Email + Phone -->
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">Email <span class="text-red-400">*</span></label>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5">Email <span class="text-red-400">*</span></label>
           <input id="fEmail" type="email" placeholder="your@email.com" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" required>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1"><i class="fab fa-whatsapp text-green-500 mr-1"></i>WhatsApp</label>
-          <input id="fPhone" type="text" placeholder="+82-10-0000-0000" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5"><i class="fab fa-whatsapp text-green-500 mr-1"></i>WhatsApp</label>
+          <input id="fPhone" type="text" placeholder="+1-000-0000" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
         </div>
       </div>
 
-      <!-- Instagram -->
       <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">
-          <i class="fab fa-instagram text-pink-500 mr-1"></i>Instagram <span class="text-red-400">*</span>
-        </label>
-        <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5"><i class="fab fa-instagram text-pink-500 mr-1"></i>Instagram <span class="text-red-400">*</span></label>
+        <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2" style="focus-within:border-color:#b5935a">
           <span class="px-3 text-gray-400 text-sm bg-gray-50 border-r border-gray-200 py-2.5 select-none">@</span>
-          <input id="fInsta" type="text" placeholder="your_instagram" class="flex-1 px-3 py-2.5 text-sm border-none outline-none" required>
+          <input id="fInsta" type="text" placeholder="your_handle" class="flex-1 px-3 py-2.5 text-sm border-none outline-none" required>
         </div>
       </div>
 
-      <!-- Preferred Dates + Time -->
       <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">
-          <i class="far fa-calendar text-blue-500 mr-1"></i>Available Dates &amp; Times <span class="text-red-400">*</span>
-        </label>
-        <p class="text-xs text-gray-400 mb-2">Add up to 5 date &amp; time slots. The clinic will confirm one that works.</p>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5"><i class="far fa-calendar text-amber-500 mr-1"></i>Available Dates &amp; Times <span class="text-red-400">*</span></label>
+        <p class="text-xs text-gray-400 mb-2">Add up to 5 slots — clinic will confirm one.</p>
         <div class="flex gap-2 items-center flex-wrap">
-          <input id="dateInput" type="date" class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm min-w-0" style="flex:1;min-width:130px">
-          <select id="timeInput" class="time-select" style="flex:0 0 auto">
-            <option value="09:00">9:00 AM</option>
-            <option value="09:30">9:30 AM</option>
-            <option value="10:00">10:00 AM</option>
-            <option value="10:30">10:30 AM</option>
-            <option value="11:00">11:00 AM</option>
-            <option value="11:30">11:30 AM</option>
-            <option value="12:00">12:00 PM</option>
-            <option value="12:30">12:30 PM</option>
-            <option value="13:00">1:00 PM</option>
-            <option value="13:30">1:30 PM</option>
-            <option value="14:00">2:00 PM</option>
-            <option value="14:30">2:30 PM</option>
-            <option value="15:00">3:00 PM</option>
-            <option value="15:30">3:30 PM</option>
-            <option value="16:00">4:00 PM</option>
-            <option value="16:30">4:30 PM</option>
-            <option value="17:00">5:00 PM</option>
-            <option value="17:30">5:30 PM</option>
+          <input id="dateInput" type="date" class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm" style="flex:1;min-width:130px">
+          <select id="timeInput" class="time-select">
+            <option value="09:00">9:00 AM</option><option value="09:30">9:30 AM</option>
+            <option value="10:00">10:00 AM</option><option value="10:30">10:30 AM</option>
+            <option value="11:00">11:00 AM</option><option value="11:30">11:30 AM</option>
+            <option value="12:00">12:00 PM</option><option value="12:30">12:30 PM</option>
+            <option value="13:00">1:00 PM</option><option value="13:30">1:30 PM</option>
+            <option value="14:00">2:00 PM</option><option value="14:30">2:30 PM</option>
+            <option value="15:00">3:00 PM</option><option value="15:30">3:30 PM</option>
+            <option value="16:00">4:00 PM</option><option value="16:30">4:30 PM</option>
+            <option value="17:00">5:00 PM</option><option value="17:30">5:30 PM</option>
             <option value="18:00">6:00 PM</option>
           </select>
-          <button type="button" onclick="addDate()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">
-            + Add
-          </button>
+          <button type="button" onclick="addDate()" class="btn-gold px-4 py-2 rounded-xl text-sm whitespace-nowrap">+ Add</button>
         </div>
         <div id="dateChips" class="flex flex-wrap gap-2 mt-2 min-h-[28px]"></div>
         <input type="hidden" id="fDates">
       </div>
 
-      <!-- Message -->
       <div>
-        <label class="block text-xs font-semibold text-gray-600 mb-1">Message <span class="text-gray-400 font-normal">(optional)</span></label>
-        <textarea id="fMsg" rows="2" placeholder="Any questions or notes for the clinic..." class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none"></textarea>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5">Message <span class="text-gray-300 font-normal">(optional)</span></label>
+        <textarea id="fMsg" rows="2" placeholder="Any notes for the clinic..." class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none"></textarea>
       </div>
 
-      <div id="applyErr" class="hidden bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3 border border-red-100"></div>
-      <div id="applyOk"  class="hidden bg-green-50 text-green-700 text-sm rounded-xl px-4 py-3 border border-green-100"></div>
+      <div id="applyErr" class="hidden bg-red-50 text-red-600 text-xs rounded-xl px-4 py-3 border border-red-100"></div>
+      <div id="applyOk"  class="hidden bg-green-50 text-green-700 text-xs rounded-xl px-4 py-3 border border-green-100"></div>
 
-      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl text-sm transition-colors">
-        Submit Application
-      </button>
-      <p class="text-center text-xs text-gray-400">The clinic will contact you to confirm a date.</p>
+      <button type="submit" class="btn-gold w-full py-3 rounded-xl text-sm">Submit Application</button>
+      <p class="text-center text-xs text-gray-300">The clinic will reach out to confirm your slot.</p>
     </form>
   </div>
 </div>
 
 <!-- Detail Modal -->
 <div id="detailModal" class="modal-overlay">
-  <div class="bg-white rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-xl">
+  <div class="bg-white rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
     <div id="detailContent"></div>
   </div>
 </div>
@@ -464,7 +486,6 @@ function mainPageHTML(): string {
 let allCampaigns = []
 let selectedDates = []
 
-// ── Load ──────────────────────────────────────
 async function loadCampaigns() {
   try {
     const res = await fetch('/api/campaigns')
@@ -472,7 +493,7 @@ async function loadCampaigns() {
     allCampaigns = data || []
     render(allCampaigns)
   } catch {
-    document.getElementById('loading').innerHTML = '<p class="text-red-400 text-sm text-center">Failed to load.</p>'
+    document.getElementById('loading').innerHTML = '<p class="text-red-400 text-sm text-center py-10">Failed to load.</p>'
   }
 }
 
@@ -480,44 +501,58 @@ function render(list) {
   const loading = document.getElementById('loading')
   const grid    = document.getElementById('grid')
   const empty   = document.getElementById('empty')
+  const count   = document.getElementById('campaignCount')
   loading.classList.add('hidden')
+  count.textContent = list.length + ' program' + (list.length !== 1 ? 's' : '')
   if (!list.length) { grid.classList.add('hidden'); empty.classList.remove('hidden'); return }
   empty.classList.add('hidden'); grid.classList.remove('hidden')
 
-  const cc = { Hospital:'bg-blue-50 text-blue-600', 'Head Spa':'bg-purple-50 text-purple-600',
-    Dental:'bg-cyan-50 text-cyan-600', Skin:'bg-pink-50 text-pink-600', Wellness:'bg-green-50 text-green-600' }
+  const catColors = {
+    Hospital:  { pill:'#dbeafe','#1d4ed8', text:'#1d4ed8', bg:'#dbeafe' },
+    Dental:    { bg:'#cffafe', text:'#0e7490' },
+    Skin:      { bg:'#fce7f3', text:'#be185d' },
+    'Head Spa':{ bg:'#ede9fe', text:'#6d28d9' },
+    Wellness:  { bg:'#dcfce7', text:'#15803d' },
+  }
 
   grid.innerHTML = list.map(c => {
     const full  = c.current_participants >= c.max_participants
     const pct   = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
     const thumb = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
-    const cl    = cc[c.category] || 'bg-gray-100 text-gray-600'
-    const dl    = c.deadline ? new Date(c.deadline).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : 'TBD'
+    const col   = catColors[c.category] || { bg:'#f3f4f6', text:'#374151' }
+    const dl    = c.deadline ? new Date(c.deadline).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'Open'
+    const spotsLeft = c.max_participants - c.current_participants
     return \`
-    <article class="card-hover bg-white rounded-2xl overflow-hidden border border-gray-100 cursor-pointer" onclick="openDetail(\${c.id})">
-      <div class="relative h-44 bg-gray-100">
+    <article class="card-hover bg-white rounded-2xl overflow-hidden border border-stone-100 cursor-pointer group" onclick="openDetail(\${c.id})">
+      <div class="relative h-48 bg-stone-100 overflow-hidden">
         \${thumb
-          ? \`<img src="\${thumb}" class="w-full h-full object-cover" alt="\${c.place_name}" onerror="this.parentElement.innerHTML='<div class=\\"w-full h-full flex items-center justify-center text-gray-200\\"><i class=\\"fas fa-hospital text-5xl\\"></i></div>'">\`
-          : \`<div class="w-full h-full flex items-center justify-center text-gray-200"><i class="fas fa-hospital text-5xl"></i></div>\`}
-        \${full ? '<div class="absolute inset-0 bg-black/40 flex items-center justify-center"><span class="bg-white text-gray-700 text-xs font-bold px-3 py-1 rounded-full">FULL</span></div>' : ''}
-        <div class="absolute top-2.5 left-2.5"><span class="tag \${cl}">\${c.category}</span></div>
+          ? \`<img src="\${thumb}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="\${c.place_name}" onerror="this.parentElement.innerHTML='<div class=\\"w-full h-full flex items-center justify-center bg-stone-100\\"><i class=\\"fas fa-clinic-medical text-5xl text-stone-300\\"></i></div>'">\`
+          : \`<div class="w-full h-full flex items-center justify-center bg-stone-100"><i class="fas fa-clinic-medical text-5xl text-stone-300"></i></div>\`}
+        <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+        \${full ? '<div class="absolute inset-0 bg-black/50 flex items-center justify-center"><span class="bg-white/20 backdrop-blur text-white text-xs font-bold px-4 py-1.5 rounded-full border border-white/30">FULLY BOOKED</span></div>' : ''}
+        <div class="absolute top-3 left-3">
+          <span class="pill text-xs" style="background:\${col.bg};color:\${col.text}">\${c.category}</span>
+        </div>
+        \${c.place_rating ? \`<div class="absolute top-3 right-3 flex items-center gap-1 bg-black/40 backdrop-blur-sm rounded-full px-2.5 py-1"><span class="text-amber-400 text-xs">★</span><span class="text-white text-xs font-semibold">\${c.place_rating}</span></div>\` : ''}
       </div>
-      <div class="p-4">
-        <h3 class="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">\${c.title}</h3>
-        <p class="text-xs text-gray-400 mb-0.5"><i class="fas fa-map-marker-alt mr-1 text-red-400"></i>\${c.place_name}</p>
-        \${c.place_rating ? \`<p class="text-xs text-yellow-500 mb-3">★ \${c.place_rating}</p>\` : '<div class="mb-3"></div>'}
-        <div class="space-y-1.5 mb-3">
-          <div class="flex justify-between text-xs text-gray-500">
-            <span>\${c.current_participants}/\${c.max_participants} spots</span>
-            <span class="font-medium \${full ? 'text-red-500':'text-blue-600'}">\${pct}%</span>
+      <div class="p-5">
+        <p class="text-xs text-gray-400 mb-1 flex items-center gap-1"><i class="fas fa-map-marker-alt text-red-400"></i>\${c.place_name}</p>
+        <h3 class="font-semibold text-gray-900 text-sm mb-3 line-clamp-2 leading-snug">\${c.title}</h3>
+        \${c.benefits ? \`<p class="text-xs text-stone-500 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-3 line-clamp-1"><i class="fas fa-gift text-amber-500 mr-1.5"></i>\${c.benefits}</p>\` : ''}
+        <div class="space-y-1.5 mb-4">
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-400">\${c.current_participants}/\${c.max_participants} applicants</span>
+            <span class="font-semibold \${full?'text-red-400':'text-amber-600'}">\${full?'Full':spotsLeft+' left'}</span>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width:\${pct}%"></div></div>
         </div>
-        \${c.benefits ? \`<p class="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-3 line-clamp-2"><i class="fas fa-gift text-blue-400 mr-1"></i>\${c.benefits}</p>\` : ''}
         <div class="flex items-center justify-between">
-          <span class="text-xs text-gray-400">Deadline: \${dl}</span>
-          <button onclick="event.stopPropagation(); openApply(\${c.id})" \${full?'disabled':''} class="\${full?'bg-gray-100 text-gray-400 cursor-not-allowed':'bg-blue-600 hover:bg-blue-700 text-white'} px-4 py-1.5 rounded-xl text-xs font-semibold transition-colors">
-            \${full ? 'Full' : 'Apply'}
+          <div class="flex items-center gap-1 text-xs text-gray-400">
+            <i class="far fa-calendar"></i>
+            <span>Until \${dl}</span>
+          </div>
+          <button onclick="event.stopPropagation(); openApply(\${c.id})" \${full?'disabled':''} class="\${full?'bg-gray-100 text-gray-300 cursor-not-allowed':'btn-gold'} px-4 py-1.5 rounded-xl text-xs font-semibold transition-all">
+            \${full ? 'Full' : 'Apply Now'}
           </button>
         </div>
       </div>
@@ -530,53 +565,49 @@ function filterBy(cat) {
   render(cat === 'all' ? allCampaigns : allCampaigns.filter(c => c.category === cat))
 }
 
-// ── Detail Modal ──────────────────────────────
 async function openDetail(id) {
   const { data: c } = await (await fetch('/api/campaigns/' + id)).json()
   const full  = c.current_participants >= c.max_participants
   const pct   = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
   const thumb = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
-
+  const dl    = c.deadline ? new Date(c.deadline).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : 'Open'
   document.getElementById('detailContent').innerHTML = \`
     <div class="relative">
-      <div class="h-52 bg-gray-100">
-        \${thumb ? \`<img src="\${thumb}" class="w-full h-full object-cover">\` : \`<div class="w-full h-full flex items-center justify-center text-gray-200"><i class="fas fa-hospital text-6xl"></i></div>\`}
-        <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+      <div class="h-56 bg-stone-100">
+        \${thumb ? \`<img src="\${thumb}" class="w-full h-full object-cover">\` : \`<div class="w-full h-full flex items-center justify-center bg-stone-100"><i class="fas fa-clinic-medical text-6xl text-stone-300"></i></div>\`}
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
       </div>
-      <button onclick="closeDetail()" class="absolute top-3 right-3 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center">
+      <button onclick="closeDetail()" class="absolute top-4 right-4 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition">
         <i class="fas fa-times text-sm"></i>
       </button>
-      <div class="absolute bottom-3 left-4 text-white">
-        <p class="text-xs opacity-80"><i class="fas fa-map-marker-alt mr-1"></i>\${c.place_name}</p>
-        <h2 class="font-bold text-lg leading-tight mt-0.5">\${c.title}</h2>
+      <div class="absolute bottom-4 left-5 text-white">
+        <p class="text-xs text-white/70 mb-1"><i class="fas fa-map-marker-alt mr-1 text-red-400"></i>\${c.place_name}</p>
+        <h2 class="font-bold text-xl leading-tight">\${c.title}</h2>
       </div>
     </div>
-    <div class="p-5 space-y-4">
+    <div class="p-6 space-y-5">
       <div class="flex flex-wrap gap-2">
-        <span class="tag bg-blue-50 text-blue-600">\${c.category}</span>
-        \${c.place_rating ? \`<span class="tag bg-yellow-50 text-yellow-600">★ \${c.place_rating}</span>\` : ''}
-        <span class="tag bg-gray-100 text-gray-600">\${c.current_participants}/\${c.max_participants} spots</span>
+        <span class="pill bg-stone-100 text-stone-600">\${c.category}</span>
+        \${c.place_rating ? \`<span class="pill bg-amber-50 text-amber-700">★ \${c.place_rating}</span>\` : ''}
+        <span class="pill bg-stone-100 text-stone-500">\${c.current_participants}/\${c.max_participants} spots</span>
       </div>
-      \${c.place_address ? \`<p class="text-sm text-gray-500"><i class="fas fa-location-dot text-red-400 mr-2"></i>\${c.place_address}</p>\` : ''}
+      \${c.place_address ? \`<p class="text-sm text-gray-500 flex items-start gap-2"><i class="fas fa-location-dot text-red-400 mt-0.5"></i><span>\${c.place_address}</span></p>\` : ''}
       <div>
-        <div class="flex justify-between text-xs text-gray-500 mb-1">
-          <span>Spots filled</span>
-          <span class="font-semibold \${full?'text-red-500':'text-blue-600'}">\${pct}%</span>
-        </div>
+        <div class="flex justify-between text-xs mb-1.5"><span class="text-gray-400">Spots filled</span><span class="font-semibold \${full?'text-red-400':'text-amber-600'}">\${pct}%</span></div>
         <div class="progress-bar"><div class="progress-fill" style="width:\${pct}%"></div></div>
       </div>
       <p class="text-sm text-gray-600 leading-relaxed">\${c.description || ''}</p>
-      \${c.benefits ? \`<div class="bg-blue-50 rounded-xl p-3"><p class="text-xs font-semibold text-blue-700 mb-1"><i class="fas fa-gift mr-1"></i>What you get</p><p class="text-sm text-blue-800">\${c.benefits}</p></div>\` : ''}
-      \${c.requirements ? \`<div class="bg-gray-50 rounded-xl p-3"><p class="text-xs font-semibold text-gray-500 mb-1"><i class="fas fa-circle-check mr-1"></i>Requirements</p><p class="text-sm text-gray-600">\${c.requirements}</p></div>\` : ''}
+      \${c.benefits ? \`<div class="bg-amber-50 border border-amber-100 rounded-xl p-4"><p class="text-xs font-semibold text-amber-800 mb-1.5"><i class="fas fa-gift mr-1.5"></i>What You Get</p><p class="text-sm text-amber-900">\${c.benefits}</p></div>\` : ''}
+      \${c.requirements ? \`<div class="bg-stone-50 rounded-xl p-4"><p class="text-xs font-semibold text-stone-500 mb-1.5"><i class="fas fa-circle-check mr-1.5"></i>Requirements</p><p class="text-sm text-stone-600">\${c.requirements}</p></div>\` : ''}
+      <div class="flex items-center gap-2 text-xs text-gray-400 pb-1"><i class="far fa-calendar text-amber-500"></i>Application deadline: <span class="font-medium text-gray-600">\${dl}</span></div>
       \${!full
-        ? \`<button onclick="closeDetail(); openApply(\${c.id})" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl text-sm transition-colors">Apply Now</button>\`
-        : \`<div class="w-full bg-gray-100 text-gray-400 font-semibold py-3 rounded-xl text-sm text-center">This campaign is full</div>\`}
+        ? \`<button onclick="closeDetail(); openApply(\${c.id})" class="btn-gold w-full py-3 rounded-xl text-sm">Apply Now</button>\`
+        : \`<div class="w-full bg-stone-100 text-stone-400 font-semibold py-3 rounded-xl text-sm text-center">This program is fully booked</div>\`}
     </div>\`
   document.getElementById('detailModal').classList.add('active')
 }
 function closeDetail() { document.getElementById('detailModal').classList.remove('active') }
 
-// ── Apply Modal ───────────────────────────────
 async function openApply(id) {
   const { data: c } = await (await fetch('/api/campaigns/' + id)).json()
   document.getElementById('applyCapId').value = id
@@ -587,16 +618,12 @@ async function openApply(id) {
   document.getElementById('applyCapId').value = id
   selectedDates = []
   renderDateChips()
-  // set min date to today
   document.getElementById('dateInput').min = new Date().toISOString().split('T')[0]
-  // default time to 10:00 AM
   document.getElementById('timeInput').value = '10:00'
   document.getElementById('applyModal').classList.add('active')
 }
 function closeApply() { document.getElementById('applyModal').classList.remove('active') }
 
-// ── Date + Time chips ─────────────────────────
-// selectedDates items: { key: "2025-08-15|14:00", date: "2025-08-15", time: "14:00" }
 function addDate() {
   const dateVal = document.getElementById('dateInput').value
   const timeVal = document.getElementById('timeInput').value
@@ -609,14 +636,11 @@ function addDate() {
   renderDateChips()
   document.getElementById('dateInput').value = ''
 }
-
 function removeDate(key) {
   selectedDates = selectedDates.filter(x => x.key !== key)
   renderDateChips()
 }
-
 function fmtTime(t) {
-  // "14:00" -> "2:00 PM"
   const [hStr, mStr] = t.split(':')
   let h = parseInt(hStr), m = mStr
   const ampm = h >= 12 ? 'PM' : 'AM'
@@ -624,14 +648,12 @@ function fmtTime(t) {
   if (h === 0) h = 12
   return h + ':' + m + ' ' + ampm
 }
-
 function renderDateChips() {
   const el = document.getElementById('dateChips')
   el.innerHTML = selectedDates.map(({ key, date, time }) => {
     const dateFmt = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
-    const timeFmt = fmtTime(time)
-    const escapedKey = key.replace(/'/g, "\\\\'")  // escape for onclick
-    return \`<span class="date-chip"><i class="far fa-clock text-blue-400 text-xs"></i>\${dateFmt} \${timeFmt}<button type="button" onclick="removeDate('\${escapedKey}')" aria-label="remove">×</button></span>\`
+    const escapedKey = key.replace(/'/g, "\\\\'")
+    return \`<span class="date-chip"><i class="far fa-clock text-amber-500 text-xs"></i>\${dateFmt} \${fmtTime(time)}<button type="button" onclick="removeDate('\${escapedKey}')" aria-label="remove">×</button></span>\`
   }).join('')
   document.getElementById('fDates').value = selectedDates.map(x => {
     const dateFmt = new Date(x.date + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
@@ -644,29 +666,25 @@ document.getElementById('applyForm').addEventListener('submit', async e => {
   const errEl = document.getElementById('applyErr')
   const okEl  = document.getElementById('applyOk')
   errEl.classList.add('hidden'); okEl.classList.add('hidden')
-
   if (selectedDates.length === 0) {
     errEl.textContent = 'Please add at least one available date & time.'
     errEl.classList.remove('hidden'); return
   }
-
   const body = {
-    campaign_id:     parseInt(document.getElementById('applyCapId').value),
-    applicant_name:  document.getElementById('fName').value.trim(),
-    nationality:     document.getElementById('fNation').value,
-    email:           document.getElementById('fEmail').value.trim(),
-    phone:           document.getElementById('fPhone').value.trim(),
-    instagram:       document.getElementById('fInsta').value.trim().replace(/^@/,''),
+    campaign_id: parseInt(document.getElementById('applyCapId').value),
+    applicant_name: document.getElementById('fName').value.trim(),
+    nationality: document.getElementById('fNation').value,
+    email: document.getElementById('fEmail').value.trim(),
+    phone: document.getElementById('fPhone').value.trim(),
+    instagram: document.getElementById('fInsta').value.trim().replace(/^@/,''),
     preferred_dates: selectedDates.map(x => {
       const dateFmt = new Date(x.date + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
       return dateFmt + ' ' + fmtTime(x.time)
     }).join(' / '),
-    message:         document.getElementById('fMsg').value.trim(),
+    message: document.getElementById('fMsg').value.trim(),
   }
-
   const btn = e.target.querySelector('button[type=submit]')
   btn.disabled = true; btn.textContent = 'Submitting...'
-
   try {
     const res  = await fetch('/api/apply', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
     const data = await res.json()
@@ -705,40 +723,45 @@ function adminLoginHTML(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Login</title>
+  <title>Admin — Seoul Beauty Trip</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>* { font-family:'Inter',sans-serif; }</style>
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family:'Inter',sans-serif; }
+    .serif { font-family:'Playfair Display',serif; }
+    input:focus { outline:none; border-color:#c9a035 !important; box-shadow:0 0 0 3px rgba(201,160,53,.15); }
+  </style>
 </head>
-<body class="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-  <div class="w-full max-w-sm">
+<body class="min-h-screen flex" style="background:linear-gradient(135deg,#0a0a0a 0%,#1a1209 60%,#0d0d0d 100%)">
+  <div class="m-auto w-full max-w-sm px-4">
     <div class="text-center mb-8">
-      <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-        <i class="fas fa-plus text-white text-lg"></i>
+      <div class="w-14 h-14 rounded-2xl mx-auto mb-5 flex items-center justify-center" style="background:linear-gradient(135deg,#c9a035,#e8c16a);box-shadow:0 8px 24px rgba(201,160,53,.3)">
+        <i class="fas fa-star text-white text-xl"></i>
       </div>
-      <h1 class="text-xl font-bold text-white">Admin Login</h1>
-      <p class="text-gray-500 text-sm mt-1">Korea Medical Experience</p>
+      <h1 class="serif text-2xl text-white mb-1">Seoul Beauty Trip</h1>
+      <p class="text-stone-500 text-sm">Admin Dashboard</p>
     </div>
-    <div class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+    <div class="rounded-2xl p-6 border" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08);backdrop-filter:blur(12px)">
       <form id="loginForm" class="space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1.5">Username</label>
-          <input id="uname" type="text" value="admin" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500">
+          <label class="block text-xs font-medium text-stone-400 mb-1.5">Username</label>
+          <input id="uname" type="text" value="admin" class="w-full rounded-xl px-4 py-3 text-white text-sm border transition-all" style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.1)">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1.5">Password</label>
-          <input id="pw" type="password" placeholder="Password" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500">
+          <label class="block text-xs font-medium text-stone-400 mb-1.5">Password</label>
+          <input id="pw" type="password" placeholder="••••••••" class="w-full rounded-xl px-4 py-3 text-white text-sm border transition-all" style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.1)">
         </div>
-        <div id="loginErr" class="hidden text-red-400 text-xs text-center bg-red-950 rounded-lg py-2 px-3 border border-red-900"></div>
-        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">Sign In</button>
+        <div id="loginErr" class="hidden text-red-400 text-xs text-center bg-red-950/50 rounded-xl py-2.5 px-3 border border-red-900/50"></div>
+        <button type="submit" class="w-full font-semibold py-3 rounded-xl text-sm text-white transition-all mt-2" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">
+          Sign In
+        </button>
       </form>
-      <p class="text-center text-gray-600 text-xs mt-4">admin / admin1234</p>
     </div>
-    <div class="text-center mt-4">
-      <a href="/" class="text-gray-600 hover:text-gray-400 text-xs">← Back to site</a>
+    <div class="text-center mt-5">
+      <a href="/" class="text-stone-600 hover:text-stone-400 text-xs transition-colors">← Back to site</a>
     </div>
   </div>
-  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
   <script>
     document.getElementById('loginForm').addEventListener('submit', async e => {
       e.preventDefault()
