@@ -742,7 +742,7 @@ function approveWithDatePreselect(id, preferredDatesRaw, preTimeInfo) {
     setTimeout(function() {
       var btns = document.querySelectorAll('.dp-date-btn')
       for (var i = 0; i < btns.length; i++) {
-        if (btns[i].textContent.indexOf(preTimeInfo.replace(/\s+/g,' ').trim().substring(0,8)) >= 0) {
+        if (btns[i].textContent.indexOf(preTimeInfo.replace(/[ ]+/g,' ').trim().substring(0,8)) >= 0) {
           btns[i].click()
           break
         }
@@ -788,7 +788,7 @@ function selectDateOption(btnEl) {
 
   if (timePart) {
     // "1:30 PM" → 13:30 파싱
-    var tm = timePart.match(/(\d+):(\d+)\s*(AM|PM)?/i)
+    var tm = timePart.match(/([0-9]+):([0-9]+)[ ]*(AM|PM)?/i)
     if (tm) {
       var h = parseInt(tm[1])
       var m = tm[2]
@@ -1452,7 +1452,7 @@ function renderCal() {
     if (app.status === 'approved' && app.scheduled_date) {
       // 확정된 날짜 — scheduled_date에서 YYYY-MM-DD 추출
       var sd = app.scheduled_date
-      var dateMatch = sd.match(/(\d{4}-\d{2}-\d{2})/)
+      var dateMatch = sd.match(/([0-9]{4}-[0-9]{2}-[0-9]{2})/)
       var key = null
       if (dateMatch) {
         key = dateMatch[1]
@@ -1528,7 +1528,7 @@ function selectDay(dateStr) {
     var key = null
     var isScheduled = false
     if (app.status === 'approved' && app.scheduled_date) {
-      var m = app.scheduled_date.match(/(\d{4}-\d{2}-\d{2})/)
+      var m = app.scheduled_date.match(/([0-9]{4}-[0-9]{2}-[0-9]{2})/)
       if (m) { key = m[1]; isScheduled = true }
       else {
         try {
