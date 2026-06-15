@@ -432,7 +432,7 @@ TELEGRAM_CHAT_ID=123456789</pre>
       <div>
         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Category</label>
         <select id="ec_category" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white">
-          <option>Clinic</option><option>Beauty Shop</option>
+          <option>Clinic</option><option>Dental Clinic</option><option>Beauty Shop</option><option>Korean Medicine</option><option>Hair &amp; Scalp Spa</option>
         </select>
       </div>
 
@@ -1193,11 +1193,23 @@ function autoDescription(name, category, address) {
   else district = 'in Seoul'
 
   var cat = (category || '').toLowerCase()
-  if (cat === 'clinic' || cat.includes('derm') || cat.includes('skin')) {
-    return name + ' is a premier dermatology clinic ' + district + ', offering cutting-edge aesthetic treatments including skin boosters, lifting procedures, laser therapy, and personalized anti-aging solutions. Staffed by board-certified dermatologists, the clinic welcomes international visitors with full English consultations and a calm, private atmosphere. Whether you are looking to refresh your skin, try the latest K-beauty clinical treatments, or receive expert care tailored to your skin type, ' + name + ' delivers results-driven dermatology with a distinctly personal touch.'
-  }
-  if (cat.includes('dental') || cat.includes('dent')) {
+  var nameL = (name || '').toLowerCase()
+  // 이름에서 업종 먼저 감지 (카테고리보다 우선)
+  var isDental = cat.includes('dental') || cat.includes('dent') ||
+    /dental|dentist|치과|dent clinic/i.test(nameL)
+  var isSkin = cat.includes('derm') || cat.includes('skin') ||
+    /dermatol|skin clinic|피부과|피부 클리닉/i.test(nameL)
+  var isPlasticSurg = cat.includes('plastic') || cat.includes('surgery') ||
+    /plastic|성형외과|성형|rhinoplast/i.test(nameL)
+
+  if (isDental) {
     return name + ' is a leading dental clinic ' + district + ', providing world-class Korean dentistry services including professional scaling, teeth whitening, cosmetic dentistry, and smile makeovers. Board-certified dentists speak fluent English and offer a full suite of treatments with state-of-the-art 3D digital imaging. Walk in and fly out with a brighter, healthier smile — no long waits, no language barriers.'
+  }
+  if (isPlasticSurg) {
+    return name + ' is a renowned plastic surgery and aesthetic clinic ' + district + ', delivering precision cosmetic procedures including rhinoplasty, facial contouring, eye surgery, and non-surgical lifting treatments. Board-certified plastic surgeons provide thorough English consultations, reviewing your goals in detail before recommending a personalized treatment plan. Known for natural-looking results and meticulous aftercare, ' + name + ' is a trusted destination for international clients seeking transformative K-aesthetic care.'
+  }
+  if (isSkin || cat === 'clinic') {
+    return name + ' is a premier dermatology clinic ' + district + ', offering cutting-edge aesthetic treatments including skin boosters, lifting procedures, laser therapy, and personalized anti-aging solutions. Staffed by board-certified dermatologists, the clinic welcomes international visitors with full English consultations and a calm, private atmosphere. Whether you are looking to refresh your skin, try the latest K-beauty clinical treatments, or receive expert care tailored to your skin type, ' + name + ' delivers results-driven dermatology with a distinctly personal touch.'
   }
   if (cat.includes('korean medicine') || cat.includes('한의')) {
     return name + ' is a renowned Korean traditional medicine clinic ' + district + ', blending centuries-old healing traditions with modern clinical expertise. Specializing in acupuncture, cupping therapy, manual therapy, and bespoke herbal medicine, the clinic welcomes international visitors with full English consultations and a warm, unhurried atmosphere. Each session begins with a one-on-one diagnostic consultation to craft a personalized treatment plan tailored to your needs.'
