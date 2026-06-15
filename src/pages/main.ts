@@ -478,10 +478,10 @@ export function mainPageHTML(campaigns: any[]): string {
 '// 업체명 정리: 한글+영어 혼합 긴 이름 → 짧은 표시명 (전역 함수)\n' +
 'function cleanPlaceName(name) {\n' +
 '  if (!name) return "";\n' +
-'  var korMatch = name.match(/[가-힣ㄱ-ㅎㅏ-ㅣ][^A-Z]*/);\n' +
-'  if (korMatch) {\n' +
-'    var kor = korMatch[0].trim().replace(/\\s+[A-Z].*$/, "").trim();\n' +
-'    if (kor.length >= 2) return kor;\n' +
+'  var engMatch = name.match(/[A-Za-z][A-Za-z0-9 &\x27.,-]*/);\n' +
+'  if (engMatch) {\n' +
+'    var eng = engMatch[0].trim();\n' +
+'    if (eng.length >= 2) return eng;\n' +
 '  }\n' +
 '  return name;\n' +
 '}\n' +
@@ -526,14 +526,13 @@ export function mainPageHTML(campaigns: any[]): string {
 '      : "";\n' +
 '\n' +
 '    var dlBadge = \'<span style="font-size:12px;color:#22c55e;font-weight:500">Open now</span>\';\n' +
-'    if (c.deadline) {\n' +
+'    if (c.deadline && c.status === "active") {\n' +
 '      var dlDate = new Date(c.deadline);\n' +
 '      var today  = new Date(); today.setHours(0,0,0,0);\n' +
 '      var daysLeft = Math.ceil((dlDate - today) / 86400000);\n' +
-'      if (daysLeft < 0)        dlBadge = \'<span style="font-size:12px;color:#9ca3af">Closed</span>\';\n' +
-'      else if (daysLeft === 0) dlBadge = \'<span style="font-size:12px;color:#ef4444;font-weight:600">Last day!</span>\';\n' +
-'      else if (daysLeft <= 7)  dlBadge = \'<span style="font-size:12px;color:#f97316;font-weight:600">&#x26A1; \' + daysLeft + \' days left</span>\';\n' +
-'      else                     dlBadge = \'<span style="font-size:12px;color:#9ca3af">\' + dlDate.toLocaleDateString("en-US",{month:"short",day:"numeric"}) + \'</span>\';\n' +
+'      if (daysLeft === 0)                    dlBadge = \'<span style="font-size:12px;color:#ef4444;font-weight:600">Last day!</span>\';\n' +
+'      else if (daysLeft > 0 && daysLeft <= 7) dlBadge = \'<span style="font-size:12px;color:#f97316;font-weight:600">&#x26A1; \' + daysLeft + \' days left</span>\';\n' +
+'      else                                    dlBadge = \'<span style="font-size:12px;color:#22c55e;font-weight:500">Open now</span>\';\n' +
 '    }\n' +
 '\n' +
 '    var shortAddr = "";\n' +
@@ -625,10 +624,9 @@ export function mainPageHTML(campaigns: any[]): string {
 '    var today  = new Date(); today.setHours(0,0,0,0);\n' +
 '    var daysLeft = Math.ceil((dlDate - today) / 86400000);\n' +
 '    var dlFmt = dlDate.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});\n' +
-'    if (daysLeft < 0)        dlText = "Closed";\n' +
-'    else if (daysLeft === 0) dlText = "Last day! (" + dlFmt + ")";\n' +
-'    else if (daysLeft <= 7)  dlText = "&#x26A1; " + daysLeft + " days left \u2014 " + dlFmt;\n' +
-'    else                     dlText = dlFmt;\n' +
+'    if (daysLeft === 0)      dlText = "Last day! (" + dlFmt + ")";\n' +
+'    else if (daysLeft > 0 && daysLeft <= 7) dlText = "&#x26A1; " + daysLeft + " days left \u2014 " + dlFmt;\n' +
+'    else if (daysLeft > 7)  dlText = dlFmt;\n' +
 '  }\n' +
 '\n' +
 '  var imgPart = thumb\n' +
