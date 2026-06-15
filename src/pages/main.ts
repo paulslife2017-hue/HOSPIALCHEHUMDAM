@@ -123,67 +123,63 @@ export function mainPageHTML(campaigns: any[]): string {
 '    }\n' +
 '\n' +
 '    /* ═══ CARD GRID ═══ */\n' +
-'    /* 모바일: single col */\n' +
-'    .card-grid{display:flex;flex-direction:column;gap:14px;}\n' +
-'    /* PC: 2-col, 카드 높이 완전 균일 (stretch) */\n' +
+'    .card-grid{display:flex;flex-direction:column;gap:12px;}\n' +
 '    @media(min-width:1024px){\n' +
-'      .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;align-items:stretch;}\n' +
+'      .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}\n' +
 '    }\n' +
-'    @media(min-width:1400px){\n' +
-'      .card-grid{grid-template-columns:repeat(3,1fr);}\n' +
-'    }\n' +
+'    @media(min-width:1400px){.card-grid{grid-template-columns:repeat(3,1fr);}}\n' +
 '\n' +
-'    /* ═══ CARD — 모바일: 가로형 compact ═══ */\n' +
+'    /* ═══ CARD BASE (모바일: 가로형) ═══ */\n' +
 '    .camp-card{\n' +
 '      background:#fff;border-radius:16px;overflow:hidden;\n' +
-'      border:1px solid #ede9e2;box-shadow:0 1px 8px rgba(0,0,0,.06);\n' +
+'      border:1px solid #ede9e2;box-shadow:0 1px 8px rgba(0,0,0,.05);\n' +
 '      transition:box-shadow .22s,transform .18s;cursor:pointer;\n' +
 '      display:flex;flex-direction:row;align-items:stretch;\n' +
 '    }\n' +
 '    .camp-card:active{transform:scale(.985);}\n' +
-'    @media(hover:hover){.camp-card:hover{box-shadow:0 10px 36px rgba(0,0,0,.13);border-color:#d4c4a0;transform:translateY(-2px);}}\n' +
+'    @media(hover:hover){.camp-card:hover{box-shadow:0 10px 32px rgba(0,0,0,.12);border-color:#d4c4a0;transform:translateY(-2px);}}\n' +
 '\n' +
 '    /* 모바일 이미지: 왼쪽 고정 정사각형 */\n' +
-'    .camp-img-wrap{\n' +
-'      position:relative;flex-shrink:0;\n' +
-'      width:110px;min-height:110px;\n' +
-'      background:#ede9e4;overflow:hidden;\n' +
-'    }\n' +
+'    .camp-img-wrap{position:relative;flex-shrink:0;width:108px;height:108px;background:#ede9e4;overflow:hidden;}\n' +
 '    .camp-img-wrap img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block;}\n' +
-'    .img-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 30%,rgba(0,0,0,.55) 100%);pointer-events:none;}\n' +
-'    .img-top{position:absolute;top:6px;left:6px;display:flex;align-items:center;gap:4px;}\n' +
+'    .img-overlay{position:absolute;inset:0;pointer-events:none;}\n' +
+'    .img-top{position:absolute;top:6px;left:6px;}\n' +
 '    .img-title{display:none;}\n' +
 '    .img-fb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f0ede8;}\n' +
 '    .img-fb-icon{font-size:2rem;color:#d1cdc8;}\n' +
 '\n' +
-'    /* 카드 오른쪽 콘텐츠 영역 */\n' +
-'    .card-content{flex:1;min-width:0;display:flex;flex-direction:column;padding:11px 13px;gap:5px;}\n' +
-'    .card-title{font-family:"Cormorant Garamond",Georgia,serif;font-size:15px;font-weight:600;color:#1f2937;line-height:1.25;\n' +
+'    /* 모바일 콘텐츠 */\n' +
+'    .card-content{flex:1;min-width:0;display:flex;flex-direction:column;padding:10px 12px;gap:4px;overflow:hidden;}\n' +
+'    .card-title{font-family:"Cormorant Garamond",Georgia,serif;font-size:14px;font-weight:600;color:#1f2937;line-height:1.3;\n' +
 '      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}\n' +
-'    .venue-name{font-size:11px;font-weight:700;color:#8a6d3b;}\n' +
+'    .card-venue-row{display:flex;align-items:center;gap:5px;overflow:hidden;}\n' +
+'    .venue-name{font-size:11px;font-weight:700;color:#8a6d3b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n' +
 '    .venue-addr{font-size:10px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
-'    .card-benefits-mini{font-size:10.5px;color:#78350f;background:#fffbef;border:1px solid #f0d88a;border-radius:8px;padding:4px 8px;\n' +
+'    .card-benefits-mini{font-size:10.5px;color:#78350f;background:#fffbef;border:1px solid #f0d88a;border-radius:7px;padding:3px 7px;\n' +
 '      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
-'    .card-footer{\n' +
-'      display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:7px;\n' +
-'      border-top:1px solid #f5f2ee;\n' +
-'    }\n' +
+'    .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px;border-top:1px solid #f5f2ee;gap:6px;}\n' +
 '\n' +
-'    /* PC: 카드를 세로형으로 전환 + 높이 균일 */\n' +
+'    /* ══ PC: 세로형 + 완전 고정 높이 ══ */\n' +
 '    @media(min-width:1024px){\n' +
-'      .camp-card{flex-direction:column;border-radius:20px;}\n' +
-'      /* PC 이미지: 고정 높이 200px, 가로 100% */\n' +
-'      .camp-img-wrap{width:100%;height:200px;min-height:unset;flex-shrink:0;}\n' +
-'      .img-top{top:12px;left:12px;}\n' +
-'      .img-title{display:block;position:absolute;bottom:0;left:0;right:0;padding:0 16px 14px;}\n' +
-'      .img-title h3{font-family:"Cormorant Garamond",Georgia,serif;font-size:18px;font-weight:600;color:#fff;line-height:1.25;}\n' +
+'      .camp-card{flex-direction:column;border-radius:20px;height:400px;}\n' +
+'      /* 이미지 고정 190px */\n' +
+'      .camp-img-wrap{width:100%;height:190px;flex-shrink:0;}\n' +
+'      .img-overlay{background:linear-gradient(to bottom,rgba(0,0,0,0) 30%,rgba(0,0,0,.7) 100%);}\n' +
+'      .img-top{top:10px;left:10px;}\n' +
+'      /* 타이틀은 이미지 위 오버레이 */\n' +
+'      .img-title{display:block;position:absolute;bottom:0;left:0;right:0;padding:0 14px 12px;}\n' +
+'      .img-title h3{font-family:"Cormorant Garamond",Georgia,serif;font-size:17px;font-weight:600;color:#fff;line-height:1.2;\n' +
+'        display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}\n' +
 '      .card-title{display:none;}\n' +
-'      /* PC 콘텐츠 */\n' +
-'      .card-content{padding:13px 16px;gap:10px;}\n' +
-'      .venue-name{font-size:13px;font-weight:700;color:#1f2937;}\n' +
+'      /* 콘텐츠: 나머지 210px, overflow hidden으로 넘침 차단 */\n' +
+'      .card-content{flex:1;overflow:hidden;padding:12px 15px;gap:7px;}\n' +
+'      .card-venue-row{gap:6px;}\n' +
+'      .venue-name{font-size:12px;color:#1f2937;}\n' +
 '      .venue-addr{font-size:11px;}\n' +
-'      .card-benefits-mini{font-size:11px;padding:6px 10px;white-space:normal;}\n' +
-'      .card-footer{padding-top:10px;border-top:1px solid #f0ede8;}\n' +
+'      /* 혜택 2줄 clamp */\n' +
+'      .card-benefits-mini{font-size:11px;padding:5px 9px;\n' +
+'        white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}\n' +
+'      .card-footer{padding-top:8px;border-top:1px solid #f0ede8;}\n' +
 '    }\n' +
 '\n' +
 '    /* pill */\n' +
@@ -585,42 +581,31 @@ export function mainPageHTML(campaigns: any[]): string {
 '      ? \'<div style="position:absolute;inset:0;background:rgba(0,0,0,.48);display:flex;align-items:center;justify-content:center"><span style="border:1px solid rgba(255,255,255,.35);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;padding:5px 14px;border-radius:99px;backdrop-filter:blur(6px)">FULL</span></div>\'\n' +
 '      : "";\n' +
 '\n' +
-'    // 혜택 첫 항목만 mini 표시 (· 구분)\n' +
 '    var benefitMini = c.benefits\n' +
-'      ? \'<div class="card-benefits-mini">&#x1F381; \' + c.benefits.split("·")[0].trim() + (c.benefits.includes("·") ? " ···" : "") + \'</div>\'\n' +
+'      ? \'<div class="card-benefits-mini">&#x1F381; \' + c.benefits.split("\\xb7")[0].trim() + (c.benefits.indexOf("\\xb7") >= 0 ? " \\xb7\\xb7\\xb7" : "") + \'</div>\'\n' +
 '      : "";\n' +
 '\n' +
 '    var applyBtn = \'<button onclick="event.stopPropagation();openApply(\' + c.id + \')" \' + (full ? "disabled" : "") +\n' +
-'      \' style="font-size:11px;padding:6px 14px;border-radius:99px;" class="btn-gold btn-apply">\' + (full ? "Full" : "Apply") + \'</button>\';\n' +
+'      \' style="font-size:11px;padding:5px 14px;border-radius:99px;flex-shrink:0" class="btn-gold btn-apply">\' + (full ? "Full" : "Apply") + \'</button>\';\n' +
 '\n' +
 '    var ratingStr = c.place_rating\n' +
-'      ? \'<span style="font-size:10px;color:#f59e0b;font-weight:700;">&#9733; \' + c.place_rating + \'</span>\'\n' +
+'      ? \'<span style="font-size:10px;color:#f59e0b;font-weight:600;flex-shrink:0">&#9733;\' + c.place_rating + \'</span>\'\n' +
 '      : "";\n' +
 '\n' +
 '    return \'<article class="camp-card" onclick="openDetail(\' + c.id + \')">\' +\n' +
-'      /* 이미지 영역 */\n' +
 '      \'<div class="camp-img-wrap">\' +\n' +
 '        imgInner +\n' +
 '        \'<div class="img-overlay"></div>\' +\n' +
 '        bookedOverlay +\n' +
 '        \'<div class="img-top">\' + catPill + \'</div>\' +\n' +
-'        /* PC에서만 보임 */\n' +
 '        \'<div class="img-title"><h3>\' + c.title + \'</h3></div>\' +\n' +
 '      \'</div>\' +\n' +
-'      /* 콘텐츠 영역 */\n' +
 '      \'<div class="card-content">\' +\n' +
-'        /* 모바일에서는 타이틀 표시, PC에서는 이미지 위에 표시 */\n' +
 '        \'<div class="card-title">\' + c.title + \'</div>\' +\n' +
-'        \'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">\' +\n' +
-'          \'<span class="venue-name">\' + displayName + \'</span>\' +\n' +
-'          ratingStr +\n' +
-'        \'</div>\' +\n' +
+'        \'<div class="card-venue-row"><span class="venue-name">\' + displayName + \'</span>\' + ratingStr + \'</div>\' +\n' +
 '        (shortAddr ? \'<div class="venue-addr">&#x1F4CD; \' + shortAddr + \'</div>\' : "") +\n' +
 '        benefitMini +\n' +
-'        \'<div class="card-footer">\' +\n' +
-'          dlBadge +\n' +
-'          applyBtn +\n' +
-'        \'</div>\' +\n' +
+'        \'<div class="card-footer">\' + dlBadge + applyBtn + \'</div>\' +\n' +
 '      \'</div>\' +\n' +
 '    \'</article>\';\n' +
 '  }).join("");\n' +
