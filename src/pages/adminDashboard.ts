@@ -533,16 +533,22 @@ async function loadApps() {
       const dates    = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
       const dateHtml = dates.map(function(d){ return '<span style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:500;margin:1px;">' + d + '</span>' }).join('')
       const statusKo = a.status === 'approved' ? '✅ 승인' : a.status === 'rejected' ? '❌ 거절' : '⏳ 대기'
-      const msg = '[ 방문 신청자 정보 ]\\n'
-        + '업체: ' + (a.place_name || a.campaign_title || '') + '\\n'
-        + '\\n이름: ' + a.applicant_name + '\\n'
-        + '국적: ' + (a.nationality || '') + '\\n'
-        + '이메일: ' + a.email + '\\n'
-        + (a.phone ? 'WhatsApp: ' + a.phone + '\\n' : '')
-        + (a.instagram ? '인스타: @' + a.instagram + ' (instagram.com/' + a.instagram + ')\\n' : '')
-        + (dates.length ? '\\n희망 날짜:\\n' + dates.map(function(d,i){ return (i+1)+'. '+d }).join('\\n') + '\\n' : '')
-        + (a.message ? '\\n메모: ' + a.message + '\\n' : '')
-        + '\\n상태: ' + statusKo
+      var scheduledLine = a.scheduled_date
+        ? '\\n📅 확정 날짜: ' + a.scheduled_date + '\\n'
+        : (dates.length ? '\\n🗓 희망 날짜:\\n' + dates.map(function(d,i){ return '  ' + (i+1) + '. ' + d }).join('\\n') + '\\n' : '')
+      const msg = '━━━━━━━━━━━━━━━━━━━━━━━━\\n'
+        + '📋 방문 신청자 정보\\n'
+        + '━━━━━━━━━━━━━━━━━━━━━━━━\\n'
+        + '\\n🏥 업체: ' + (a.place_name || a.campaign_title || '') + '\\n'
+        + '\\n👤 이름: ' + a.applicant_name + '\\n'
+        + '🌏 국적: ' + (a.nationality || '—') + '\\n'
+        + '\\n📧 이메일: ' + a.email + '\\n'
+        + (a.phone ? '💬 WhatsApp: ' + a.phone + '\\n' : '')
+        + (a.instagram ? '📸 인스타: @' + a.instagram + '\\n    → instagram.com/' + a.instagram + '\\n' : '')
+        + scheduledLine
+        + (a.message ? '\\n💬 메모: ' + a.message + '\\n' : '')
+        + '\\n' + statusKo
+        + '\\n━━━━━━━━━━━━━━━━━━━━━━━━'
       _appMsgMap[a.id] = msg
       return \`<tr class="row-hover transition-colors">
         <td class="px-5 py-3.5">
@@ -662,17 +668,28 @@ async function setStatus(id, status) {
 
 function buildClinicMsg(a) {
   const dates = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
-  const dateLines = dates.length ? dates.map(function(d,i){ return (i+1) + '. ' + d }).join('\\n') : 'TBD'
-  return 'Hello, this is Seoul Beauty Trip.\\n'
-    + 'We have an influencer applicant for your campaign.\\n\\n'
-    + 'Name: ' + a.applicant_name + '\\n'
-    + 'Nationality: ' + a.nationality + '\\n'
-    + 'Email: ' + a.email + '\\n'
-    + (a.phone ? 'WhatsApp: ' + a.phone + '\\n' : '')
-    + (a.instagram ? 'Instagram: @' + a.instagram + '  (instagram.com/' + a.instagram + ')\\n' : '')
-    + '\\nPreferred Visit Dates:\\n' + dateLines + '\\n'
-    + (a.message ? '\\nNote: ' + a.message + '\\n' : '')
-    + '\\nPlease confirm one of the available dates directly with the applicant.\\nThank you!'
+  var dateSection = ''
+  if (a.scheduled_date) {
+    dateSection = '\\n📅 Confirmed Date: ' + a.scheduled_date + '\\n'
+  } else if (dates.length) {
+    dateSection = '\\n🗓 Preferred Visit Dates:\\n' + dates.map(function(d,i){ return '  ' + (i+1) + '. ' + d }).join('\\n') + '\\n'
+  } else {
+    dateSection = '\\n📅 Visit Date: TBD\\n'
+  }
+  return '━━━━━━━━━━━━━━━━━━━━━━━━\\n'
+    + '📢 Seoul Beauty Trip — Influencer Visit\\n'
+    + '━━━━━━━━━━━━━━━━━━━━━━━━\\n'
+    + '\\n👤 Name: ' + a.applicant_name + '\\n'
+    + '🌏 Nationality: ' + (a.nationality || '—') + '\\n'
+    + '\\n📧 Email: ' + a.email + '\\n'
+    + (a.phone ? '💬 WhatsApp: ' + a.phone + '\\n' : '')
+    + (a.instagram ? '📸 Instagram: @' + a.instagram + '\\n    → instagram.com/' + a.instagram + '\\n' : '')
+    + dateSection
+    + (a.message ? '\\n💬 Note: ' + a.message + '\\n' : '')
+    + '\\n' + (a.scheduled_date
+      ? '✅ Date confirmed — please prepare for the visit.'
+      : 'Please confirm one of the available dates with the applicant.')
+    + '\\n\\nThank you!\\n━━━━━━━━━━━━━━━━━━━━━━━━'
 }
 
 function copyToClipboard(text, btnEl) {
@@ -1318,16 +1335,21 @@ function selectDay(dateStr) {
                       : 'background:#fef9c3;color:#854d0e'
     var statusKo    = isScheduled ? '\u2705 \ud655\uc815' : a.status === 'rejected' ? '\u274c \uac70\uc808' : '\u23f3 \ub300\uae30'
     var instaUrl    = a.instagram ? 'https://instagram.com/' + a.instagram : ''
-    var msgLines    = '[ \ubc29\ubb38 \uc2e0\uccad\uc790 \uc815\ubcf4 ]\\n'
-      + '\ub0a0\uc9dc: ' + (isScheduled ? timeInfo : dateStr + (timeInfo ? ' ' + timeInfo : '')) + '\\n'
-      + '\uc5c5\uccb4: ' + (a.place_name || a.campaign_title || '') + '\\n'
-      + '\\n\uc774\ub984: ' + a.applicant_name + '\\n'
-      + '\uad6d\uc801: ' + (a.nationality || '') + '\\n'
-      + '\uc774\uba54\uc77c: ' + a.email + '\\n'
-      + (a.phone ? 'WhatsApp: ' + a.phone + '\\n' : '')
-      + (a.instagram ? '\uc778\uc2a4\ud0c0: @' + a.instagram + ' (instagram.com/' + a.instagram + ')\\n' : '')
-      + (a.message ? '\\n\uba54\ubaa8: ' + a.message + '\\n' : '')
-      + '\\n\uc0c1\ud0dc: ' + statusKo
+    var msgLines    = '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n'
+      + '\ud83d\udccb \ubc29\ubb38 \uc2e0\uccad\uc790 \uc815\ubcf4\\n'
+      + '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n'
+      + (isScheduled
+          ? '\\n\ud83d\udcc5 \ud655\uc815 \ub0a0\uc9dc: ' + timeInfo + '\\n'
+          : '\\n\ud83d\uddd3 \uc2e0\uccad \ub0a0\uc9dc: ' + dateStr + (timeInfo ? ' ' + timeInfo : '') + '\\n')
+      + '\ud83c\udfe5 \uc5c5\uccb4: ' + (a.place_name || a.campaign_title || '') + '\\n'
+      + '\\n\ud83d\udc64 \uc774\ub984: ' + a.applicant_name + '\\n'
+      + '\ud83c\udf0f \uad6d\uc801: ' + (a.nationality || '\u2014') + '\\n'
+      + '\\n\ud83d\udce7 \uc774\uba54\uc77c: ' + a.email + '\\n'
+      + (a.phone ? '\ud83d\udcac WhatsApp: ' + a.phone + '\\n' : '')
+      + (a.instagram ? '\ud83d\udcf8 \uc778\uc2a4\ud0c0: @' + a.instagram + '\\n    \u2192 instagram.com/' + a.instagram + '\\n' : '')
+      + (a.message ? '\\n\ud83d\udcac \uba54\ubaa8: ' + a.message + '\\n' : '')
+      + '\\n' + statusKo
+      + '\\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501'
     storeCalMsg(a.id, dateStr, msgLines)
     var borderCls = isScheduled ? 'border-green-100' : 'border-amber-100'
     return '<div class="bg-white rounded-xl border ' + borderCls + ' shadow-sm overflow-hidden mb-1">'
