@@ -687,9 +687,10 @@ export function mainPageHTML(campaigns: any[]): string {
 '  document.getElementById("applyOk").style.display  = "none";\n' +
 '  document.getElementById("applyForm").reset();\n' +
 '  document.getElementById("applyCapId").value = id;\n' +
+'  var submitBtn = document.querySelector("#applyForm button[type=submit]");\n' +
+'  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Submit Application"; }\n' +
 '  selectedDates = [];\n' +
 '  renderDateChips();\n' +
-'  document.getElementById("dateInput").min = new Date().toISOString().split("T")[0];\n' +
 '  document.getElementById("timeInput").value = "10:00";\n' +
 '  document.getElementById("applyModal").classList.add("open");\n' +
 '}\n' +

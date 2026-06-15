@@ -745,6 +745,11 @@ async function loadCamps() {
             <button onclick="openEditCamp(\${JSON.stringify(c).replace(/"/g,'&quot;')})" class="flex-1 text-xs text-amber-600 hover:text-amber-700 border border-amber-100 hover:bg-amber-50 py-1.5 rounded-lg transition font-medium">
               <i class="fas fa-pen text-[10px] mr-0.5"></i>Edit
             </button>
+            \${c.share_token
+              ? \`<button onclick="copyShareLink(\${c.id},'\${c.share_token}',this)" class="flex-1 text-xs text-blue-500 hover:text-blue-600 border border-blue-100 hover:bg-blue-50 py-1.5 rounded-lg transition font-medium" title="업체 공유 링크 복사">
+                  <i class="fas fa-link text-[10px] mr-0.5"></i>공유
+                </button>\`
+              : ''}
             \${c.status === 'active'
               ? \`<button onclick="deactivate(\${c.id})" class="flex-1 text-xs text-red-400 hover:text-red-500 border border-red-100 hover:bg-red-50 py-1.5 rounded-lg transition">Deactivate</button>\`
               : \`<span class="flex-1 block text-center text-xs text-gray-300 py-1.5">Inactive</span>\`}
@@ -753,6 +758,19 @@ async function loadCamps() {
       </div>\`
     }).join('') + '</div>'
   } catch(e) { console.error('loadCamps error', e) }
+}
+
+function copyShareLink(id, token, btn) {
+  const url = location.origin + '/clinic/' + id + '?token=' + token
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = btn.innerHTML
+    btn.innerHTML = '<i class="fas fa-check text-[10px] mr-0.5"></i>복사됨!'
+    btn.classList.add('text-green-600','border-green-200','bg-green-50')
+    btn.classList.remove('text-blue-500','border-blue-100')
+    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('text-green-600','border-green-200','bg-green-50'); btn.classList.add('text-blue-500','border-blue-100') }, 2000)
+  }).catch(() => {
+    prompt('아래 링크를 복사하세요:', location.origin + '/clinic/' + id + '?token=' + token)
+  })
 }
 
 async function deactivate(id) {

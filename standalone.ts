@@ -20,6 +20,7 @@ import { createClient } from '@libsql/client/http'
 import { mainPageHTML } from './src/pages/main'
 import { adminLoginHTML } from './src/pages/adminLogin'
 import { adminDashboardHTML } from './src/pages/adminDashboard'
+import { clinicShareHTML } from './src/pages/clinicShare'
 
 function getDB() {
   const url   = process.env.TURSO_DATABASE_URL!
@@ -84,6 +85,7 @@ app.get('/', async (c) => {
 })
 app.get('/admin',           (c) => c.html(adminLoginHTML()))
 app.get('/admin/dashboard', (c) => c.html(adminDashboardHTML()))
+app.get('/clinic/:id',      (c) => c.html(clinicShareHTML()))
 
 app.get('/api/campaigns', async (c) => {
   try {
@@ -143,9 +145,10 @@ app.post('/api/admin/campaigns', async (c) => {
   if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
     const b = await c.req.json()
+    const shareToken = 'sbt-' + Date.now() + '-' + Math.random().toString(36).slice(2,8)
     const r = await dbRun(
-      `INSERT INTO campaigns (title,description,place_id,place_name,place_address,place_photo_ref,place_rating,category,max_participants,deadline,benefits,requirements) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [b.title, b.description, b.place_id, b.place_name, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||10, b.deadline, b.benefits||'', b.requirements||'']
+      `INSERT INTO campaigns (title,description,place_id,place_name,place_address,place_photo_ref,place_rating,category,max_participants,deadline,benefits,requirements,share_token) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [b.title, b.description, b.place_id, b.place_name, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||10, b.deadline, b.benefits||'', b.requirements||'', shareToken]
     )
     return c.json({ success: true, id: r.lastInsertRowid })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
@@ -200,6 +203,20 @@ app.get('/api/places/photo', async (c) => {
   const res = await fetch(`https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${ref}&key=${apiKey}`)
   const buf = await res.arrayBuffer()
   return new Response(buf, { headers: { 'Content-Type': res.headers.get('content-type') || 'image/jpeg', 'Cache-Control': 'public, max-age=86400' } })
+})
+
+// ── Clinic Share ─────────────────────────────
+app.get('/api/clinic/:id', async (c) => {
+  try {
+    const id    = c.req.param('id')
+    const token = c.req.query('token')
+    if (!token) return c.json({ success: false, error: 'Token required.' }, 401)
+    const campaign: any = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [id])
+    if (!campaign) return c.json({ success: false, error: 'Campaign not found.' }, 404)
+    if (campaign.share_token !== token) return c.json({ success: false, error: 'Invalid token.' }, 401)
+    const apps = await dbAll('SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC', [id])
+    return c.json({ success: true, campaign: sanitize(campaign), applications: sanitize(apps) })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
 app.post('/api/apply', async (c) => {

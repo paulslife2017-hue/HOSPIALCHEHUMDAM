@@ -194,6 +194,20 @@ app.post('/api/apply', async (c) => {
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
+// ── Clinic Share (공유 링크용, 토큰 인증) ──────
+app.get('/api/clinic/:id', async (c) => {
+  try {
+    const id    = c.req.param('id')
+    const token = c.req.query('token')
+    if (!token) return c.json({ success: false, error: 'Token required.' }, 401)
+    const campaign: any = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [id])
+    if (!campaign) return c.json({ success: false, error: 'Campaign not found.' }, 404)
+    if (campaign.share_token !== token) return c.json({ success: false, error: 'Invalid token.' }, 401)
+    const apps = await dbAll('SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC', [id])
+    return c.json({ success: true, campaign: sanitize(campaign), applications: sanitize(apps) })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
 // ── Admin ─────────────────────────────────────
 function isAdmin(c: any) { const t = c.req.header('X-Admin-Token'); return t?.startsWith('admin-token-') }
 
@@ -238,9 +252,10 @@ app.post('/api/admin/campaigns', async (c) => {
   if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
     const b = await c.req.json()
+    const shareToken = 'sbt-' + Date.now() + '-' + Math.random().toString(36).slice(2,8)
     const r = await dbRun(
-      `INSERT INTO campaigns (title,description,place_id,place_name,place_address,place_photo_ref,place_rating,category,max_participants,deadline,benefits,requirements) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [b.title, b.description||'', b.place_id, b.place_name, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||9999, b.deadline||'', b.benefits||'', b.requirements||'']
+      `INSERT INTO campaigns (title,description,place_id,place_name,place_address,place_photo_ref,place_rating,category,max_participants,deadline,benefits,requirements,share_token) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [b.title, b.description||'', b.place_id, b.place_name, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||9999, b.deadline||'', b.benefits||'', b.requirements||'', shareToken]
     )
     return c.json({ success: true, id: Number(r.lastInsertRowid) })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
