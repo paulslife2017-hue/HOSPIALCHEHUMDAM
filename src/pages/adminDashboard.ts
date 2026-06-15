@@ -483,24 +483,25 @@ async function loadStats() {
     ])
     const apps  = await ar.json()
     const camps = await cr.json()
-    if (apps.success) {
+    // token 만료/무효 시 재로그인
+    if (!apps.success && apps.error === 'Unauthorized') { window.location.href = '/admin'; return }
+    if (apps.success && apps.data) {
       document.getElementById('s-total').textContent    = apps.data.length
-      document.getElementById('s-pending').textContent  = apps.data.filter(a => a.status === 'pending').length
-      document.getElementById('s-approved').textContent = apps.data.filter(a => a.status === 'approved').length
+      document.getElementById('s-pending').textContent  = apps.data.filter(function(a){ return a.status === 'pending'  }).length
+      document.getElementById('s-approved').textContent = apps.data.filter(function(a){ return a.status === 'approved' }).length
+    }
+    if (camps.success && camps.data) {
+      document.getElementById('s-camps').textContent = camps.data.filter(function(c){ return c.status === 'active' }).length
       const sel = document.getElementById('fCamp')
       const cur = sel.value
       sel.innerHTML = '<option value="">All campaigns</option>' +
-        camps.data.map(c => \`<option value="\${c.id}" \${cur == c.id ? 'selected' : ''}>\${c.place_name}</option>\`).join('')
-      // 달력 업체 필터 동기화
+        camps.data.map(function(c){ return '<option value="' + c.id + '"' + (cur == c.id ? ' selected' : '') + '>' + c.place_name + '</option>' }).join('')
       const calSel = document.getElementById('calCamp')
       if (calSel) {
         const calCur = calSel.value
         calSel.innerHTML = '<option value="">All clinics</option>' +
-          camps.data.map(c => \`<option value="\${c.id}" \${calCur == c.id ? 'selected' : ''}>\${c.place_name}</option>\`).join('')
+          camps.data.map(function(c){ return '<option value="' + c.id + '"' + (calCur == c.id ? ' selected' : '') + '>' + c.place_name + '</option>' }).join('')
       }
-    }
-    if (camps.success) {
-      document.getElementById('s-camps').textContent = camps.data.filter(c => c.status === 'active').length
     }
   } catch(e) { console.error('loadStats error', e) }
 }
@@ -514,8 +515,15 @@ async function loadApps() {
   if (cid) url += 'campaign_id=' + cid + '&'
   if (st)  url += 'status=' + st
   try {
-    const { success, data } = await (await fetch(url, { headers: H })).json()
-    if (!success || !data.length) {
+    const res  = await fetch(url, { headers: H })
+    const json = await res.json()
+    if (!json.success && json.error === 'Unauthorized') { window.location.href = '/admin'; return }
+    const data = json.data || []
+    // stats 실시간 업데이트
+    document.getElementById('s-total').textContent    = data.length
+    document.getElementById('s-pending').textContent  = data.filter(function(a){ return a.status === 'pending'  }).length
+    document.getElementById('s-approved').textContent = data.filter(function(a){ return a.status === 'approved' }).length
+    if (!data.length) {
       tb.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-xs text-gray-400">No applicants yet</td></tr>'
       return
     }
