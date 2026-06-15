@@ -124,42 +124,75 @@ export function mainPageHTML(campaigns: any[]): string {
 '\n' +
 '    /* ═══ CARD GRID ═══ */\n' +
 '    /* 모바일: single col */\n' +
-'    .card-grid{display:flex;flex-direction:column;gap:20px;}\n' +
-'    /* PC: 2-col grid */\n' +
+'    .card-grid{display:flex;flex-direction:column;gap:14px;}\n' +
+'    /* PC: 2-col, 카드 높이 완전 균일 (stretch) */\n' +
 '    @media(min-width:1024px){\n' +
-'      .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;align-items:start;}\n' +
+'      .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;align-items:stretch;}\n' +
 '    }\n' +
 '    @media(min-width:1400px){\n' +
 '      .card-grid{grid-template-columns:repeat(3,1fr);}\n' +
 '    }\n' +
 '\n' +
-'    /* ═══ CARD ═══ */\n' +
-'    .camp-card{background:#fff;border-radius:20px;overflow:hidden;border:1px solid #ede9e2;box-shadow:0 2px 12px rgba(0,0,0,.06);transition:box-shadow .25s,transform .2s;cursor:pointer;}\n' +
+'    /* ═══ CARD — 모바일: 가로형 compact ═══ */\n' +
+'    .camp-card{\n' +
+'      background:#fff;border-radius:16px;overflow:hidden;\n' +
+'      border:1px solid #ede9e2;box-shadow:0 1px 8px rgba(0,0,0,.06);\n' +
+'      transition:box-shadow .22s,transform .18s;cursor:pointer;\n' +
+'      display:flex;flex-direction:row;align-items:stretch;\n' +
+'    }\n' +
 '    .camp-card:active{transform:scale(.985);}\n' +
-'    @media(hover:hover){.camp-card:hover{box-shadow:0 12px 40px rgba(0,0,0,.14);border-color:#d4c4a0;transform:translateY(-2px);}}\n' +
-'    /* 이미지: 16:9 */\n' +
-'    .camp-img-wrap{position:relative;width:100%;padding-top:56.25%;overflow:hidden;background:#ede9e4;}\n' +
+'    @media(hover:hover){.camp-card:hover{box-shadow:0 10px 36px rgba(0,0,0,.13);border-color:#d4c4a0;transform:translateY(-2px);}}\n' +
+'\n' +
+'    /* 모바일 이미지: 왼쪽 고정 정사각형 */\n' +
+'    .camp-img-wrap{\n' +
+'      position:relative;flex-shrink:0;\n' +
+'      width:110px;min-height:110px;\n' +
+'      background:#ede9e4;overflow:hidden;\n' +
+'    }\n' +
 '    .camp-img-wrap img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block;}\n' +
-'    .img-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 30%,rgba(0,0,0,.72) 100%);pointer-events:none;}\n' +
-'    .img-top{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:6px;}\n' +
-'    .img-title{position:absolute;bottom:0;left:0;right:0;padding:0 16px 16px;}\n' +
-'    .img-title h3{font-family:"Cormorant Garamond",Georgia,serif;font-size:19px;font-weight:600;color:#fff;line-height:1.25;}\n' +
+'    .img-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 30%,rgba(0,0,0,.55) 100%);pointer-events:none;}\n' +
+'    .img-top{position:absolute;top:6px;left:6px;display:flex;align-items:center;gap:4px;}\n' +
+'    .img-title{display:none;}\n' +
 '    .img-fb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f0ede8;}\n' +
-'    .img-fb-icon{font-size:2.5rem;color:#d1cdc8;}\n' +
+'    .img-fb-icon{font-size:2rem;color:#d1cdc8;}\n' +
+'\n' +
+'    /* 카드 오른쪽 콘텐츠 영역 */\n' +
+'    .card-content{flex:1;min-width:0;display:flex;flex-direction:column;padding:11px 13px;gap:5px;}\n' +
+'    .card-title{font-family:"Cormorant Garamond",Georgia,serif;font-size:15px;font-weight:600;color:#1f2937;line-height:1.25;\n' +
+'      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}\n' +
+'    .venue-name{font-size:11px;font-weight:700;color:#8a6d3b;}\n' +
+'    .venue-addr{font-size:10px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
+'    .card-benefits-mini{font-size:10.5px;color:#78350f;background:#fffbef;border:1px solid #f0d88a;border-radius:8px;padding:4px 8px;\n' +
+'      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
+'    .card-footer{\n' +
+'      display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:7px;\n' +
+'      border-top:1px solid #f5f2ee;\n' +
+'    }\n' +
+'\n' +
+'    /* PC: 카드를 세로형으로 전환 + 높이 균일 */\n' +
+'    @media(min-width:1024px){\n' +
+'      .camp-card{flex-direction:column;border-radius:20px;}\n' +
+'      /* PC 이미지: 고정 높이 200px, 가로 100% */\n' +
+'      .camp-img-wrap{width:100%;height:200px;min-height:unset;flex-shrink:0;}\n' +
+'      .img-top{top:12px;left:12px;}\n' +
+'      .img-title{display:block;position:absolute;bottom:0;left:0;right:0;padding:0 16px 14px;}\n' +
+'      .img-title h3{font-family:"Cormorant Garamond",Georgia,serif;font-size:18px;font-weight:600;color:#fff;line-height:1.25;}\n' +
+'      .card-title{display:none;}\n' +
+'      /* PC 콘텐츠 */\n' +
+'      .card-content{padding:13px 16px;gap:10px;}\n' +
+'      .venue-name{font-size:13px;font-weight:700;color:#1f2937;}\n' +
+'      .venue-addr{font-size:11px;}\n' +
+'      .card-benefits-mini{font-size:11px;padding:6px 10px;white-space:normal;}\n' +
+'      .card-footer{padding-top:10px;border-top:1px solid #f0ede8;}\n' +
+'    }\n' +
+'\n' +
 '    /* pill */\n' +
-'    .pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;}\n' +
-'    .pill-clinic{background:#dbeafe;color:#1d4ed8;}\n' +
-'    .pill-beauty{background:#fce7f3;color:#be185d;}\n' +
-'    /* venue row */\n' +
-'    .venue-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:11px 16px;background:#f8f7f5;border-bottom:1px solid #f0ede8;}\n' +
-'    .venue-name{font-size:13px;font-weight:700;color:#1f2937;line-height:1.3;}\n' +
-'    .venue-addr{font-size:11px;color:#9ca3af;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
-'    .map-btn{flex-shrink:0;display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#3b82f6;font-weight:600;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:5px 10px;text-decoration:none;white-space:nowrap;}\n' +
-'    /* card body */\n' +
-'    .card-body{padding:14px 16px;display:flex;flex-direction:column;gap:12px;}\n' +
-'    .card-desc{font-size:13px;line-height:1.75;color:#555;}\n' +
-'    /* PC에서는 description 2줄로 clamp */\n' +
-'    @media(min-width:1024px){.card-desc{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}}\n' +
+'    .pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:99px;font-size:10px;font-weight:600;}\n' +
+'    .pill-clinic{background:rgba(219,234,254,.9);color:#1d4ed8;}\n' +
+'    .pill-beauty{background:rgba(252,231,243,.9);color:#be185d;}\n' +
+'    /* map btn */\n' +
+'    .map-btn{flex-shrink:0;display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#3b82f6;font-weight:600;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:4px 8px;text-decoration:none;white-space:nowrap;}\n' +
+'    /* detail modal용 */\n' +
 '    .benefit-box{background:linear-gradient(135deg,#fffbef,#fef3c7);border:1px solid #f0d88a;border-radius:14px;padding:13px 15px;display:flex;align-items:flex-start;gap:10px;}\n' +
 '    .req-box{background:#f8f7f5;border:1px solid #ede9e2;border-radius:14px;padding:13px 15px;display:flex;align-items:flex-start;gap:10px;}\n' +
 '    .box-icon{font-size:13px;margin-top:2px;flex-shrink:0;}\n' +
@@ -169,7 +202,6 @@ export function mainPageHTML(campaigns: any[]): string {
 '    .benefit-box .box-text{color:#78350f;}\n' +
 '    .req-box .box-label{color:#6b7280;}\n' +
 '    .req-box .box-text{color:#4b5563;}\n' +
-'    .card-footer{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid #f0ede8;}\n' +
 '\n' +
 '    /* ═══ PC COUNT HEADER ═══ */\n' +
 '    .pc-header{display:none;}\n' +
@@ -545,50 +577,48 @@ export function mainPageHTML(campaigns: any[]): string {
 '      ? \'<a href="\' + mapsUrl + \'" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="map-btn">&#x1F4CD; Map</a>\'\n' +
 '      : "";\n' +
 '\n' +
-'    var imgHtml = thumb\n' +
+'    var imgInner = thumb\n' +
 '      ? \'<img src="\' + thumb + \'" alt="\' + displayName + \'" loading="lazy" onerror="imgFallback(this)">\'\n' +
 '      : \'<div class="img-fb"><div class="img-fb-icon">&#x1F3E5;</div></div>\';\n' +
 '\n' +
 '    var bookedOverlay = full\n' +
-'      ? \'<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center"><span style="border:1px solid rgba(255,255,255,.35);color:#fff;font-size:11px;font-weight:700;letter-spacing:2px;padding:7px 20px;border-radius:99px;backdrop-filter:blur(6px)">FULLY BOOKED</span></div>\'\n' +
+'      ? \'<div style="position:absolute;inset:0;background:rgba(0,0,0,.48);display:flex;align-items:center;justify-content:center"><span style="border:1px solid rgba(255,255,255,.35);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;padding:5px 14px;border-radius:99px;backdrop-filter:blur(6px)">FULL</span></div>\'\n' +
 '      : "";\n' +
 '\n' +
-'    var benefitsHtml = c.benefits\n' +
-'      ? \'<div class="benefit-box"><span class="box-icon" style="color:#f59e0b">&#x1F381;</span><div><div class="box-label">What You Get</div><div class="box-text">\' + c.benefits + \'</div></div></div>\'\n' +
-'      : "";\n' +
-'\n' +
-'    var reqHtml = c.requirements\n' +
-'      ? \'<div class="req-box"><span class="box-icon" style="color:#9ca3af">&#x2713;</span><div><div class="box-label">Requirements</div><div class="box-text">\' + c.requirements + \'</div></div></div>\'\n' +
-'      : "";\n' +
-'\n' +
-'    var descHtml = c.description\n' +
-'      ? \'<p class="card-desc">\' + c.description + \'</p>\'\n' +
+'    // 혜택 첫 항목만 mini 표시 (· 구분)\n' +
+'    var benefitMini = c.benefits\n' +
+'      ? \'<div class="card-benefits-mini">&#x1F381; \' + c.benefits.split("·")[0].trim() + (c.benefits.includes("·") ? " ···" : "") + \'</div>\'\n' +
 '      : "";\n' +
 '\n' +
 '    var applyBtn = \'<button onclick="event.stopPropagation();openApply(\' + c.id + \')" \' + (full ? "disabled" : "") +\n' +
-'      \' class="btn-gold btn-apply">\' + (full ? "Full" : "Apply Now") + \'</button>\';\n' +
+'      \' style="font-size:11px;padding:6px 14px;border-radius:99px;" class="btn-gold btn-apply">\' + (full ? "Full" : "Apply") + \'</button>\';\n' +
+'\n' +
+'    var ratingStr = c.place_rating\n' +
+'      ? \'<span style="font-size:10px;color:#f59e0b;font-weight:700;">&#9733; \' + c.place_rating + \'</span>\'\n' +
+'      : "";\n' +
 '\n' +
 '    return \'<article class="camp-card" onclick="openDetail(\' + c.id + \')">\' +\n' +
+'      /* 이미지 영역 */\n' +
 '      \'<div class="camp-img-wrap">\' +\n' +
-'        imgHtml +\n' +
+'        imgInner +\n' +
 '        \'<div class="img-overlay"></div>\' +\n' +
 '        bookedOverlay +\n' +
-'        \'<div class="img-top">\' + catPill + ratingBadge + \'</div>\' +\n' +
+'        \'<div class="img-top">\' + catPill + \'</div>\' +\n' +
+'        /* PC에서만 보임 */\n' +
 '        \'<div class="img-title"><h3>\' + c.title + \'</h3></div>\' +\n' +
 '      \'</div>\' +\n' +
-'      \'<div class="venue-row">\' +\n' +
-'        \'<div style="min-width:0">\' +\n' +
-'          \'<div class="venue-name">\' + displayName + \'</div>\' +\n' +
-'          (shortAddr ? \'<div class="venue-addr">&#x1F4CD; \' + shortAddr + \'</div>\' : "") +\n' +
+'      /* 콘텐츠 영역 */\n' +
+'      \'<div class="card-content">\' +\n' +
+'        /* 모바일에서는 타이틀 표시, PC에서는 이미지 위에 표시 */\n' +
+'        \'<div class="card-title">\' + c.title + \'</div>\' +\n' +
+'        \'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">\' +\n' +
+'          \'<span class="venue-name">\' + displayName + \'</span>\' +\n' +
+'          ratingStr +\n' +
 '        \'</div>\' +\n' +
-'        mapBtnHtml +\n' +
-'      \'</div>\' +\n' +
-'      \'<div class="card-body">\' +\n' +
-'        descHtml +\n' +
-'        benefitsHtml +\n' +
-'        reqHtml +\n' +
+'        (shortAddr ? \'<div class="venue-addr">&#x1F4CD; \' + shortAddr + \'</div>\' : "") +\n' +
+'        benefitMini +\n' +
 '        \'<div class="card-footer">\' +\n' +
-'          \'<div style="display:flex;align-items:center;gap:6px;font-size:12px">&#x1F4C5; \' + dlBadge + \'</div>\' +\n' +
+'          dlBadge +\n' +
 '          applyBtn +\n' +
 '        \'</div>\' +\n' +
 '      \'</div>\' +\n' +
