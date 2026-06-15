@@ -97,13 +97,32 @@ app.get('/api/campaigns/:id', async (c) => {
 })
 
 // ── Google Places ─────────────────────────────
+
+// 한글 포함 이름에서 영문 부분만 추출
+function extractEnglishName(name: string): string {
+  if (!name) return ''
+  // 한글 없으면 그대로
+  if (!/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(name)) return name
+  // 괄호 안 영문 우선 추출: e.g. "리을 피부과의원(Lieul Dermatology Clinic)"
+  const parenMatch = name.match(/\(([A-Za-z][^)]+)\)/)
+  if (parenMatch) return parenMatch[1].trim()
+  // 공백 기준으로 영문 토큰만 이어붙이기
+  const tokens = name.split(/\s+/).filter(t => /^[A-Za-z0-9&'.,-]+$/.test(t))
+  if (tokens.length > 0) return tokens.join(' ').trim()
+  return name
+}
+
+// 한글 주소 → 영문 주소 (language=en 으로 재조회)
 async function fetchPlaceDetails(placeId: string, apiKey: string) {
+  // language=en 으로 영문 데이터 조회
   const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=place_id,name,formatted_address,rating,photos&key=${apiKey}&language=en`
   const res  = await fetch(url)
   const data: any = await res.json()
   const r = data.result
   if (!r) return null
-  return { place_id: r.place_id, name: r.name, address: r.formatted_address || '', rating: r.rating || 0, photo: r.photos?.[0]?.photo_reference || '' }
+  const rawName = r.name || ''
+  const name = extractEnglishName(rawName)
+  return { place_id: r.place_id, name, address: r.formatted_address || '', rating: r.rating || 0, photo: r.photos?.[0]?.photo_reference || '' }
 }
 
 app.post('/api/places/resolve', async (c) => {

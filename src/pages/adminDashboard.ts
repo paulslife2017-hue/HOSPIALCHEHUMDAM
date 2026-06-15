@@ -222,8 +222,8 @@ export function adminDashboardHTML(): string {
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Category</label>
-          <select id="nc_category" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white">
-            <option>Clinic</option><option>Beauty Shop</option>
+          <select id="nc_category" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white" onchange="onCategoryChange()">
+            <option>Clinic</option><option>Beauty Shop</option><option>Dental Clinic</option><option>Korean Medicine</option><option>Hair & Scalp Spa</option>
           </select>
         </div>
 
@@ -873,6 +873,37 @@ function showResolveStatus(type, msg) {
   el.textContent = msg
 }
 
+// 카테고리별 description 템플릿 (API 호출 없이 즉시 생성)
+function autoDescription(name, category, address) {
+  var district = ''
+  if (/gangnam|강남/i.test(address))      district = 'in the heart of Gangnam'
+  else if (/sinsa|신사/i.test(address))   district = 'in Sinsa-dong, Gangnam'
+  else if (/jamsil|잠실/i.test(address))  district = 'in Jamsil'
+  else if (/hongdae|홍대/i.test(address)) district = 'in Hongdae'
+  else if (/itaewon|이태원/i.test(address)) district = 'in Itaewon'
+  else if (/incheon|인천/i.test(address)) district = 'at Incheon'
+  else district = 'in Seoul'
+
+  var cat = (category || '').toLowerCase()
+  if (cat === 'clinic' || cat.includes('derm') || cat.includes('skin')) {
+    return name + ' is a premier dermatology clinic ' + district + ', offering cutting-edge aesthetic treatments including skin boosters, lifting procedures, laser therapy, and personalized anti-aging solutions. Staffed by board-certified dermatologists, the clinic welcomes international visitors with full English consultations and a calm, private atmosphere. Whether you are looking to refresh your skin, try the latest K-beauty clinical treatments, or receive expert care tailored to your skin type, ' + name + ' delivers results-driven dermatology with a distinctly personal touch.'
+  }
+  if (cat.includes('dental') || cat.includes('dent')) {
+    return name + ' is a leading dental clinic ' + district + ', providing world-class Korean dentistry services including professional scaling, teeth whitening, cosmetic dentistry, and smile makeovers. Board-certified dentists speak fluent English and offer a full suite of treatments with state-of-the-art 3D digital imaging. Walk in and fly out with a brighter, healthier smile — no long waits, no language barriers.'
+  }
+  if (cat.includes('korean medicine') || cat.includes('한의')) {
+    return name + ' is a renowned Korean traditional medicine clinic ' + district + ', blending centuries-old healing traditions with modern clinical expertise. Specializing in acupuncture, cupping therapy, manual therapy, and bespoke herbal medicine, the clinic welcomes international visitors with full English consultations and a warm, unhurried atmosphere. Each session begins with a one-on-one diagnostic consultation to craft a personalized treatment plan tailored to your needs.'
+  }
+  if (cat.includes('spa') || cat.includes('scalp') || cat.includes('hair')) {
+    return name + ' is Seoul\'s premier head spa and scalp care destination ' + district + ', trusted by thousands of clients for its advanced scalp diagnosis and deeply restorative treatments. Each session begins with a thorough scalp analysis before moving into a relaxing sequence of aromatherapy, steam treatment, exfoliating scaling, and targeted RF therapy. With private rooms and English-speaking staff, ' + name + ' is the ultimate self-care experience for any traveler in Seoul.'
+  }
+  if (cat.includes('micro') || cat.includes('brow') || cat.includes('tattoo') || cat.includes('beauty')) {
+    return name + ' is a premium beauty studio ' + district + ', specializing in professional aesthetic treatments and personalized beauty services. Staffed by certified specialists with extensive experience serving international clients, all consultations are conducted in English. Whether you are exploring K-beauty for the first time or looking for a specific treatment, ' + name + ' delivers a clean, comfortable, and professional experience tailored to your style and preferences.'
+  }
+  // 기본 (Beauty Shop 등)
+  return name + ' is a top-rated beauty destination ' + district + ', offering a curated selection of premium aesthetic services in a welcoming, English-friendly environment. Known for its skilled specialists and personalized approach, ' + name + ' is a must-visit for travelers seeking authentic K-beauty experiences in Seoul.'
+}
+
 function fillPlace(p) {
   document.getElementById('nc_place_id').value   = p.place_id
   document.getElementById('nc_place_name').value = p.name
@@ -889,18 +920,26 @@ function fillPlace(p) {
     : '<i class="fas fa-hospital text-xl text-gray-300"></i>'
   document.getElementById('placePreview').classList.remove('hidden')
 
-  // ── 기본값 자동세팅 ─────────────────────────────────────
-  // 비어있을 때만 채움 (이미 입력된 경우 덮어쓰지 않음)
-  const reqEl = document.getElementById('nc_req')
-  const benEl = document.getElementById('nc_benefits')
+  // ── 기본값 자동세팅 (비어있을 때만 채움) ────────────────
+  const reqEl  = document.getElementById('nc_req')
+  const benEl  = document.getElementById('nc_benefits')
+  const descEl = document.getElementById('nc_desc')
+  const cat    = document.getElementById('nc_category').value
+
   if (!reqEl.value) {
-    const defaultReq = '3,000+ Instagram followers · Travel or beauty content preferred · Post 1 Reel within 3 weeks of visit · Tag @' + p.name.toLowerCase().replace(/[^a-z0-9]/g, '_')
+    const handle = p.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const defaultReq = '3,000+ Instagram followers · Travel or beauty content preferred · Post 1 Reel within 3 weeks of visit · Tag @' + handle
     reqEl.value = defaultReq
     document.getElementById('nc_req_final').value = defaultReq
   }
   if (!benEl.value) {
-    benEl.value = 'Complimentary treatment session · Personalized consultation'
+    benEl.value = 'Complimentary treatment session · Personalized English consultation · Tailored care plan'
     document.getElementById('nc_benefits_final').value = benEl.value
+  }
+  if (!descEl.value) {
+    const autoDesc = autoDescription(p.name, cat, p.address)
+    descEl.value = autoDesc
+    document.getElementById('nc_desc_final').value = autoDesc
   }
 }
 
@@ -924,6 +963,21 @@ function resetNewForm() {
   document.getElementById('nc_benefits_en').textContent = ''
   document.getElementById('nc_req_en').textContent = ''
   document.getElementById('nc_desc_en').textContent = ''
+}
+
+// 카테고리 변경 시 description 자동 갱신
+function onCategoryChange() {
+  const placeId = document.getElementById('nc_place_id').value
+  if (!placeId) return  // place 미선택 시 무시
+  const name    = document.getElementById('nc_place_name').value
+  const address = document.getElementById('nc_address').value
+  const cat     = document.getElementById('nc_category').value
+  const descEl  = document.getElementById('nc_desc')
+  // 이미 직접 입력한 경우 덮어쓰지 않음 (자동생성 결과와 다를 때만 갱신)
+  const autoDesc = autoDescription(name, cat, address)
+  descEl.value = autoDesc
+  document.getElementById('nc_desc_final').value = autoDesc
+  document.getElementById('nc_desc_translated').classList.add('hidden')
 }
 
 document.getElementById('newCampForm').addEventListener('submit', async e => {
