@@ -581,7 +581,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '      : "";\n' +
 '\n' +
 '    var benefitMini = c.benefits\n' +
-'      ? \'<div class="card-benefits-mini">&#x1F381; \' + c.benefits + \'</div>\';\n' +
+'      ? \'<div class="card-benefits-mini">&#x1F381; \' + c.benefits + \'</div>\'\n' +
 '      : "";\n' +
 '\n' +
 '    var applyBtn = \'<button onclick="event.stopPropagation();openApply(\' + c.id + \')" \' + (full ? "disabled" : "") +\n' +
