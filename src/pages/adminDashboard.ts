@@ -701,13 +701,23 @@ function _openDatePickModal(id, preferredDatesRaw, mode, currentScheduled) {
     listEl.innerHTML = '<p class="text-xs text-gray-400 italic py-1">제안된 날짜 없음 — 아래에 직접 입력하세요.</p>'
   } else {
     listEl.innerHTML = dates.map(function(d, i) {
-      // 날짜와 시간 분리 (예: "Jun 22, 2026 1:30 PM" → date="Jun 22, 2026", time="1:30 PM")
-      var parts = d.match(/^(.+?\d{4})\s+(.+)$/)
-      var datePart = parts ? parts[1].trim() : d
-      var timePart = parts ? parts[2].trim() : ''
-      var safeDate = datePart.replace(/\x27/g, '\\x27')
+      // 날짜·시간 분리: "Jun 22, 2026 1:30 PM" → datePart="Jun 22, 2026", timePart="1:30 PM"
+      // 정규식 대신 연도(4자리) 위치로 분리 — 백슬래시 이스케이프 문제 회피
+      d = d.trim()
+      var yearIdx = -1
+      for (var ci = 0; ci < d.length - 3; ci++) {
+        var y = parseInt(d.slice(ci, ci+4))
+        if (y >= 2020 && y <= 2099 && (ci === 0 || d[ci-1] === ' ')) { yearIdx = ci; break }
+      }
+      var datePart = yearIdx >= 0 ? d.slice(0, yearIdx + 4).trim() : d
+      var timePart = yearIdx >= 0 && yearIdx + 4 < d.length ? d.slice(yearIdx + 4).trim() : ''
+      // data 속성으로 값 전달 — onclick 인수 escape 문제 완전 우회
+      var safeDate = datePart.replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+      var safeTime = timePart.replace(/&/g,'&amp;').replace(/"/g,'&quot;')
       return '<button type="button"'
-        + ' onclick="selectDateOption(this,\\x27' + safeDate + '\\x27,\\x27' + (timePart||'') + '\\x27)"'
+        + ' data-dp="' + safeDate + '"'
+        + ' data-tp="' + safeTime + '"'
+        + ' onclick="selectDateOption(this)"'
         + ' class="dp-date-btn w-full text-left px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-700 hover:border-amber-400 hover:bg-amber-50 transition">'
         + '<div class="flex items-center justify-between">'
         + '<span><i class="far fa-calendar-alt mr-1.5 text-amber-400"></i><span class="font-semibold">' + datePart + '</span></span>'
@@ -745,7 +755,11 @@ function rescheduleApp(id, preferredDatesRaw, currentScheduled) {
   _openDatePickModal(id, preferredDatesRaw, 'reschedule', currentScheduled)
 }
 
-function selectDateOption(btnEl, datePart, timePart) {
+function selectDateOption(btnEl) {
+  // data 속성에서 날짜·시간 읽기 (onclick 인수 escape 문제 우회)
+  var datePart = btnEl.getAttribute('data-dp') || ''
+  var timePart = btnEl.getAttribute('data-tp') || ''
+
   // 버튼 선택 표시
   var all = document.querySelectorAll('.dp-date-btn')
   for (var i = 0; i < all.length; i++) {
@@ -755,6 +769,15 @@ function selectDateOption(btnEl, datePart, timePart) {
   btnEl.classList.remove('border-gray-200')
   btnEl.classList.add(_datePickMode === 'reschedule' ? 'border-amber-500' : 'border-green-500',
                       _datePickMode === 'reschedule' ? 'bg-amber-50' : 'bg-green-50')
+
+  // 체크 아이콘 표시
+  all = document.querySelectorAll('.dp-date-btn .dp-check')
+  for (var j = 0; j < all.length; j++) all[j].remove()
+  var chk = document.createElement('span')
+  chk.className = 'dp-check'
+  chk.innerHTML = ' <i class="fas fa-check-circle text-green-500" style="font-size:13px"></i>'
+  btnEl.querySelector('div').appendChild(chk)
+
   _datePickSelected = datePart
   document.getElementById('datePickCustom').value = ''
 
