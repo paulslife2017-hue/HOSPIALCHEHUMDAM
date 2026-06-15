@@ -589,7 +589,14 @@ async function loadApps() {
     var _appMsgMap = {}
     tb.innerHTML = data.map(function(a) {
       const dates    = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
-      const dateHtml = dates.map(function(d){ return '<span style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:500;margin:1px;">' + d + '</span>' }).join('')
+      // 날짜 버튼: 클릭 → 승인 or 일정수정 모달 바로 오픈
+      const dateHtml = dates.map(function(d){
+        var safeD = d.replace(/\x27/g, '\\x27').replace(/"/g, '&quot;')
+        var onclick = a.status === 'approved'
+          ? 'rescheduleApp(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ',' + JSON.stringify(a.scheduled_date||'') + ')'
+          : 'approveWithDate(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ')'
+        return '<button type="button" onclick="' + onclick + '" title="클릭하여 날짜 선택 모달 열기" style="display:inline-flex;align-items:center;gap:3px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:500;margin:1px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'#dbeafe\'" onmouseout="this.style.background=\'#eff6ff\'"><i class="far fa-calendar-check" style="font-size:9px;opacity:0.7;"></i>' + d + '</button>'
+      }).join('')
       const statusKo = a.status === 'approved' ? '✅ 승인' : a.status === 'rejected' ? '❌ 거절' : '⏳ 대기'
       var scheduledLine = a.scheduled_date
         ? '\\n📅 확정 날짜: ' + a.scheduled_date + '\\n'
@@ -715,6 +722,23 @@ function _openDatePickModal(id, preferredDatesRaw, mode, currentScheduled) {
 
 function approveWithDate(id, preferredDatesRaw) {
   _openDatePickModal(id, preferredDatesRaw, 'approve', null)
+}
+
+// 달력 카드에서 호출 — 해당 날짜+시간을 자동 선택된 상태로 모달 오픈
+function approveWithDatePreselect(id, preferredDatesRaw, preTimeInfo) {
+  _openDatePickModal(id, preferredDatesRaw, 'approve', null)
+  // 모달이 열린 직후 preTimeInfo와 일치하는 버튼 자동 클릭
+  if (preTimeInfo) {
+    setTimeout(function() {
+      var btns = document.querySelectorAll('.dp-date-btn')
+      for (var i = 0; i < btns.length; i++) {
+        if (btns[i].textContent.indexOf(preTimeInfo.replace(/\s+/g,' ').trim().substring(0,8)) >= 0) {
+          btns[i].click()
+          break
+        }
+      }
+    }, 80)
+  }
 }
 
 function rescheduleApp(id, preferredDatesRaw, currentScheduled) {
@@ -881,12 +905,18 @@ function copyAppMsg(id, btnEl) {
 
 function openAppDetail(a) {
   const dates    = (a.preferred_dates || '').split('/').map(d => d.trim()).filter(Boolean)
-  const dateHtml = dates.map(d =>
-    \`<div class="flex items-center gap-2 py-1.5 border-b border-gray-100 last:border-0">
-      <i class="far fa-clock text-amber-400 text-xs w-4 flex-shrink-0"></i>
-      <span class="text-sm text-gray-700">\${d}</span>
-    </div>\`
-  ).join('')
+  // 상세 모달 내 날짜 버튼: 클릭 → 모달 닫고 날짜선택 모달 오픈
+  const dateHtml = dates.map(d => {
+    const onclickFn = a.status === 'approved'
+      ? \`rescheduleApp(\${a.id},\${JSON.stringify(a.preferred_dates||'')},\${JSON.stringify(a.scheduled_date||'')});document.getElementById('appModal').classList.remove('open')\`
+      : \`approveWithDate(\${a.id},\${JSON.stringify(a.preferred_dates||'')});document.getElementById('appModal').classList.remove('open')\`
+    return \`<button type="button" onclick="\${onclickFn.replace(/"/g,'&quot;')}"
+      class="w-full flex items-center gap-2 py-2 px-2 rounded-xl border border-transparent hover:border-amber-300 hover:bg-amber-50 transition text-left group">
+      <i class="far fa-calendar-alt text-amber-400 text-xs w-4 flex-shrink-0 group-hover:text-amber-600"></i>
+      <span class="text-sm text-gray-700 flex-1 group-hover:text-amber-800 font-medium">\${d}</span>
+      <span class="text-[10px] text-amber-500 opacity-0 group-hover:opacity-100 transition font-semibold flex-shrink-0">\${a.status === 'approved' ? '일정 수정 →' : '승인 →'}</span>
+    </button>\`
+  }).join('')
   const clinicMsg = buildClinicMsg(a)
   const instaUrl  = a.instagram ? 'https://instagram.com/' + a.instagram : ''
   document.getElementById('appModalContent').innerHTML = \`
@@ -1545,8 +1575,8 @@ function selectDay(dateStr) {
       + '</div>'
       + '<div class="px-4 pb-3 border-t border-stone-50 pt-2.5 flex gap-2">'
       + (isScheduled
-          ? '<button onclick="rescheduleApp(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ',' + JSON.stringify(a.scheduled_date||'') + ')" class="flex-1 text-xs bg-amber-500 text-white rounded-xl py-1.5 font-semibold hover:bg-amber-600 flex items-center justify-center gap-1"><i class="fas fa-calendar-pen"></i>\uc77c\uc815 \uc218\uc815</button>'
-          : '<button onclick="approveWithDate(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ')" class="flex-1 text-xs bg-green-600 text-white rounded-xl py-1.5 font-semibold hover:bg-green-700 flex items-center justify-center gap-1"><i class="fas fa-check"></i>\ub0a0\uc9dc \uc120\ud0dd \ud6c4 \uc2b9\uc778</button>')
+          ? '<button onclick="rescheduleApp(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ',' + JSON.stringify(a.scheduled_date||'') + ')" class="flex-1 text-xs bg-amber-500 text-white rounded-xl py-2 font-semibold hover:bg-amber-600 flex items-center justify-center gap-1.5 shadow-sm"><i class="fas fa-calendar-pen"></i>\uc2dc\uac04/\ub0a0\uc9dc \uc218\uc815</button>'
+          : '<button onclick="approveWithDatePreselect(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ',' + JSON.stringify(timeInfo||'') + ')" class="flex-1 text-xs bg-green-600 text-white rounded-xl py-2 font-semibold hover:bg-green-700 flex items-center justify-center gap-1.5 shadow-sm"><i class="fas fa-check"></i>\uc774 \ub0a0\uc9dc\ub85c \uc2b9\uc778</button>')
       + '</div>'
       + '</div>'
   }).join('')
