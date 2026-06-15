@@ -595,7 +595,7 @@ async function loadApps() {
         var onclick = a.status === 'approved'
           ? 'rescheduleApp(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ',' + JSON.stringify(a.scheduled_date||'') + ')'
           : 'approveWithDate(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ')'
-        return '<button type="button" onclick="' + onclick + '" title="클릭하여 날짜 선택 모달 열기" style="display:inline-flex;align-items:center;gap:3px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:500;margin:1px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'#dbeafe\'" onmouseout="this.style.background=\'#eff6ff\'"><i class="far fa-calendar-check" style="font-size:9px;opacity:0.7;"></i>' + d + '</button>'
+        return '<button type="button" onclick="' + onclick + '" title="클릭하여 날짜 선택 모달 열기" style="display:inline-flex;align-items:center;gap:3px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:500;margin:1px;cursor:pointer;transition:background 0.15s;" ><i class="far fa-calendar-check" style="font-size:9px;opacity:0.7;"></i>' + d + '</button>'
       }).join('')
       const statusKo = a.status === 'approved' ? '✅ 승인' : a.status === 'rejected' ? '❌ 거절' : '⏳ 대기'
       var scheduledLine = a.scheduled_date
