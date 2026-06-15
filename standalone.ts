@@ -161,12 +161,36 @@ app.post('/api/admin/campaigns', async (c) => {
   if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
     const b = await c.req.json()
+    // 한글 업체명/타이틀 → 무조건 영문으로 저장
+    const placeName = extractEnglishName(b.place_name || '')
+    const title     = extractEnglishName(b.title || '')
     const shareToken = 'sbt-' + Date.now() + '-' + Math.random().toString(36).slice(2,8)
     const r = await dbRun(
       `INSERT INTO campaigns (title,description,place_id,place_name,place_address,place_photo_ref,place_rating,category,max_participants,deadline,benefits,requirements,share_token) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [b.title, b.description, b.place_id, b.place_name, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||10, b.deadline, b.benefits||'', b.requirements||'', shareToken]
+      [title, b.description||'', b.place_id, placeName, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||9999, b.deadline||'', b.benefits||'', b.requirements||'', shareToken]
     )
     return c.json({ success: true, id: r.lastInsertRowid })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
+app.patch('/api/admin/campaigns/:id', async (c) => {
+  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
+  try {
+    const b = await c.req.json()
+    const allowed = ['title','description','benefits','requirements','category','place_name','deadline','max_participants','status']
+    const fields: string[] = []
+    const vals:   any[]    = []
+    for (const key of allowed) {
+      if (key in b) {
+        // place_name, title 한글 포함 시 영문 추출
+        const v = (key === 'place_name' || key === 'title') ? extractEnglishName(String(b[key])) : b[key]
+        fields.push(`${key} = ?`); vals.push(v)
+      }
+    }
+    if (!fields.length) return c.json({ success: false, error: 'No fields to update' }, 400)
+    vals.push(c.req.param('id'))
+    await dbRun(`UPDATE campaigns SET ${fields.join(', ')} WHERE id = ?`, vals)
+    return c.json({ success: true })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
@@ -176,13 +200,27 @@ app.delete('/api/admin/campaigns/:id', async (c) => {
   catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
+// 한글 포함 이름 → 영문 추출
+function extractEnglishName(name: string): string {
+  if (!name) return ''
+  if (!/[\uAC00-\uD7A3\u3131-\u314E\u314F-\u3163]/.test(name)) return name
+  // 괄호 안 영문 우선: "리을피부과(Lieul Clinic)" → "Lieul Clinic"
+  const parenMatch = name.match(/\(([A-Za-z][^)]+)\)/)
+  if (parenMatch) return parenMatch[1].trim()
+  // 영문 토큰만 이어붙이기
+  const tokens = name.split(/\s+/).filter((t: string) => /^[A-Za-z0-9&'.,\-]+$/.test(t))
+  if (tokens.length > 0) return tokens.join(' ').trim()
+  return name
+}
+
 async function fetchPlaceDetails(placeId: string, apiKey: string) {
   const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=place_id,name,formatted_address,rating,photos&key=${apiKey}&language=en`
   const res = await fetch(url)
   const data: any = await res.json()
   const r = data.result
   if (!r) return null
-  return { place_id: r.place_id, name: r.name, address: r.formatted_address || '', rating: r.rating || 0, photo: r.photos?.[0]?.photo_reference || '' }
+  const name = extractEnglishName(r.name || '')
+  return { place_id: r.place_id, name, address: r.formatted_address || '', rating: r.rating || 0, photo: r.photos?.[0]?.photo_reference || '' }
 }
 
 app.post('/api/places/resolve', async (c) => {
