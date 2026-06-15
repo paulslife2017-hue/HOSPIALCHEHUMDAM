@@ -576,7 +576,7 @@ async function loadApps() {
             <button onclick='openAppDetail(\${JSON.stringify(a).replace(/"/g,"&quot;")})' class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-amber-50 text-gray-500 hover:text-amber-600 flex items-center justify-center text-xs transition" title="상세">
               <i class="fas fa-eye"></i>
             </button>
-            \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved')" class="w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center text-xs transition" title="승인"><i class="fas fa-check"></i></button>\` : ''}
+            \${a.status !== 'approved' ? \`<button onclick="approveWithDate(\${a.id},\${JSON.stringify(a.preferred_dates||'')})" class="w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center text-xs transition" title="날짜 선택 후 승인"><i class="fas fa-check"></i></button>\` : ''}
             \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center text-xs transition" title="거절"><i class="fas fa-times"></i></button>\` : ''}
           </div>
         </td>
@@ -589,14 +589,75 @@ async function loadApps() {
   }
 }
 
+// ─── 날짜 선택 승인 ───────────────────────────────────────────────────
+var _datePickAppId = null
+var _datePickSelected = null
+
+function approveWithDate(id, preferredDatesRaw) {
+  _datePickAppId = id
+  _datePickSelected = null
+  document.getElementById('datePickCustom').value = ''
+
+  var dates = (preferredDatesRaw || '').split('/').map(function(s){ return s.trim() }).filter(Boolean)
+
+  var listEl = document.getElementById('datePickList')
+  if (!dates.length) {
+    listEl.innerHTML = '<p class="text-xs text-gray-400 italic">제안된 날짜 없음 — 아래에 직접 입력해주세요.</p>'
+  } else {
+    listEl.innerHTML = dates.map(function(d, i) {
+      var escaped = d.replace(/\x27/g, '\\x27')
+      return '<button type="button" id="dpBtn' + i + '"'
+        + ' onclick="selectDateOption(this,\\x27' + escaped + '\\x27)"'
+        + ' class="w-full text-left px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-700'
+        + ' hover:border-amber-400 hover:bg-amber-50 transition font-medium">'
+        + '<i class="far fa-calendar-alt mr-1.5 text-amber-400"></i>' + d
+        + '</button>'
+    }).join('')
+  }
+
+  document.getElementById('datePickModal').classList.add('open')
+}
+
+function selectDateOption(btnEl, dateStr) {
+  var all = document.querySelectorAll('#datePickList button')
+  for (var i = 0; i < all.length; i++) {
+    all[i].className = all[i].className
+      .replace(/border-green-500|bg-green-50|text-green-700/g, '')
+      .replace(/  +/g, ' ').trim()
+    all[i].classList.add('border-gray-200', 'text-gray-700')
+  }
+  btnEl.classList.remove('border-gray-200', 'text-gray-700')
+  btnEl.classList.add('border-green-500', 'bg-green-50', 'text-green-700')
+  _datePickSelected = dateStr
+  document.getElementById('datePickCustom').value = ''
+}
+
+async function confirmDateApprove() {
+  if (!_datePickAppId) return
+  var scheduled = _datePickSelected || document.getElementById('datePickCustom').value.trim()
+  if (!scheduled) { alert('날짜를 선택하거나 직접 입력해주세요.'); return }
+  var btn = document.getElementById('datePickConfirm')
+  btn.disabled = true
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>처리 중…'
+  try {
+    await fetch('/api/admin/applications/' + _datePickAppId, {
+      method: 'PATCH', headers: H,
+      body: JSON.stringify({ status: 'approved', scheduled_date: scheduled })
+    })
+    document.getElementById('datePickModal').classList.remove('open')
+    _datePickAppId = null; _datePickSelected = null
+    loadApps(); loadStats()
+    setTimeout(function(){ showTab('cal'); loadCalData() }, 400)
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = '<i class="fas fa-check mr-1"></i>이 날짜로 승인'
+  }
+}
+
 async function setStatus(id, status) {
   await fetch('/api/admin/applications/' + id, { method:'PATCH', headers:H, body: JSON.stringify({ status }) })
   loadApps()
   loadStats()
-  // 승인 시 → 달력 탭 자동 이동
-  if (status === 'approved') {
-    setTimeout(() => { showTab('cal'); loadCalData() }, 400)
-  }
 }
 
 function buildClinicMsg(a) {
@@ -711,7 +772,7 @@ function openAppDetail(a) {
         <span class="text-[10px] text-gray-400">\${new Date(a.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
       </div>
       <div class="flex gap-2">
-        \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved');document.getElementById('appModal').classList.remove('open')" class="bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-green-700 flex items-center gap-1"><i class="fas fa-check"></i>Approve</button>\` : ''}
+        \${a.status !== 'approved' ? \`<button onclick="approveWithDate(\${a.id},\${JSON.stringify(a.preferred_dates||'')});document.getElementById('appModal').classList.remove('open')" class="bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-green-700 flex items-center gap-1"><i class="fas fa-check"></i>Approve</button>\` : ''}
         \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');document.getElementById('appModal').classList.remove('open')" class="bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-red-600 flex items-center gap-1"><i class="fas fa-times"></i>Reject</button>\` : ''}
       </div>
     </div>\`
@@ -1127,13 +1188,38 @@ function renderCal() {
 
   const campFilter = document.getElementById('calCamp')?.value || ''
 
+  // dayMap: { 'YYYY-MM-DD': [ { app, isScheduled } ] }
+  // approved + scheduled_date → 확정 날짜(초록) / pending → preferred_dates(노란)
   const dayMap = {}
-  calApps.forEach(app => {
+  calApps.forEach(function(app) {
     if (campFilter && String(app.campaign_id) !== campFilter) return
-    parseApplicantDates(app).forEach(({ dateStr }) => {
-      if (!dayMap[dateStr]) dayMap[dateStr] = []
-      dayMap[dateStr].push(app)
-    })
+    if (app.status === 'approved' && app.scheduled_date) {
+      // 확정된 날짜 — scheduled_date에서 YYYY-MM-DD 추출
+      var sd = app.scheduled_date
+      var dateMatch = sd.match(/(\d{4}-\d{2}-\d{2})/)
+      var key = null
+      if (dateMatch) {
+        key = dateMatch[1]
+      } else {
+        // "Jun 20, 2026" 같은 형식이면 Date 파싱
+        try {
+          var dt = new Date(sd)
+          if (!isNaN(dt.getTime())) {
+            key = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0')
+          }
+        } catch(e) {}
+      }
+      if (key) {
+        if (!dayMap[key]) dayMap[key] = []
+        dayMap[key].push({ app: app, isScheduled: true })
+      }
+    } else if (app.status !== 'rejected') {
+      // pending(또는 approved지만 scheduled_date 없는 경우) → preferred_dates 표시
+      parseApplicantDates(app).forEach(function(pd) {
+        if (!dayMap[pd.dateStr]) dayMap[pd.dateStr] = []
+        dayMap[pd.dateStr].push({ app: app, isScheduled: false })
+      })
+    }
   })
 
   const firstDay    = new Date(calYear, calMonth, 1).getDay()
@@ -1146,21 +1232,28 @@ function renderCal() {
     html += '<div class="bg-white min-h-[80px] p-1.5"></div>'
   }
   for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0')
-    const apps    = dayMap[dateStr] || []
-    const isToday = dateStr === todayStr
-    const hasBk   = apps.length > 0
+    const dateStr  = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0')
+    const entries  = dayMap[dateStr] || []
+    const isToday  = dateStr === todayStr
+    const hasBk    = entries.length > 0
+    const approved = entries.filter(function(e){ return e.isScheduled }).length
+    const pending  = entries.filter(function(e){ return !e.isScheduled }).length
 
-    const dotColors = ['#c9a035','#3b82f6','#ec4899','#10b981','#f59e0b','#6366f1']
-    const dots = apps.slice(0,5).map((a,i) => {
-      const color  = dotColors[i % dotColors.length]
-      const status = a.status === 'approved' ? '#10b981' : a.status === 'rejected' ? '#ef4444' : color
-      return \`<span title="\${a.applicant_name}" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:\${status};margin:0 1px;"></span>\`
+    const dots = entries.slice(0,5).map(function(e) {
+      // 확정(초록) vs 대기(골드)
+      const bg = e.isScheduled ? '#10b981' : '#c9a035'
+      return '<span title="' + e.app.applicant_name + '" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + bg + ';margin:0 1px;"></span>'
     }).join('')
 
+    const countHtml = hasBk
+      ? (approved ? \`<span style="color:#10b981;font-size:10px;font-weight:700;">\${approved}✓</span>\` : '')
+        + (pending && approved ? \`<span style="color:#9ca3af;font-size:9px;"> / </span>\` : '')
+        + (pending ? \`<span style="color:#c9a035;font-size:10px;font-weight:700;">\${pending}⏳</span>\` : '')
+      : ''
+
     html += \`<div class="bg-white min-h-[80px] p-1.5 cursor-pointer hover:bg-amber-50 transition-colors \${isToday ? 'ring-2 ring-amber-400 ring-inset' : ''}" onclick="selectDay('\${dateStr}')">
-      <div class="text-xs font-semibold \${isToday ? 'text-amber-600' : hasBk ? 'text-gray-900' : 'text-gray-400'} mb-1">\${d}</div>
-      \${hasBk ? \`<div class="text-[10px] font-bold text-amber-700 mb-0.5">\${apps.length}건</div>\` : ''}
+      <div class="text-xs font-semibold \${isToday ? 'text-amber-600' : hasBk ? 'text-gray-900' : 'text-gray-400'} mb-0.5">\${d}</div>
+      \${hasBk ? \`<div class="flex gap-0.5 flex-wrap mb-0.5">\${countHtml}</div>\` : ''}
       <div>\${dots}</div>
     </div>\`
   }
@@ -1171,58 +1264,93 @@ function renderCal() {
 }
 
 function selectDay(dateStr) {
-  const campFilter = document.getElementById('calCamp')?.value || ''
-  const apps = calApps.filter(app => {
-    if (campFilter && String(app.campaign_id) !== campFilter) return false
-    return parseApplicantDates(app).some(d => d.dateStr === dateStr)
+  var campFilter = (document.getElementById('calCamp') || {}).value || ''
+  // entries: { app, isScheduled }
+  var dayMap2 = {}
+  calApps.forEach(function(app) {
+    if (campFilter && String(app.campaign_id) !== campFilter) return
+    var key = null
+    var isScheduled = false
+    if (app.status === 'approved' && app.scheduled_date) {
+      var m = app.scheduled_date.match(/(\d{4}-\d{2}-\d{2})/)
+      if (m) { key = m[1]; isScheduled = true }
+      else {
+        try {
+          var dt = new Date(app.scheduled_date)
+          if (!isNaN(dt.getTime())) {
+            key = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0')
+            isScheduled = true
+          }
+        } catch(e) {}
+      }
+    }
+    if (!key && app.status !== 'rejected') {
+      parseApplicantDates(app).forEach(function(pd) {
+        if (!dayMap2[pd.dateStr]) dayMap2[pd.dateStr] = []
+        dayMap2[pd.dateStr].push({ app: app, isScheduled: false, timeStr: pd.timeStr })
+      })
+      return
+    }
+    if (key) {
+      if (!dayMap2[key]) dayMap2[key] = []
+      dayMap2[key].push({ app: app, isScheduled: isScheduled, timeStr: '' })
+    }
   })
 
-  const detail = document.getElementById('calDetail')
-  const title  = document.getElementById('calDetailTitle')
-  const list   = document.getElementById('calDetailList')
+  var entries = dayMap2[dateStr] || []
+  var detail  = document.getElementById('calDetail')
+  var title   = document.getElementById('calDetailTitle')
+  var list    = document.getElementById('calDetailList')
 
-  if (!apps.length) { detail.classList.add('hidden'); return }
+  if (!entries.length) { detail.classList.add('hidden'); return }
 
-  const d = new Date(dateStr + 'T00:00:00')
-  const koDay = ['일','월','화','수','목','금','토'][d.getDay()]
-  title.textContent = calYear + '년 ' + (calMonth+1) + '월 ' + d.getDate() + '일 (' + koDay + ') — ' + apps.length + '건'
+  var d     = new Date(dateStr + 'T00:00:00')
+  var koDay = ['\uc77c','\uc6d4','\ud654','\uc218','\ubaa9','\uae08','\ud1a0'][d.getDay()]
+  title.textContent = calYear + '\ub144 ' + (calMonth+1) + '\uc6d4 ' + d.getDate() + '\uc77c (' + koDay + ') \u2014 ' + entries.length + '\uac74'
   detail.classList.remove('hidden')
 
-  list.innerHTML = apps.map(function(a) {
-    const timeInfo  = parseApplicantDates(a).filter(function(x){ return x.dateStr === dateStr }).map(function(x){ return x.timeStr }).join(', ')
-    const badgeCls  = a.status === 'approved' ? 'background:#dcfce7;color:#166534' : a.status === 'rejected' ? 'background:#fee2e2;color:#991b1b' : 'background:#fef9c3;color:#854d0e'
-    const statusKo  = a.status === 'approved' ? '✅ 승인' : a.status === 'rejected' ? '❌ 거절' : '⏳ 대기'
-    const instaUrl  = a.instagram ? 'https://instagram.com/' + a.instagram : ''
-    const msgLines  = '[ 방문 신청자 정보 ]\\n'
-      + '날짜: ' + dateStr + (timeInfo ? ' ' + timeInfo : '') + '\\n'
-      + '업체: ' + (a.place_name || a.campaign_title || '') + '\\n'
-      + '\\n이름: ' + a.applicant_name + '\\n'
-      + '국적: ' + (a.nationality || '') + '\\n'
-      + '이메일: ' + a.email + '\\n'
+  list.innerHTML = entries.map(function(e) {
+    var a           = e.app
+    var isScheduled = e.isScheduled
+    var timeInfo    = isScheduled ? (a.scheduled_date || '') : (e.timeStr || '')
+    var badgeCls    = isScheduled ? 'background:#dcfce7;color:#166534'
+                      : a.status === 'rejected' ? 'background:#fee2e2;color:#991b1b'
+                      : 'background:#fef9c3;color:#854d0e'
+    var statusKo    = isScheduled ? '\u2705 \ud655\uc815' : a.status === 'rejected' ? '\u274c \uac70\uc808' : '\u23f3 \ub300\uae30'
+    var instaUrl    = a.instagram ? 'https://instagram.com/' + a.instagram : ''
+    var msgLines    = '[ \ubc29\ubb38 \uc2e0\uccad\uc790 \uc815\ubcf4 ]\\n'
+      + '\ub0a0\uc9dc: ' + (isScheduled ? timeInfo : dateStr + (timeInfo ? ' ' + timeInfo : '')) + '\\n'
+      + '\uc5c5\uccb4: ' + (a.place_name || a.campaign_title || '') + '\\n'
+      + '\\n\uc774\ub984: ' + a.applicant_name + '\\n'
+      + '\uad6d\uc801: ' + (a.nationality || '') + '\\n'
+      + '\uc774\uba54\uc77c: ' + a.email + '\\n'
       + (a.phone ? 'WhatsApp: ' + a.phone + '\\n' : '')
-      + (a.instagram ? '인스타: @' + a.instagram + ' (instagram.com/' + a.instagram + ')\\n' : '')
-      + (a.message ? '\\n메모: ' + a.message + '\\n' : '')
-      + '\\n상태: ' + statusKo
+      + (a.instagram ? '\uc778\uc2a4\ud0c0: @' + a.instagram + ' (instagram.com/' + a.instagram + ')\\n' : '')
+      + (a.message ? '\\n\uba54\ubaa8: ' + a.message + '\\n' : '')
+      + '\\n\uc0c1\ud0dc: ' + statusKo
     storeCalMsg(a.id, dateStr, msgLines)
-    return \`<div class="bg-white rounded-xl border border-amber-100 shadow-sm overflow-hidden mb-1">
-      <div class="flex items-center gap-3 px-4 py-3">
-        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">\${a.applicant_name.charAt(0).toUpperCase()}</div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 flex-wrap">
-            <p class="font-bold text-sm text-gray-900">\${a.applicant_name}</p>
-            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" style="\${badgeCls}">\${statusKo}</span>
-          </div>
-          <p class="text-xs text-gray-500 mt-0.5">\${a.nationality || ''} · \${timeInfo ? timeInfo : '시간 미정'}</p>
-          <p class="text-xs text-gray-400">\${a.place_name || a.campaign_title || ''}</p>
-        </div>
-      </div>
-      <div class="px-4 pb-3 flex flex-wrap gap-1.5 items-center border-t border-stone-50 pt-2.5">
-        <a href="mailto:\${a.email}" class="text-[11px] text-blue-600 hover:underline flex items-center gap-0.5"><i class="fas fa-envelope text-[10px]"></i> \${a.email}</a>
-        \${a.phone ? \`<a href="https://wa.me/\${a.phone.replace(/[^0-9]/g,'')}" target="_blank" class="text-[11px] text-green-600 hover:underline flex items-center gap-0.5"><i class="fab fa-whatsapp text-[10px]"></i> \${a.phone}</a>\` : ''}
-        \${instaUrl ? \`<a href="\${instaUrl}" target="_blank" class="text-[11px] text-pink-500 hover:underline flex items-center gap-0.5"><i class="fab fa-instagram text-[10px]"></i> @\${a.instagram}</a>\` : ''}
-        <button onclick="copyCalMsg(\${a.id},'\${dateStr}',this)" class="ml-auto text-[11px] px-2.5 py-1 rounded-lg btn-gold flex items-center gap-1"><i class="fas fa-copy text-[10px]"></i>업체 전달 복사</button>
-      </div>
-    </div>\`
+    var borderCls = isScheduled ? 'border-green-100' : 'border-amber-100'
+    return '<div class="bg-white rounded-xl border ' + borderCls + ' shadow-sm overflow-hidden mb-1">'
+      + '<div class="flex items-center gap-3 px-4 py-3">'
+      + '<div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,' + (isScheduled ? '#10b981,#34d399' : '#c9a035,#e8c16a') + ')">' + a.applicant_name.charAt(0).toUpperCase() + '</div>'
+      + '<div class="flex-1 min-w-0">'
+      + '<div class="flex items-center gap-2 flex-wrap">'
+      + '<p class="font-bold text-sm text-gray-900">' + a.applicant_name + '</p>'
+      + '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" style="' + badgeCls + '">' + statusKo + '</span>'
+      + '</div>'
+      + '<p class="text-xs text-gray-500 mt-0.5">' + (a.nationality || '') + ' \u00b7 ' + (timeInfo ? timeInfo : '\uc2dc\uac04 \ubbf8\uc815') + '</p>'
+      + '<p class="text-xs text-gray-400">' + (a.place_name || a.campaign_title || '') + '</p>'
+      + '</div></div>'
+      + '<div class="px-4 pb-3 flex flex-wrap gap-1.5 items-center border-t border-stone-50 pt-2.5">'
+      + '<a href="mailto:' + a.email + '" class="text-[11px] text-blue-600 hover:underline flex items-center gap-0.5"><i class="fas fa-envelope text-[10px]"></i> ' + a.email + '</a>'
+      + (a.phone ? '<a href="https://wa.me/' + a.phone.replace(/[^0-9]/g,'') + '" target="_blank" class="text-[11px] text-green-600 hover:underline flex items-center gap-0.5"><i class="fab fa-whatsapp text-[10px]"></i> ' + a.phone + '</a>' : '')
+      + (instaUrl ? '<a href="' + instaUrl + '" target="_blank" class="text-[11px] text-pink-500 hover:underline flex items-center gap-0.5"><i class="fab fa-instagram text-[10px]"></i> @' + a.instagram + '</a>' : '')
+      + '<button data-appid="' + a.id + '" data-datestr="' + dateStr + '" onclick="var b=this;copyCalMsg(b.dataset.appid,b.dataset.datestr,b)" class="ml-auto text-[11px] px-2.5 py-1 rounded-lg btn-gold flex items-center gap-1"><i class="fas fa-copy text-[10px]"></i>\uc5c5\uccb4 \uc804\ub2ec \ubcf5\uc0ac</button>'
+      + '</div>'
+      + (a.status !== 'approved' ? '<div class="px-4 pb-3 border-t border-stone-50 pt-2.5 flex gap-2">'
+        + '<button onclick="approveWithDate(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ')" class="flex-1 text-xs bg-green-600 text-white rounded-xl py-1.5 font-semibold hover:bg-green-700 flex items-center justify-center gap-1"><i class="fas fa-check"></i>\ub0a0\uc9dc \uc120\ud0dd \ud6c4 \uc2b9\uc778</button>'
+        + '</div>' : '')
+      + '</div>'
   }).join('')
 }
 
@@ -1436,6 +1564,13 @@ document.getElementById('appModal').addEventListener('click', e => {
     document.getElementById('appModal').classList.remove('open')
   }
 })
+
+var _dpModal = document.getElementById('datePickModal')
+if (_dpModal) {
+  _dpModal.addEventListener('click', function(e) {
+    if (e.target === _dpModal) _dpModal.classList.remove('open')
+  })
+}
 
 // 초기 로딩
 loadStats()

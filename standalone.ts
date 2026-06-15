@@ -71,6 +71,13 @@ async function dbRun(sql: string, args: any[] = []) {
   }
 }
 
+// ── DB 마이그레이션: scheduled_date 컬럼 자동 추가 ──────────────────────
+;(async () => {
+  try {
+    await dbRun('ALTER TABLE applications ADD COLUMN scheduled_date TEXT')
+  } catch (_) { /* already exists */ }
+})()
+
 const app = new Hono()
 app.use('/api/*', cors())
 app.get('/favicon.ico', (c) => new Response(null, { status: 204 }))
@@ -129,8 +136,17 @@ app.get('/api/admin/applications', async (c) => {
 app.patch('/api/admin/applications/:id', async (c) => {
   if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
-    const { status } = await c.req.json()
-    await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, c.req.param('id')])
+    const body = await c.req.json()
+    const { status, scheduled_date } = body
+    if (scheduled_date !== undefined) {
+      // 날짜 확정 + 승인 동시 처리
+      await dbRun(
+        'UPDATE applications SET status = ?, scheduled_date = ? WHERE id = ?',
+        [status || 'approved', scheduled_date, c.req.param('id')]
+      )
+    } else {
+      await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, c.req.param('id')])
+    }
     return c.json({ success: true })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
@@ -214,7 +230,7 @@ app.get('/api/clinic/:id', async (c) => {
     const campaign: any = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [id])
     if (!campaign) return c.json({ success: false, error: 'Campaign not found.' }, 404)
     if (campaign.share_token !== token) return c.json({ success: false, error: 'Invalid token.' }, 401)
-    const apps = await dbAll('SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC', [id])
+    const apps = await dbAll('SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,scheduled_date,message,status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC', [id])
     return c.json({ success: true, campaign: sanitize(campaign), applications: sanitize(apps) })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
