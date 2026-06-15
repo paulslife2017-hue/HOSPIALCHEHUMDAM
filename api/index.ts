@@ -61,6 +61,7 @@ async function dbRun(sql: string, args: any[] = []) {
 import { mainPageHTML }      from '../src/pages/main'
 import { adminLoginHTML }    from '../src/pages/adminLogin'
 import { adminDashboardHTML } from '../src/pages/adminDashboard'
+import { clinicShareHTML }   from '../src/pages/clinicShare'
 
 // ── App ───────────────────────────────────────
 const app = new Hono()
@@ -79,6 +80,7 @@ app.get('/', async (c) => {
 })
 app.get('/admin',           (c) => c.html(adminLoginHTML()))
 app.get('/admin/dashboard', (c) => c.html(adminDashboardHTML()))
+app.get('/clinic/:id',      (c) => c.html(clinicShareHTML()))
 
 // ── Campaigns ─────────────────────────────────
 app.get('/api/campaigns', async (c) => {
@@ -203,7 +205,7 @@ app.get('/api/clinic/:id', async (c) => {
     const campaign: any = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [id])
     if (!campaign) return c.json({ success: false, error: 'Campaign not found.' }, 404)
     if (campaign.share_token !== token) return c.json({ success: false, error: 'Invalid token.' }, 401)
-    const apps = await dbAll('SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC', [id])
+    const apps = await dbAll('SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,scheduled_date,message,status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC', [id])
     return c.json({ success: true, campaign: sanitize(campaign), applications: sanitize(apps) })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
@@ -236,8 +238,17 @@ app.get('/api/admin/applications', async (c) => {
 app.patch('/api/admin/applications/:id', async (c) => {
   if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
-    const { status } = await c.req.json()
-    await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, c.req.param('id')])
+    const body = await c.req.json()
+    const { status, scheduled_date } = body
+    if (scheduled_date !== undefined) {
+      // 날짜 확정 + 승인 동시 처리
+      await dbRun(
+        'UPDATE applications SET status = ?, scheduled_date = ? WHERE id = ?',
+        [status || 'approved', scheduled_date, c.req.param('id')]
+      )
+    } else {
+      await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, c.req.param('id')])
+    }
     return c.json({ success: true })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
@@ -252,10 +263,13 @@ app.post('/api/admin/campaigns', async (c) => {
   if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
     const b = await c.req.json()
+    // 한글 업체명/타이틀 → 무조건 영문으로 저장
+    const placeName = extractEnglishName(b.place_name || '')
+    const title     = extractEnglishName(b.title || '')
     const shareToken = 'sbt-' + Date.now() + '-' + Math.random().toString(36).slice(2,8)
     const r = await dbRun(
       `INSERT INTO campaigns (title,description,place_id,place_name,place_address,place_photo_ref,place_rating,category,max_participants,deadline,benefits,requirements,share_token) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [b.title, b.description||'', b.place_id, b.place_name, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||9999, b.deadline||'', b.benefits||'', b.requirements||'', shareToken]
+      [title, b.description||'', b.place_id, placeName, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||9999, b.deadline||'', b.benefits||'', b.requirements||'', shareToken]
     )
     return c.json({ success: true, id: Number(r.lastInsertRowid) })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
@@ -269,7 +283,11 @@ app.patch('/api/admin/campaigns/:id', async (c) => {
     const vals:   any[]    = []
     const allowed = ['title','description','benefits','requirements','category','place_name','deadline','max_participants','status']
     for (const key of allowed) {
-      if (key in b) { fields.push(`${key} = ?`); vals.push(b[key]) }
+      if (key in b) {
+        // place_name, title 한글 포함 시 영문 추출
+        const v = (key === 'place_name' || key === 'title') ? extractEnglishName(String(b[key])) : b[key]
+        fields.push(`${key} = ?`); vals.push(v)
+      }
     }
     if (!fields.length) return c.json({ success: false, error: 'No fields to update' }, 400)
     vals.push(c.req.param('id'))
