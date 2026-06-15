@@ -353,6 +353,64 @@ TELEGRAM_CHAT_ID=123456789</pre>
   <div id="appModalContent" class="bg-white rounded-2xl w-full max-w-md mx-4 p-6 shadow-xl max-h-[90vh] overflow-y-auto"></div>
 </div>
 
+<!-- Date-pick modal (승인/일정수정 공용) -->
+<div id="datePickModal" class="modal-bg">
+  <div class="bg-white rounded-2xl w-full max-w-sm mx-4 shadow-xl" style="max-height:92vh;overflow-y:auto;">
+    <div class="px-5 pt-5 pb-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+      <div>
+        <h3 id="datePickTitle" class="font-bold text-gray-900 text-sm"><i class="fas fa-calendar-check mr-1.5 text-green-500"></i>방문 날짜 선택</h3>
+        <p id="datePickSubtitle" class="text-xs text-gray-400 mt-0.5"></p>
+      </div>
+      <button onclick="document.getElementById('datePickModal').classList.remove('open')" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-gray-400 flex items-center justify-center text-xl leading-none">&times;</button>
+    </div>
+
+    <!-- 지원자 제안 날짜 버튼 목록 -->
+    <div class="px-5 pt-4 pb-2">
+      <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">지원자 희망 날짜</p>
+      <div id="datePickList" class="space-y-1.5"></div>
+    </div>
+
+    <!-- 시간 선택 (날짜 선택 후 활성화) -->
+    <div id="datePickTimeRow" class="px-5 pb-3 hidden">
+      <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">시간 선택</p>
+      <div class="flex items-center gap-2">
+        <select id="datePickHour" onchange="updateDatePickPreview()" class="flex-1 border border-amber-300 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-300">
+          <option value="">시</option>
+          <option>09</option><option>10</option><option>11</option>
+          <option>12</option><option>13</option><option>14</option>
+          <option>15</option><option>16</option><option>17</option>
+          <option>18</option><option>19</option>
+        </select>
+        <span class="text-gray-400 font-bold">:</span>
+        <select id="datePickMin" onchange="updateDatePickPreview()" class="flex-1 border border-amber-300 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-300">
+          <option value="">분</option>
+          <option>00</option><option>15</option><option>30</option><option>45</option>
+        </select>
+      </div>
+      <p id="datePickPreview" class="text-xs text-green-600 font-semibold mt-2 hidden"></p>
+    </div>
+
+    <!-- 구분선 -->
+    <div class="mx-5 border-t border-gray-100 my-1"></div>
+
+    <!-- 직접 입력 -->
+    <div class="px-5 pb-4">
+      <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">직접 입력</p>
+      <input id="datePickCustom" type="text" placeholder="예: Jun 20, 2026 2:00 PM"
+        oninput="onDatePickCustomInput()"
+        class="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-300">
+    </div>
+
+    <!-- 확인 버튼 -->
+    <div class="px-5 pb-5 flex gap-2">
+      <button onclick="document.getElementById('datePickModal').classList.remove('open')" class="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-500 hover:bg-stone-50">취소</button>
+      <button id="datePickConfirm" onclick="confirmDateApprove()" class="flex-1 px-3 py-2.5 rounded-xl bg-green-600 text-white text-xs font-semibold hover:bg-green-700 flex items-center justify-center gap-1.5">
+        <i class="fas fa-check"></i><span id="datePickConfirmLabel">이 날짜로 승인</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Campaign Edit modal -->
 <div id="editCampModal" class="modal-bg">
   <div class="bg-white rounded-2xl w-full max-w-lg mx-4 shadow-2xl max-h-[92vh] overflow-y-auto">
@@ -567,7 +625,9 @@ async function loadApps() {
             : '<span class="text-xs text-gray-300">—</span>'}
         </td>
         <td class="px-4 py-3.5 hidden lg:table-cell">
-          <div class="flex flex-wrap gap-0.5">\${dateHtml || '<span class="text-xs text-gray-300">—</span>'}</div>
+          \${a.scheduled_date
+            ? \`<div class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold" style="background:#dcfce7;color:#166534"><i class="fas fa-calendar-check text-[10px]"></i>\${a.scheduled_date}</div>\`
+            : \`<div class="flex flex-wrap gap-0.5">\${dateHtml || '<span class="text-xs text-gray-300">—</span>'}</div>\`}
         </td>
         <td class="px-4 py-3.5">
           <span class="badge badge-\${a.status}">\${{ pending:'⏳ 대기', approved:'✅ 승인', rejected:'❌ 거절' }[a.status] || a.status}</span>
@@ -583,6 +643,7 @@ async function loadApps() {
               <i class="fas fa-eye"></i>
             </button>
             \${a.status !== 'approved' ? \`<button onclick="approveWithDate(\${a.id},\${JSON.stringify(a.preferred_dates||'')})" class="w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center text-xs transition" title="날짜 선택 후 승인"><i class="fas fa-check"></i></button>\` : ''}
+            \${a.status === 'approved' ? \`<button onclick="rescheduleApp(\${a.id},\${JSON.stringify(a.preferred_dates||'')},\${JSON.stringify(a.scheduled_date||'')})" class="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-600 flex items-center justify-center text-xs transition" title="일정 수정"><i class="fas fa-calendar-pen"></i></button>\` : ''}
             \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center text-xs transition" title="거절"><i class="fas fa-times"></i></button>\` : ''}
           </div>
         </td>
@@ -595,28 +656,56 @@ async function loadApps() {
   }
 }
 
-// ─── 날짜 선택 승인 ───────────────────────────────────────────────────
-var _datePickAppId = null
-var _datePickSelected = null
+// ─── 날짜/시간 선택 모달 (승인 & 일정수정 공용) ─────────────────────
+var _datePickAppId    = null
+var _datePickSelected = null   // 날짜 문자열 (시간 제외)
+var _datePickMode     = 'approve'  // 'approve' | 'reschedule'
 
-function approveWithDate(id, preferredDatesRaw) {
-  _datePickAppId = id
+function _openDatePickModal(id, preferredDatesRaw, mode, currentScheduled) {
+  _datePickAppId    = id
   _datePickSelected = null
+  _datePickMode     = mode || 'approve'
+
+  // 모달 타이틀/버튼 라벨
+  var isReschedule = (_datePickMode === 'reschedule')
+  document.getElementById('datePickTitle').innerHTML =
+    '<i class="fas fa-' + (isReschedule ? 'calendar-pen' : 'calendar-check') + ' mr-1.5 text-' + (isReschedule ? 'amber' : 'green') + '-500"></i>'
+    + (isReschedule ? '일정 수정' : '방문 날짜 선택')
+  document.getElementById('datePickConfirmLabel').textContent = isReschedule ? '일정 수정 완료' : '이 날짜로 승인'
+  document.getElementById('datePickConfirm').className = document.getElementById('datePickConfirm').className
+    .replace(/bg-green-600 hover:bg-green-700|bg-amber-500 hover:bg-amber-600/g, '')
+    + ' ' + (isReschedule ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700')
+
+  // 현재 확정 날짜 표시
+  document.getElementById('datePickSubtitle').textContent =
+    currentScheduled ? '현재: ' + currentScheduled : ''
+
+  // 시간 초기화
+  document.getElementById('datePickHour').value = ''
+  document.getElementById('datePickMin').value  = ''
+  document.getElementById('datePickTimeRow').classList.add('hidden')
+  document.getElementById('datePickPreview').classList.add('hidden')
   document.getElementById('datePickCustom').value = ''
 
+  // 희망 날짜 목록
   var dates = (preferredDatesRaw || '').split('/').map(function(s){ return s.trim() }).filter(Boolean)
-
   var listEl = document.getElementById('datePickList')
   if (!dates.length) {
-    listEl.innerHTML = '<p class="text-xs text-gray-400 italic">제안된 날짜 없음 — 아래에 직접 입력해주세요.</p>'
+    listEl.innerHTML = '<p class="text-xs text-gray-400 italic py-1">제안된 날짜 없음 — 아래에 직접 입력하세요.</p>'
   } else {
     listEl.innerHTML = dates.map(function(d, i) {
-      var escaped = d.replace(/\x27/g, '\\x27')
-      return '<button type="button" id="dpBtn' + i + '"'
-        + ' onclick="selectDateOption(this,\\x27' + escaped + '\\x27)"'
-        + ' class="w-full text-left px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-700'
-        + ' hover:border-amber-400 hover:bg-amber-50 transition font-medium">'
-        + '<i class="far fa-calendar-alt mr-1.5 text-amber-400"></i>' + d
+      // 날짜와 시간 분리 (예: "Jun 22, 2026 1:30 PM" → date="Jun 22, 2026", time="1:30 PM")
+      var parts = d.match(/^(.+?\d{4})\s+(.+)$/)
+      var datePart = parts ? parts[1].trim() : d
+      var timePart = parts ? parts[2].trim() : ''
+      var safeDate = datePart.replace(/\x27/g, '\\x27')
+      return '<button type="button"'
+        + ' onclick="selectDateOption(this,\\x27' + safeDate + '\\x27,\\x27' + (timePart||'') + '\\x27)"'
+        + ' class="dp-date-btn w-full text-left px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-700 hover:border-amber-400 hover:bg-amber-50 transition">'
+        + '<div class="flex items-center justify-between">'
+        + '<span><i class="far fa-calendar-alt mr-1.5 text-amber-400"></i><span class="font-semibold">' + datePart + '</span></span>'
+        + (timePart ? '<span class="text-gray-400 text-[11px] bg-stone-100 px-2 py-0.5 rounded-lg"><i class="far fa-clock mr-0.5"></i>' + timePart + '</span>' : '')
+        + '</div>'
         + '</button>'
     }).join('')
   }
@@ -624,31 +713,114 @@ function approveWithDate(id, preferredDatesRaw) {
   document.getElementById('datePickModal').classList.add('open')
 }
 
-function selectDateOption(btnEl, dateStr) {
-  var all = document.querySelectorAll('#datePickList button')
+function approveWithDate(id, preferredDatesRaw) {
+  _openDatePickModal(id, preferredDatesRaw, 'approve', null)
+}
+
+function rescheduleApp(id, preferredDatesRaw, currentScheduled) {
+  _openDatePickModal(id, preferredDatesRaw, 'reschedule', currentScheduled)
+}
+
+function selectDateOption(btnEl, datePart, timePart) {
+  // 버튼 선택 표시
+  var all = document.querySelectorAll('.dp-date-btn')
   for (var i = 0; i < all.length; i++) {
-    all[i].className = all[i].className
-      .replace(/border-green-500|bg-green-50|text-green-700/g, '')
-      .replace(/  +/g, ' ').trim()
-    all[i].classList.add('border-gray-200', 'text-gray-700')
+    all[i].classList.remove('border-green-500', 'bg-green-50', 'border-amber-500', 'bg-amber-50')
+    all[i].classList.add('border-gray-200')
   }
-  btnEl.classList.remove('border-gray-200', 'text-gray-700')
-  btnEl.classList.add('border-green-500', 'bg-green-50', 'text-green-700')
-  _datePickSelected = dateStr
+  btnEl.classList.remove('border-gray-200')
+  btnEl.classList.add(_datePickMode === 'reschedule' ? 'border-amber-500' : 'border-green-500',
+                      _datePickMode === 'reschedule' ? 'bg-amber-50' : 'bg-green-50')
+  _datePickSelected = datePart
   document.getElementById('datePickCustom').value = ''
+
+  // 시간 행 표시 — 기존 시간 힌트 채워주기
+  document.getElementById('datePickTimeRow').classList.remove('hidden')
+  var hr = document.getElementById('datePickHour')
+  var mn = document.getElementById('datePickMin')
+
+  if (timePart) {
+    // "1:30 PM" → 13:30 파싱
+    var tm = timePart.match(/(\d+):(\d+)\s*(AM|PM)?/i)
+    if (tm) {
+      var h = parseInt(tm[1])
+      var m = tm[2]
+      var ampm = (tm[3] || '').toUpperCase()
+      if (ampm === 'PM' && h < 12) h += 12
+      if (ampm === 'AM' && h === 12) h = 0
+      var hStr = String(h).padStart(2, '0')
+      // 가장 가까운 옵션 선택
+      for (var oi = 0; oi < hr.options.length; oi++) {
+        if (hr.options[oi].value === hStr) { hr.value = hStr; break }
+      }
+      // 분 15단위 반올림
+      var mNum = parseInt(m)
+      var mRound = String(Math.round(mNum / 15) * 15).padStart(2, '0')
+      if (mRound === '60') mRound = '45'
+      for (var oj = 0; oj < mn.options.length; oj++) {
+        if (mn.options[oj].value === mRound) { mn.value = mRound; break }
+      }
+    }
+  }
+  updateDatePickPreview()
+}
+
+function onDatePickCustomInput() {
+  // 직접 입력 시 버튼 선택 해제
+  if (document.getElementById('datePickCustom').value.trim()) {
+    var all = document.querySelectorAll('.dp-date-btn')
+    for (var i = 0; i < all.length; i++) {
+      all[i].classList.remove('border-green-500','bg-green-50','border-amber-500','bg-amber-50')
+      all[i].classList.add('border-gray-200')
+    }
+    _datePickSelected = null
+    document.getElementById('datePickTimeRow').classList.add('hidden')
+    document.getElementById('datePickPreview').classList.add('hidden')
+  }
+}
+
+function updateDatePickPreview() {
+  if (!_datePickSelected) return
+  var h = document.getElementById('datePickHour').value
+  var m = document.getElementById('datePickMin').value
+  var prev = document.getElementById('datePickPreview')
+  if (h && m) {
+    var hNum = parseInt(h)
+    var ampm = hNum >= 12 ? 'PM' : 'AM'
+    var h12  = hNum > 12 ? hNum - 12 : (hNum === 0 ? 12 : hNum)
+    prev.textContent = '✅ ' + _datePickSelected + ' ' + h12 + ':' + m + ' ' + ampm
+    prev.classList.remove('hidden')
+  } else {
+    prev.classList.add('hidden')
+  }
+}
+
+function _buildScheduledString() {
+  var custom = document.getElementById('datePickCustom').value.trim()
+  if (custom) return custom
+  if (!_datePickSelected) return null
+  var h = document.getElementById('datePickHour').value
+  var m = document.getElementById('datePickMin').value
+  if (!h || !m) return _datePickSelected   // 시간 없이 날짜만
+  var hNum = parseInt(h)
+  var ampm = hNum >= 12 ? 'PM' : 'AM'
+  var h12  = hNum > 12 ? hNum - 12 : (hNum === 0 ? 12 : hNum)
+  return _datePickSelected + ' ' + h12 + ':' + m + ' ' + ampm
 }
 
 async function confirmDateApprove() {
   if (!_datePickAppId) return
-  var scheduled = _datePickSelected || document.getElementById('datePickCustom').value.trim()
+  var scheduled = _buildScheduledString()
   if (!scheduled) { alert('날짜를 선택하거나 직접 입력해주세요.'); return }
   var btn = document.getElementById('datePickConfirm')
   btn.disabled = true
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>처리 중…'
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>처리 중\u2026'
   try {
+    var payload = _datePickMode === 'reschedule'
+      ? { scheduled_date: scheduled }
+      : { status: 'approved', scheduled_date: scheduled }
     await fetch('/api/admin/applications/' + _datePickAppId, {
-      method: 'PATCH', headers: H,
-      body: JSON.stringify({ status: 'approved', scheduled_date: scheduled })
+      method: 'PATCH', headers: H, body: JSON.stringify(payload)
     })
     document.getElementById('datePickModal').classList.remove('open')
     _datePickAppId = null; _datePickSelected = null
@@ -656,7 +828,8 @@ async function confirmDateApprove() {
     setTimeout(function(){ showTab('cal'); loadCalData() }, 400)
   } finally {
     btn.disabled = false
-    btn.innerHTML = '<i class="fas fa-check mr-1"></i>이 날짜로 승인'
+    btn.innerHTML = '<i class="fas fa-check mr-1"></i><span id="datePickConfirmLabel">'
+      + (_datePickMode === 'reschedule' ? '일정 수정 완료' : '이 날짜로 승인') + '</span>'
   }
 }
 
@@ -788,8 +961,9 @@ function openAppDetail(a) {
         <span class="badge badge-\${a.status} mr-2">\${{ pending:'⏳ Pending', approved:'✅ Approved', rejected:'❌ Rejected' }[a.status]}</span>
         <span class="text-[10px] text-gray-400">\${new Date(a.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 flex-wrap">
         \${a.status !== 'approved' ? \`<button onclick="approveWithDate(\${a.id},\${JSON.stringify(a.preferred_dates||'')});document.getElementById('appModal').classList.remove('open')" class="bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-green-700 flex items-center gap-1"><i class="fas fa-check"></i>Approve</button>\` : ''}
+        \${a.status === 'approved' ? \`<button onclick="rescheduleApp(\${a.id},\${JSON.stringify(a.preferred_dates||'')},\${JSON.stringify(a.scheduled_date||'')});document.getElementById('appModal').classList.remove('open')" class="bg-amber-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-amber-600 flex items-center gap-1"><i class="fas fa-calendar-pen"></i>일정 수정</button>\` : ''}
         \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');document.getElementById('appModal').classList.remove('open')" class="bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-red-600 flex items-center gap-1"><i class="fas fa-times"></i>Reject</button>\` : ''}
       </div>
     </div>\`
@@ -1369,9 +1543,11 @@ function selectDay(dateStr) {
       + (instaUrl ? '<a href="' + instaUrl + '" target="_blank" class="text-[11px] text-pink-500 hover:underline flex items-center gap-0.5"><i class="fab fa-instagram text-[10px]"></i> @' + a.instagram + '</a>' : '')
       + '<button data-appid="' + a.id + '" data-datestr="' + dateStr + '" onclick="var b=this;copyCalMsg(b.dataset.appid,b.dataset.datestr,b)" class="ml-auto text-[11px] px-2.5 py-1 rounded-lg btn-gold flex items-center gap-1"><i class="fas fa-copy text-[10px]"></i>\uc5c5\uccb4 \uc804\ub2ec \ubcf5\uc0ac</button>'
       + '</div>'
-      + (a.status !== 'approved' ? '<div class="px-4 pb-3 border-t border-stone-50 pt-2.5 flex gap-2">'
-        + '<button onclick="approveWithDate(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ')" class="flex-1 text-xs bg-green-600 text-white rounded-xl py-1.5 font-semibold hover:bg-green-700 flex items-center justify-center gap-1"><i class="fas fa-check"></i>\ub0a0\uc9dc \uc120\ud0dd \ud6c4 \uc2b9\uc778</button>'
-        + '</div>' : '')
+      + '<div class="px-4 pb-3 border-t border-stone-50 pt-2.5 flex gap-2">'
+      + (isScheduled
+          ? '<button onclick="rescheduleApp(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ',' + JSON.stringify(a.scheduled_date||'') + ')" class="flex-1 text-xs bg-amber-500 text-white rounded-xl py-1.5 font-semibold hover:bg-amber-600 flex items-center justify-center gap-1"><i class="fas fa-calendar-pen"></i>\uc77c\uc815 \uc218\uc815</button>'
+          : '<button onclick="approveWithDate(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ')" class="flex-1 text-xs bg-green-600 text-white rounded-xl py-1.5 font-semibold hover:bg-green-700 flex items-center justify-center gap-1"><i class="fas fa-check"></i>\ub0a0\uc9dc \uc120\ud0dd \ud6c4 \uc2b9\uc778</button>')
+      + '</div>'
       + '</div>'
   }).join('')
 }
