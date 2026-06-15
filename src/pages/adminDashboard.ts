@@ -593,8 +593,8 @@ async function loadApps() {
       const dateHtml = dates.map(function(d){
         var safeD = d.replace(/\x27/g, '\\x27').replace(/"/g, '&quot;')
         var onclick = a.status === 'approved'
-          ? 'rescheduleApp(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ',' + JSON.stringify(a.scheduled_date||'') + ')'
-          : 'approveWithDate(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ')'
+          ? 'rescheduleApp(' + a.id + ',' + JSON.stringify(a.preferred_dates||'').replace(/"/g,'&quot;') + ',' + JSON.stringify(a.scheduled_date||'').replace(/"/g,'&quot;') + ')'
+          : 'approveWithDate(' + a.id + ',' + JSON.stringify(a.preferred_dates||'').replace(/"/g,'&quot;') + ')'
         return '<button type="button" onclick="' + onclick + '" title="클릭하여 날짜 선택 모달 열기" style="display:inline-flex;align-items:center;gap:3px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:500;margin:1px;cursor:pointer;transition:background 0.15s;" ><i class="far fa-calendar-check" style="font-size:9px;opacity:0.7;"></i>' + d + '</button>'
       }).join('')
       const statusKo = a.status === 'approved' ? '✅ 승인' : a.status === 'rejected' ? '❌ 거절' : '⏳ 대기'
@@ -649,8 +649,8 @@ async function loadApps() {
             <button onclick='openAppDetail(\${JSON.stringify(a).replace(/"/g,"&quot;")})' class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-amber-50 text-gray-500 hover:text-amber-600 flex items-center justify-center text-xs transition" title="상세">
               <i class="fas fa-eye"></i>
             </button>
-            \${a.status !== 'approved' ? \`<button onclick="approveWithDate(\${a.id},\${JSON.stringify(a.preferred_dates||'')})" class="w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center text-xs transition" title="날짜 선택 후 승인"><i class="fas fa-check"></i></button>\` : ''}
-            \${a.status === 'approved' ? \`<button onclick="rescheduleApp(\${a.id},\${JSON.stringify(a.preferred_dates||'')},\${JSON.stringify(a.scheduled_date||'')})" class="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-600 flex items-center justify-center text-xs transition" title="일정 수정"><i class="fas fa-calendar-pen"></i></button>\` : ''}
+            \${a.status !== 'approved' ? \`<button onclick="approveWithDate(\${a.id},\${JSON.stringify(a.preferred_dates||'').replace(/\"/g,'&quot;')})" class="w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center text-xs transition" title="날짜 선택 후 승인"><i class="fas fa-check"></i></button>\` : ''}
+            \${a.status === 'approved' ? \`<button onclick="rescheduleApp(\${a.id},\${JSON.stringify(a.preferred_dates||'').replace(/\"/g,'&quot;')},\${JSON.stringify(a.scheduled_date||'').replace(/\"/g,'&quot;')})" class="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-600 flex items-center justify-center text-xs transition" title="일정 수정"><i class="fas fa-calendar-pen"></i></button>\` : ''}
             \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center text-xs transition" title="거절"><i class="fas fa-times"></i></button>\` : ''}
           </div>
         </td>
@@ -931,8 +931,8 @@ function openAppDetail(a) {
   // 상세 모달 내 날짜 버튼: 클릭 → 모달 닫고 날짜선택 모달 오픈
   const dateHtml = dates.map(d => {
     const onclickFn = a.status === 'approved'
-      ? \`rescheduleApp(\${a.id},\${JSON.stringify(a.preferred_dates||'')},\${JSON.stringify(a.scheduled_date||'')});document.getElementById('appModal').classList.remove('open')\`
-      : \`approveWithDate(\${a.id},\${JSON.stringify(a.preferred_dates||'')});document.getElementById('appModal').classList.remove('open')\`
+      ? \`rescheduleApp(\${a.id},\${JSON.stringify(a.preferred_dates||'').replace(/\"/g,'&quot;')},\${JSON.stringify(a.scheduled_date||'').replace(/\"/g,'&quot;')});document.getElementById('appModal').classList.remove('open')\`
+      : \`approveWithDate(\${a.id},\${JSON.stringify(a.preferred_dates||'').replace(/\"/g,'&quot;')});document.getElementById('appModal').classList.remove('open')\`
     return \`<button type="button" onclick="\${onclickFn.replace(/"/g,'&quot;')}"
       class="w-full flex items-center gap-2 py-2 px-2 rounded-xl border border-transparent hover:border-amber-300 hover:bg-amber-50 transition text-left group">
       <i class="far fa-calendar-alt text-amber-400 text-xs w-4 flex-shrink-0 group-hover:text-amber-600"></i>
@@ -1015,8 +1015,8 @@ function openAppDetail(a) {
         <span class="text-[10px] text-gray-400">\${new Date(a.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
       </div>
       <div class="flex gap-2 flex-wrap">
-        \${a.status !== 'approved' ? \`<button onclick="approveWithDate(\${a.id},\${JSON.stringify(a.preferred_dates||'')});document.getElementById('appModal').classList.remove('open')" class="bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-green-700 flex items-center gap-1"><i class="fas fa-check"></i>Approve</button>\` : ''}
-        \${a.status === 'approved' ? \`<button onclick="rescheduleApp(\${a.id},\${JSON.stringify(a.preferred_dates||'')},\${JSON.stringify(a.scheduled_date||'')});document.getElementById('appModal').classList.remove('open')" class="bg-amber-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-amber-600 flex items-center gap-1"><i class="fas fa-calendar-pen"></i>일정 수정</button>\` : ''}
+        \${a.status !== 'approved' ? \`<button onclick="approveWithDate(\${a.id},\${JSON.stringify(a.preferred_dates||'').replace(/"/g,'&quot;')});document.getElementById('appModal').classList.remove('open')" class="bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-green-700 flex items-center gap-1"><i class="fas fa-check"></i>Approve</button>\` : ''}
+        \${a.status === 'approved' ? \`<button onclick="rescheduleApp(\${a.id},\${JSON.stringify(a.preferred_dates||'').replace(/"/g,'&quot;')},\${JSON.stringify(a.scheduled_date||'').replace(/"/g,'&quot;')});document.getElementById('appModal').classList.remove('open')" class="bg-amber-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-amber-600 flex items-center gap-1"><i class="fas fa-calendar-pen"></i>일정 수정</button>\` : ''}
         \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');document.getElementById('appModal').classList.remove('open')" class="bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-red-600 flex items-center gap-1"><i class="fas fa-times"></i>Reject</button>\` : ''}
       </div>
     </div>\`
@@ -1610,8 +1610,8 @@ function selectDay(dateStr) {
       + '</div>'
       + '<div class="px-4 pb-3 border-t border-stone-50 pt-2.5 flex gap-2">'
       + (isScheduled
-          ? '<button onclick="rescheduleApp(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ',' + JSON.stringify(a.scheduled_date||'') + ')" class="flex-1 text-xs bg-amber-500 text-white rounded-xl py-2 font-semibold hover:bg-amber-600 flex items-center justify-center gap-1.5 shadow-sm"><i class="fas fa-calendar-pen"></i>\uc2dc\uac04/\ub0a0\uc9dc \uc218\uc815</button>'
-          : '<button onclick="approveWithDatePreselect(' + a.id + ',' + JSON.stringify(a.preferred_dates||'') + ',' + JSON.stringify(timeInfo||'') + ')" class="flex-1 text-xs bg-green-600 text-white rounded-xl py-2 font-semibold hover:bg-green-700 flex items-center justify-center gap-1.5 shadow-sm"><i class="fas fa-check"></i>\uc774 \ub0a0\uc9dc\ub85c \uc2b9\uc778</button>')
+          ? '<button onclick="rescheduleApp(' + a.id + ',' + JSON.stringify(a.preferred_dates||'').replace(/"/g,'&quot;') + ',' + JSON.stringify(a.scheduled_date||'').replace(/"/g,'&quot;') + ')" class="flex-1 text-xs bg-amber-500 text-white rounded-xl py-2 font-semibold hover:bg-amber-600 flex items-center justify-center gap-1.5 shadow-sm"><i class="fas fa-calendar-pen"></i>\uc2dc\uac04/\ub0a0\uc9dc \uc218\uc815</button>'
+          : '<button onclick="approveWithDatePreselect(' + a.id + ',' + JSON.stringify(a.preferred_dates||'').replace(/"/g,'&quot;') + ',' + JSON.stringify(timeInfo||'').replace(/"/g,'&quot;') + ')" class="flex-1 text-xs bg-green-600 text-white rounded-xl py-2 font-semibold hover:bg-green-700 flex items-center justify-center gap-1.5 shadow-sm"><i class="fas fa-check"></i>\uc774 \ub0a0\uc9dc\ub85c \uc2b9\uc778</button>')
       + '</div>'
       + '</div>'
   }).join('')
