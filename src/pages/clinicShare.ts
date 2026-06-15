@@ -76,7 +76,8 @@ export function clinicShareHTML(): string {
 </main>
 
 <script>
-var campaignId = location.pathname.split('/clinic/')[1]?.split('?')[0]
+var _pathParts = location.pathname.split('/clinic/')
+var campaignId = _pathParts.length > 1 ? _pathParts[1].split('?')[0].split('/')[0] : null
 var token = new URLSearchParams(location.search).get('token')
 var allApps = []
 var currentFilter = 'all'
@@ -155,7 +156,7 @@ function renderList() {
       '</div>' +
       (dates.length ? '<div class="mt-3"><p class="text-xs text-gray-400 mb-1.5"><i class="fas fa-calendar mr-1"></i>Available dates</p><div class="flex flex-wrap gap-1.5">' + datesHtml + '</div></div>' : '') +
       (a.message ? '<div class="mt-3 bg-stone-50 rounded-xl px-3 py-2"><p class="text-xs text-gray-500">' + a.message + '</p></div>' : '') +
-      '<p class="text-xs text-gray-300 mt-3">' + (a.created_at || '').split('T')[0] + '</p>' +
+      '<p class="text-xs text-gray-300 mt-3">' + (a.created_at || '').replace('T',' ').split(' ')[0] + '</p>' +
     '</div>'
   }).join('')
 }
