@@ -140,7 +140,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '    @media(hover:hover){.camp-card:hover{box-shadow:0 10px 32px rgba(0,0,0,.12);border-color:#d4c4a0;transform:translateY(-2px);}}\n' +
 '\n' +
 '    /* 모바일 이미지: 왼쪽 고정 정사각형 */\n' +
-'    .camp-img-wrap{position:relative;flex-shrink:0;width:108px;height:108px;background:#ede9e4;overflow:hidden;}\n' +
+'    .camp-img-wrap{position:relative;flex-shrink:0;width:90px;height:90px;background:#ede9e4;overflow:hidden;}\n' +
 '    .camp-img-wrap img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block;}\n' +
 '    .img-overlay{position:absolute;inset:0;pointer-events:none;}\n' +
 '    .img-top{position:absolute;top:6px;left:6px;}\n' +
@@ -155,15 +155,14 @@ export function mainPageHTML(campaigns: any[]): string {
 '    .card-venue-row{display:flex;align-items:center;gap:5px;overflow:hidden;}\n' +
 '    .venue-name{font-size:11px;font-weight:700;color:#8a6d3b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n' +
 '    .venue-addr{font-size:10px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
-'    .card-benefits-mini{font-size:10.5px;color:#78350f;background:#fffbef;border:1px solid #f0d88a;border-radius:7px;padding:3px 7px;\n' +
-'      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
+'    .card-benefits-mini{font-size:10px;color:#78350f;background:#fffbef;border:1px solid #f0d88a;border-radius:7px;padding:4px 8px;white-space:normal;line-height:1.5;}\n' +
 '    .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px;border-top:1px solid #f5f2ee;gap:6px;}\n' +
 '\n' +
 '    /* ══ PC: 세로형 + 완전 고정 높이 ══ */\n' +
 '    @media(min-width:1024px){\n' +
-'      .camp-card{flex-direction:column;border-radius:20px;height:400px;}\n' +
+'      .camp-card{flex-direction:column;border-radius:18px;}\n' +
 '      /* 이미지 고정 190px */\n' +
-'      .camp-img-wrap{width:100%;height:190px;flex-shrink:0;}\n' +
+'      .camp-img-wrap{width:100%;height:160px;flex-shrink:0;}\n' +
 '      .img-overlay{background:linear-gradient(to bottom,rgba(0,0,0,0) 30%,rgba(0,0,0,.7) 100%);}\n' +
 '      .img-top{top:10px;left:10px;}\n' +
 '      /* 타이틀은 이미지 위 오버레이 */\n' +
@@ -178,8 +177,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '      .venue-addr{font-size:11px;}\n' +
 '      /* 혜택 2줄 clamp */\n' +
 '      .card-benefits-mini{font-size:11px;padding:5px 9px;\n' +
-'        white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}\n' +
-'      .card-footer{padding-top:8px;border-top:1px solid #f0ede8;}\n' +
+'        white-space:normal;line-height:1.5;}\n' +
 '    }\n' +
 '\n' +
 '    /* pill */\n' +
@@ -553,7 +551,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '      ? \'<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);border-radius:99px;padding:2px 8px;font-size:11px;font-weight:600;color:#fff"><span style="color:#f59e0b">&#9733;</span>\' + c.place_rating + \'</span>\'\n' +
 '      : "";\n' +
 '\n' +
-'    var dlBadge = \'<span style="font-size:12px;color:#22c55e;font-weight:500">Open now</span>\';\n' +
+'    var dlBadge = \'<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0;"></span>Open now</span>\';\n' +
 '    if (c.deadline && c.status === "active") {\n' +
 '      var dlDate = new Date(c.deadline);\n' +
 '      var today  = new Date(); today.setHours(0,0,0,0);\n' +
@@ -566,7 +564,8 @@ export function mainPageHTML(campaigns: any[]): string {
 '    var shortAddr = "";\n' +
 '    if (c.place_address) {\n' +
 '      var parts = c.place_address.split(",");\n' +
-'      shortAddr = parts.slice(-3).join(",").trim();\n' +
+'      var engParts = parts.filter(function(p){ return !/[\uAC00-\uD7A3\u3131-\u314E]/.test(p); });\n' +
+'      shortAddr = (engParts.length ? engParts : parts).slice(-3).join(",").trim();\n' +
 '    }\n' +
 '\n' +
 '    var mapBtnHtml = mapsUrl\n' +
@@ -582,7 +581,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '      : "";\n' +
 '\n' +
 '    var benefitMini = c.benefits\n' +
-'      ? \'<div class="card-benefits-mini">&#x1F381; \' + c.benefits.split("\\xb7")[0].trim() + (c.benefits.indexOf("\\xb7") >= 0 ? " \\xb7\\xb7\\xb7" : "") + \'</div>\'\n' +
+'      ? \'<div class="card-benefits-mini">&#x1F381; \' + c.benefits + \'</div>\';\n' +
 '      : "";\n' +
 '\n' +
 '    var applyBtn = \'<button onclick="event.stopPropagation();openApply(\' + c.id + \')" \' + (full ? "disabled" : "") +\n' +
@@ -605,7 +604,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '        \'<div class="card-venue-row"><span class="venue-name">\' + displayName + \'</span>\' + ratingStr + \'</div>\' +\n' +
 '        (shortAddr ? \'<div class="venue-addr">&#x1F4CD; \' + shortAddr + \'</div>\' : "") +\n' +
 '        benefitMini +\n' +
-'        \'<div class="card-footer">\' + dlBadge + applyBtn + \'</div>\' +\n' +
+'        \'<div class="card-footer">\' + dlBadge + \'</div>\' +\n' +
 '      \'</div>\' +\n' +
 '    \'</article>\';\n' +
 '  }).join("");\n' +
