@@ -2,13 +2,18 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { createClient } from '@libsql/client/http'
+import { createHash, randomUUID } from 'crypto'
 
-// ── Turso DB ──────────────────────────────────
+// ── Turso DB (싱글톤 — 요청마다 새 연결 방지) ──
+let _db: ReturnType<typeof createClient> | null = null
 function getDB() {
-  const url   = process.env.TURSO_DATABASE_URL!
-  const token = process.env.TURSO_AUTH_TOKEN || ''
-  if (!url) throw new Error('TURSO_DATABASE_URL is not set')
-  return createClient({ url, authToken: token })
+  if (!_db) {
+    const url   = process.env.TURSO_DATABASE_URL!
+    const token = process.env.TURSO_AUTH_TOKEN || ''
+    if (!url) throw new Error('TURSO_DATABASE_URL is not set')
+    _db = createClient({ url, authToken: token })
+  }
+  return _db
 }
 
 // BigInt 값을 Number/String으로 안전하게 변환
@@ -172,7 +177,11 @@ app.post('/api/apply', async (c) => {
     if (!campaign_id || !applicant_name || !nationality || !email || !instagram || !preferred_dates)
       return c.json({ success: false, error: 'Please fill in all required fields.' }, 400)
 
-    const existing = await dbFirst('SELECT id FROM applications WHERE campaign_id = ? AND instagram = ?', [campaign_id, instagram])
+    // 중복 신청: instagram 또는 email 기준으로 체크
+    const existing = await dbFirst(
+      'SELECT id FROM applications WHERE campaign_id = ? AND (instagram = ? OR email = ?)',
+      [campaign_id, instagram, email]
+    )
     if (existing) return c.json({ success: false, error: 'You have already applied to this campaign.' }, 400)
 
     const campaign: any = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [campaign_id])
@@ -184,7 +193,16 @@ app.post('/api/apply', async (c) => {
       `INSERT INTO applications (campaign_id,campaign_title,place_name,applicant_name,nationality,email,phone,instagram,preferred_dates,message) VALUES (?,?,?,?,?,?,?,?,?,?)`,
       [campaign_id, campaign.title, campaign.place_name, applicant_name, nationality, email, phone||'', instagram, preferred_dates, message||'']
     )
-    await dbRun('UPDATE campaigns SET current_participants = current_participants + 1 WHERE id = ?', [campaign_id])
+    // Race condition 방지: current_participants < max_participants 조건부 UPDATE
+    const updResult = await dbRun(
+      'UPDATE campaigns SET current_participants = current_participants + 1 WHERE id = ? AND current_participants < max_participants',
+      [campaign_id]
+    )
+    if (updResult.rowsAffected === 0) {
+      // 방금 삽입한 신청 롤백 (선착순 초과)
+      await dbRun('DELETE FROM applications WHERE campaign_id = ? AND instagram = ? AND email = ?', [campaign_id, instagram, email])
+      return c.json({ success: false, error: 'This campaign is now full.' }, 400)
+    }
 
     // Telegram 알림
     const tok = process.env.TELEGRAM_BOT_TOKEN, cid = process.env.TELEGRAM_CHAT_ID
@@ -211,19 +229,53 @@ app.get('/api/clinic/:id', async (c) => {
 })
 
 // ── Admin ─────────────────────────────────────
-function isAdmin(c: any) { const t = c.req.header('X-Admin-Token'); return t?.startsWith('admin-token-') }
+// SHA-256 헬퍼: 비밀번호 해싱에 사용
+function sha256(text: string) {
+  return createHash('sha256').update(text).digest('hex')
+}
+
+// isAdmin: X-Admin-Token 헤더를 DB에 저장된 토큰과 대조
+async function isAdmin(c: any): Promise<boolean> {
+  const t = c.req.header('X-Admin-Token')
+  if (!t?.startsWith('admin-token-')) return false
+  // DB의 current_token 컬럼과 정확히 일치해야 통과
+  const admin = await dbFirst('SELECT id FROM admins WHERE current_token = ?', [t])
+  return !!admin
+}
 
 app.post('/api/admin/login', async (c) => {
   try {
     const { username, password } = await c.req.json()
-    const admin = await dbFirst('SELECT * FROM admins WHERE username = ? AND password_hash = ?', [username, password])
+    // password_hash 컬럼은 SHA-256 해시값으로 저장된다고 가정
+    // (기존 DB가 평문이라면 sha256() 제거하고 점진적으로 마이그레이션)
+    const hashed = sha256(password)
+    // 해시 비교 우선, 실패 시 평문 비교(마이그레이션 기간 호환성 유지)
+    let admin = await dbFirst(
+      'SELECT * FROM admins WHERE username = ? AND password_hash = ?',
+      [username, hashed]
+    )
+    if (!admin) {
+      // 평문으로도 한 번 더 시도 (기존 레코드 마이그레이션 기간)
+      admin = await dbFirst(
+        'SELECT * FROM admins WHERE username = ? AND password_hash = ?',
+        [username, password]
+      )
+      if (admin) {
+        // 평문으로 로그인 성공 → DB를 해시값으로 업그레이드
+        await dbRun('UPDATE admins SET password_hash = ? WHERE id = ?', [hashed, admin.id])
+      }
+    }
     if (!admin) return c.json({ success: false, error: 'Invalid username or password.' }, 401)
-    return c.json({ success: true, token: 'admin-token-' + Date.now() })
+    // 토큰: 예측 불가한 UUID 사용
+    const token = 'admin-token-' + randomUUID()
+    // 토큰을 DB에 저장 (isAdmin에서 DB 대조)
+    await dbRun('UPDATE admins SET current_token = ? WHERE id = ?', [token, admin.id])
+    return c.json({ success: true, token })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
 app.get('/api/admin/applications', async (c) => {
-  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
+  if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
     const cid = c.req.query('campaign_id'), st = c.req.query('status')
     let q = 'SELECT * FROM applications', params: any[] = [], conds: string[] = []
@@ -236,7 +288,7 @@ app.get('/api/admin/applications', async (c) => {
 })
 
 app.patch('/api/admin/applications/:id', async (c) => {
-  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
+  if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
     const body = await c.req.json()
     const { status, scheduled_date } = body
@@ -254,13 +306,13 @@ app.patch('/api/admin/applications/:id', async (c) => {
 })
 
 app.get('/api/admin/campaigns', async (c) => {
-  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
+  if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try { return c.json({ success: true, data: await dbAll('SELECT * FROM campaigns ORDER BY created_at DESC') }) }
   catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
 app.post('/api/admin/campaigns', async (c) => {
-  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
+  if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
     const b = await c.req.json()
     // 한글 업체명/타이틀 → 무조건 영문으로 저장
@@ -276,7 +328,7 @@ app.post('/api/admin/campaigns', async (c) => {
 })
 
 app.patch('/api/admin/campaigns/:id', async (c) => {
-  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
+  if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
     const b = await c.req.json()
     const fields: string[] = []
@@ -297,7 +349,7 @@ app.patch('/api/admin/campaigns/:id', async (c) => {
 })
 
 app.delete('/api/admin/campaigns/:id', async (c) => {
-  if (!isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
+  if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try { await dbRun('UPDATE campaigns SET status = ? WHERE id = ?', ['inactive', c.req.param('id')]); return c.json({ success: true }) }
   catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })

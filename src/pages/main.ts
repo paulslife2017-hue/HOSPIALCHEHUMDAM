@@ -4,7 +4,11 @@
 // Desktop (≥1024px): fixed sidebar + 2-col card grid + centered modal
 // ════════════════════════════════════════════
 export function mainPageHTML(campaigns: any[]): string {
-  const ssrData = JSON.stringify(campaigns).replace(/<\/script>/gi, '<\\/script>')
+  const ssrData = JSON.stringify(campaigns)
+    .replace(/<\/script>/gi, '<\\/script>')
+    .replace(/<!--/g, '<\\!--')
+    .replace(/\\u2028/g, '\\u2028')
+    .replace(/\\u2029/g, '\\u2029')
 
   return '<!DOCTYPE html>\n' +
 '<html lang="en">\n' +
@@ -312,6 +316,9 @@ export function mainPageHTML(campaigns: any[]): string {
 '    <button onclick="filterBy(\'all\')"         data-f="all"         class="f-btn active">All</button>\n' +
 '    <button onclick="filterBy(\'Clinic\')"      data-f="Clinic"      class="f-btn">&#x1F3E5; Clinic</button>\n' +
 '    <button onclick="filterBy(\'Beauty Shop\')" data-f="Beauty Shop" class="f-btn">&#x1F484; Beauty</button>\n' +
+'    <button onclick="filterBy(\'Dental Clinic\')" data-f="Dental Clinic" class="f-btn">&#x1F9B7; Dental</button>\n' +
+'    <button onclick="filterBy(\'Korean Medicine\')" data-f="Korean Medicine" class="f-btn">&#x1F331; Korean Med</button>\n' +
+'    <button onclick="filterBy(\'Hair &amp; Scalp Spa\')" data-f="Hair & Scalp Spa" class="f-btn">&#x1F9D6; Hair</button>\n' +
 '    <div id="campaignCount" class="count-badge"></div>\n' +
 '  </div>\n' +
 '</div>\n' +
@@ -335,6 +342,18 @@ export function mainPageHTML(campaigns: any[]): string {
 '      <button onclick="filterBy(\'Beauty Shop\')" data-f="Beauty Shop" class="sb-btn">\n' +
 '        <span class="sb-dot"></span>&#x1F484; Beauty Shops\n' +
 '        <span class="sb-count" id="sbCountBeauty">0</span>\n' +
+'      </button>\n' +
+'      <button onclick="filterBy(\'Dental Clinic\')" data-f="Dental Clinic" class="sb-btn">\n' +
+'        <span class="sb-dot"></span>&#x1F9B7; Dental\n' +
+'        <span class="sb-count">0</span>\n' +
+'      </button>\n' +
+'      <button onclick="filterBy(\'Korean Medicine\')" data-f="Korean Medicine" class="sb-btn">\n' +
+'        <span class="sb-dot"></span>&#x1F331; Korean Med\n' +
+'        <span class="sb-count">0</span>\n' +
+'      </button>\n' +
+'      <button onclick="filterBy(\'Hair & Scalp Spa\')" data-f="Hair & Scalp Spa" class="sb-btn">\n' +
+'        <span class="sb-dot"></span>&#x1F9D6; Hair & Scalp\n' +
+'        <span class="sb-count">0</span>\n' +
 '      </button>\n' +
 '    </div>\n' +
 
@@ -522,11 +541,12 @@ export function mainPageHTML(campaigns: any[]): string {
 '\n' +
 '  // PC 사이드바 카운트 업데이트\n' +
 '  var aEl = document.getElementById("sbCountAll");\n' +
-'  var cEl = document.getElementById("sbCountClinic");\n' +
-'  var bEl = document.getElementById("sbCountBeauty");\n' +
 '  if (aEl) aEl.textContent = list.length;\n' +
-'  if (cEl) cEl.textContent = list.filter(function(c){ return c.category === "Clinic"; }).length;\n' +
-'  if (bEl) bEl.textContent = list.filter(function(c){ return c.category === "Beauty Shop"; }).length;\n' +
+'  document.querySelectorAll("[data-f]").forEach(function(btn) {\n' +
+'    var f = btn.dataset.f;\n' +
+'    var sp = btn.querySelector(".sb-count");\n' +
+'    if (sp && f && f !== "all") sp.textContent = allCampaigns.filter(function(c){ return c.category === f; }).length;\n' +
+'  });\n' +
 '\n' +
 '  var grid  = document.getElementById("grid");\n' +
 '  var empty = document.getElementById("empty");\n' +
