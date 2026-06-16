@@ -3,7 +3,7 @@
 // ════════════════════════════════════════════
 export function adminDashboardHTML(): string {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -995,7 +995,7 @@ function openAppDetail(a) {
     <div class="flex items-center justify-between pt-1">
       <div>
         <span class="badge badge-\${a.status} mr-2">\${{ pending:'⏳ 대기', approved:'✅ 전달 완료', rejected:'❌ 거절' }[a.status]}</span>
-        <span class="text-[10px] text-gray-400">\${new Date(a.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
+        <span class="text-[10px] text-gray-400">\${new Date(a.created_at).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}</span>
       </div>
       <div class="flex gap-2 flex-wrap">
         \${a.status !== 'approved' ? '<button class="dp-action-btn bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-blue-700 flex items-center gap-1" data-act="approve" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="" data-close-modal="appModal"><i class="fas fa-paper-plane"></i>전달 완료</button>' : ''}

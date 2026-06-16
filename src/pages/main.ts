@@ -11,7 +11,7 @@ export function mainPageHTML(campaigns: any[]): string {
     .replace(/\\u2029/g, '\\u2029')
 
   return '<!DOCTYPE html>\n' +
-'<html lang="en">\n' +
+'<html lang="ko">\n' +
 '<head>\n' +
 '  <meta charset="UTF-8">\n' +
 '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
@@ -657,9 +657,9 @@ export function mainPageHTML(campaigns: any[]): string {
 '    var dlDate = new Date(c.deadline);\n' +
 '    var today  = new Date(); today.setHours(0,0,0,0);\n' +
 '    var daysLeft = Math.ceil((dlDate - today) / 86400000);\n' +
-'    var dlFmt = dlDate.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});\n' +
-'    if (daysLeft === 0)      dlText = "Last day! (" + dlFmt + ")";\n' +
-'    else if (daysLeft > 0 && daysLeft <= 7) dlText = "&#x26A1; " + daysLeft + " days left \u2014 " + dlFmt;\n' +
+'    var dlFmt = dlDate.toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});\n' +
+'    if (daysLeft === 0)      dlText = "마감 당일! (" + dlFmt + ")";\n' +
+'    else if (daysLeft > 0 && daysLeft <= 7) dlText = "\u26a1 " + daysLeft + "일 남음 — " + dlFmt;\n' +
 '    else if (daysLeft > 7)  dlText = dlFmt;\n' +
 '  }\n' +
 '\n' +
@@ -761,12 +761,12 @@ export function mainPageHTML(campaigns: any[]): string {
 'function renderDateChips() {\n' +
 '  var el = document.getElementById("dateChips");\n' +
 '  el.innerHTML = selectedDates.map(function(s) {\n' +
-'    var fmt = new Date(s.date + "T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});\n' +
+'    var fmt = new Date(s.date + "T00:00:00").toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});\n' +
 '    var ek  = s.key.replace(/\'/g, "\\\'");\n' +
 '    return \'<span class="chip">&#x23F0; \' + fmt + " " + fmtTime(s.time) + \'<button type="button" onclick="removeDate(\\\'\' + ek + \'\\\')">&times;</button></span>\';\n' +
 '  }).join("");\n' +
 '  document.getElementById("fDates").value = selectedDates.map(function(x){\n' +
-'    return new Date(x.date+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) + " " + fmtTime(x.time);\n' +
+'    return new Date(x.date+"T00:00:00").toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"}) + " " + fmtTime(x.time);\n' +
 '  }).join(" / ");\n' +
 '}\n' +
 '\n' +
