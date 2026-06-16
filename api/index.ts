@@ -210,7 +210,7 @@ app.post('/api/apply', async (c) => {
       const msg = `🔔 <b>New Application!</b>\n\n📋 <b>Campaign:</b> ${campaign.title}\n👤 <b>Name:</b> ${applicant_name}\n🌏 <b>Nationality:</b> ${nationality}\n📧 <b>Email:</b> ${email}\n📱 <b>WhatsApp:</b> ${phone||'—'}\n📸 <b>Instagram:</b> @${instagram}\n📅 <b>Dates:</b>\n${preferred_dates}${message?'\n💬 '+message:''}`
       fetch(`https://api.telegram.org/bot${tok}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ chat_id: cid, text: msg, parse_mode:'HTML' }) }).catch(()=>{})
     }
-    return c.json({ success: true, message: 'Application submitted! We will contact you soon.' })
+    return c.json({ success: true, message: 'Thank you for your application! The clinic will review your submission and contact you directly if they decide to proceed.' })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
@@ -223,7 +223,7 @@ app.get('/api/clinic/:id', async (c) => {
     const campaign: any = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [id])
     if (!campaign) return c.json({ success: false, error: 'Campaign not found.' }, 404)
     if (campaign.share_token !== token) return c.json({ success: false, error: 'Invalid token.' }, 401)
-    const apps = await dbAll('SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,scheduled_date,message,status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC', [id])
+    const apps = await dbAll('SELECT a.id,a.applicant_name,a.nationality,a.email,a.phone,a.instagram,a.preferred_dates,a.scheduled_date,a.message,a.status,a.created_at,a.campaign_title,a.place_name,c.place_name_ko FROM applications a LEFT JOIN campaigns c ON a.campaign_id = c.id WHERE a.campaign_id = ? ORDER BY a.created_at DESC', [id])
     return c.json({ success: true, campaign: sanitize(campaign), applications: sanitize(apps) })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
