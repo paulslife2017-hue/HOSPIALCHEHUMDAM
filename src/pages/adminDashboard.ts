@@ -1593,7 +1593,7 @@ function selectDay(dateStr) {
       + '<div class="px-4 pb-3 border-t border-stone-50 pt-2.5 flex gap-2">'
       + (a.status !== 'approved'
           ? '<button class="dp-action-btn flex-1 text-xs bg-blue-600 text-white rounded-xl py-2 font-semibold hover:bg-blue-700 flex items-center justify-center gap-1.5 shadow-sm"' + ' data-act="approve" data-aid="' + a.id + '" data-pd="" data-sd="">' + '<i class="fas fa-paper-plane"></i>전달 완료</button>'
-          : '<span class="flex-1 text-xs text-center text-blue-600 font-semibold">✅ 전달 완료</span>'
+          : '<span class="flex-1 text-xs text-center text-blue-600 font-semibold">✅ 전달 완료</span>')
       + '</div>'
       + '</div>'
   }).join('')
