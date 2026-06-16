@@ -278,11 +278,11 @@ app.get('/api/admin/applications', async (c) => {
   if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
     const cid = c.req.query('campaign_id'), st = c.req.query('status')
-    let q = 'SELECT * FROM applications', params: any[] = [], conds: string[] = []
-    if (cid) { conds.push('campaign_id = ?'); params.push(cid) }
-    if (st)  { conds.push('status = ?');      params.push(st) }
+    let q = 'SELECT a.*, c.place_name_ko FROM applications a LEFT JOIN campaigns c ON a.campaign_id = c.id', params: any[] = [], conds: string[] = []
+    if (cid) { conds.push('a.campaign_id = ?'); params.push(cid) }
+    if (st)  { conds.push('a.status = ?');      params.push(st) }
     if (conds.length) q += ' WHERE ' + conds.join(' AND ')
-    q += ' ORDER BY created_at DESC'
+    q += ' ORDER BY a.created_at DESC'
     return c.json({ success: true, data: await dbAll(q, params) })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })

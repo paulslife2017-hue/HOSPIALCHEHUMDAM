@@ -553,12 +553,12 @@ async function loadStats() {
       const sel = document.getElementById('fCamp')
       const cur = sel.value
       sel.innerHTML = '<option value="">All campaigns</option>' +
-        camps.data.map(function(c){ return '<option value="' + c.id + '"' + (cur == c.id ? ' selected' : '') + '>' + c.place_name + '</option>' }).join('')
+        camps.data.map(function(c){ return '<option value="' + c.id + '"' + (cur == c.id ? ' selected' : '') + '>' + (c.place_name_ko || c.place_name) + '</option>' }).join('')
       const calSel = document.getElementById('calCamp')
       if (calSel) {
         const calCur = calSel.value
         calSel.innerHTML = '<option value="">All clinics</option>' +
-          camps.data.map(function(c){ return '<option value="' + c.id + '"' + (calCur == c.id ? ' selected' : '') + '>' + c.place_name + '</option>' }).join('')
+          camps.data.map(function(c){ return '<option value="' + c.id + '"' + (calCur == c.id ? ' selected' : '') + '>' + (c.place_name_ko || c.place_name) + '</option>' }).join('')
       }
     }
   } catch(e) { console.error('loadStats error', e) }
@@ -604,7 +604,7 @@ async function loadApps() {
       const msg = '━━━━━━━━━━━━━━━━━━━━━━━━\\n'
         + '📋 방문 신청자 정보\\n'
         + '━━━━━━━━━━━━━━━━━━━━━━━━\\n'
-        + '\\n🏥 업체: ' + (a.place_name || a.campaign_title || '') + '\\n'
+        + '\\n🏥 업체: ' + (a.place_name_ko || a.place_name || a.campaign_title || '') + '\\n'
         + '\\n👤 이름: ' + a.applicant_name + '\\n'
         + '🌏 국적: ' + (a.nationality || '—') + '\\n'
         + '\\n📧 이메일: ' + a.email + '\\n'
@@ -623,7 +623,7 @@ async function loadApps() {
           \${a.phone ? \`<p class="text-xs text-gray-400"><i class="fab fa-whatsapp text-green-500 mr-0.5"></i>\${a.phone}</p>\` : ''}
         </td>
         <td class="px-4 py-3.5 hidden sm:table-cell">
-          <p class="text-xs font-semibold text-gray-800">\${a.place_name || ''}</p>
+          <p class="text-xs font-semibold text-gray-800">\${a.place_name_ko || a.place_name || ''}</p>
           <p class="text-xs text-gray-400">\${a.campaign_title || ''}</p>
         </td>
         <td class="px-4 py-3.5">
@@ -996,7 +996,7 @@ function openAppDetail(a) {
     <div class="bg-stone-50 rounded-xl p-3 mb-3">
       <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Campaign</p>
       <p class="font-semibold text-sm text-gray-900">\${a.campaign_title || '—'}</p>
-      <p class="text-xs text-gray-500">\${a.place_name || ''}</p>
+      <p class="text-xs text-gray-500">\${a.place_name_ko || a.place_name || ''}</p>
     </div>
 
     \${a.message ? \`<div class="bg-stone-50 rounded-xl p-3 mb-3"><p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Message</p><p class="text-sm text-gray-700">\${a.message}</p></div>\` : ''}
@@ -1046,7 +1046,7 @@ async function loadCamps() {
             <p class="font-semibold text-xs text-gray-900 truncate flex-1">\${c.title}</p>
             <span class="text-xs ml-2 \${c.status === 'active' ? 'text-green-500' : 'text-gray-300'}">\${c.status === 'active' ? '●' : '○'}</span>
           </div>
-          <p class="text-xs text-gray-400 mb-2">\${c.place_name} · \${c.category}</p>
+          <p class="text-xs text-gray-400 mb-2">\${c.place_name_ko || c.place_name} · \${c.category}</p>
           <div class="flex justify-between text-xs text-gray-400 mb-1">
             <span>\${c.current_participants}/\${c.max_participants} applicants</span>
             <span>\${pct}%</span>
@@ -1580,7 +1580,7 @@ function selectDay(dateStr) {
       + (isScheduled
           ? '\\n\ud83d\udcc5 \ud655\uc815 \ub0a0\uc9dc: ' + timeInfo + '\\n'
           : '\\n\ud83d\uddd3 \uc2e0\uccad \ub0a0\uc9dc: ' + dateStr + (timeInfo ? ' ' + timeInfo : '') + '\\n')
-      + '\ud83c\udfe5 \uc5c5\uccb4: ' + (a.place_name || a.campaign_title || '') + '\\n'
+      + '\ud83c\udfe5 \uc5c5\uccb4: ' + (a.place_name_ko || a.place_name || a.campaign_title || '') + '\\n'
       + '\\n\ud83d\udc64 \uc774\ub984: ' + a.applicant_name + '\\n'
       + '\ud83c\udf0f \uad6d\uc801: ' + (a.nationality || '\u2014') + '\\n'
       + '\\n\ud83d\udce7 \uc774\uba54\uc77c: ' + a.email + '\\n'
@@ -1600,7 +1600,7 @@ function selectDay(dateStr) {
       + '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full" style="' + badgeCls + '">' + statusKo + '</span>'
       + '</div>'
       + '<p class="text-xs text-gray-500 mt-0.5">' + (a.nationality || '') + ' \u00b7 ' + (timeInfo ? timeInfo : '\uc2dc\uac04 \ubbf8\uc815') + '</p>'
-      + '<p class="text-xs text-gray-400">' + (a.place_name || a.campaign_title || '') + '</p>'
+      + '<p class="text-xs text-gray-400">' + (a.place_name_ko || a.place_name || a.campaign_title || '') + '</p>'
       + '</div></div>'
       + '<div class="px-4 pb-3 flex flex-wrap gap-1.5 items-center border-t border-stone-50 pt-2.5">'
       + '<a href="mailto:' + a.email + '" class="text-[11px] text-blue-600 hover:underline flex items-center gap-0.5"><i class="fas fa-envelope text-[10px]"></i> ' + a.email + '</a>'
@@ -1683,7 +1683,7 @@ function openEditCamp(c) {
   document.getElementById('ec_req_en').textContent = ''
   document.getElementById('ec_req_translated').classList.add('hidden')
   // 서브타이틀 & 피드백 초기화
-  document.getElementById('editCampSubtitle').textContent = (c.place_name || '') + (c.title ? ' · ' + c.title : '')
+  document.getElementById('editCampSubtitle').textContent = (c.place_name_ko || c.place_name || '') + (c.title ? ' · ' + c.title : '')
   document.getElementById('editCampErr').classList.add('hidden')
   document.getElementById('editCampOk').classList.add('hidden')
   document.getElementById('editCampModal').classList.add('open')
