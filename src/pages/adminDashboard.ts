@@ -594,10 +594,9 @@ async function loadApps() {
         var safeD  = d.replace(/&/g,'&amp;').replace(/"/g,'&quot;')
         var safePD = (a.preferred_dates||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
         var safeSd = (a.scheduled_date||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
-        var act = a.status === 'approved' ? 'reschedule' : 'approve'
-        return '<button type="button" class="dp-action-btn"' + ' data-act="' + act + '" data-aid="' + a.id + '"' + ' data-pd="' + safePD + '" data-sd="' + safeSd + '"' + ' title="클릭하여 날짜 선택 모달 열기"' + ' style="display:inline-flex;align-items:center;gap:3px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:500;margin:1px;cursor:pointer;transition:background 0.15s;">' + '<i class="far fa-calendar-check" style="font-size:9px;opacity:0.7;"></i>' + safeD + '</button>'
+        return '<span style="display:inline-flex;align-items:center;gap:3px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:500;margin:1px;">' + '<i class="far fa-calendar-check" style="font-size:9px;opacity:0.7;"></i>' + safeD + '</span>'
       }).join('')
-      const statusKo = a.status === 'approved' ? '✅ 승인' : a.status === 'rejected' ? '❌ 거절' : '⏳ 대기'
+      const statusKo = a.status === 'approved' ? '✅ 전달 완료' : a.status === 'rejected' ? '❌ 거절' : '⏳ 대기'
       var scheduledLine = a.scheduled_date
         ? '\\n📅 확정 날짜: ' + a.scheduled_date + '\\n'
         : (dates.length ? '\\n🗓 희망 날짜:\\n' + dates.map(function(d,i){ return '  ' + (i+1) + '. ' + d }).join('\\n') + '\\n' : '')
@@ -637,7 +636,7 @@ async function loadApps() {
             : \`<div class="flex flex-wrap gap-0.5">\${dateHtml || '<span class="text-xs text-gray-300">—</span>'}</div>\`}
         </td>
         <td class="px-4 py-3.5">
-          <span class="badge badge-\${a.status}">\${{ pending:'⏳ 대기', approved:'✅ 승인', rejected:'❌ 거절' }[a.status] || a.status}</span>
+          <span class="badge badge-\${a.status}">\${{ pending:'⏳ 대기', approved:'✅ 전달 완료', rejected:'❌ 거절' }[a.status] || a.status}</span>
         </td>
         <td class="px-3 py-3.5 text-center">
           <button id="copybtn-\${a.id}" onclick="copyAppMsg(\${a.id},this)" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold btn-gold whitespace-nowrap" title="업체 전달용 메시지 복사">
@@ -649,8 +648,7 @@ async function loadApps() {
             <button onclick='openAppDetail(\${JSON.stringify(a).replace(/"/g,"&quot;")})' class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-amber-50 text-gray-500 hover:text-amber-600 flex items-center justify-center text-xs transition" title="상세">
               <i class="fas fa-eye"></i>
             </button>
-            \${a.status !== 'approved' ? '<button class="dp-action-btn w-7 h-7 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 flex items-center justify-center text-xs transition" data-act="approve" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="" title="\xeb\x82\xa0\xec\xa7\x9c \xec\x84\xa0\xed\x83\x9d \xed\x9b\x84 \xec\x8a\xb9\xec\xb9\xb8"><i class="fas fa-check"></i></button>' : ''}
-            \${a.status === 'approved' ? '<button class="dp-action-btn w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-600 flex items-center justify-center text-xs transition" data-act="reschedule" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="' + (a.scheduled_date||'').replace(/"/g,'&quot;') + '" title="\xec\x9d\xbc\xec\xa0\x95 \xec\x88\x98\xec\xa0\x95"><i class="fas fa-calendar-pen"></i></button>' : ''}
+            \${a.status !== 'approved' ? '<button class="dp-action-btn w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition" data-act="approve" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="" title="전달 완료"><i class="fas fa-paper-plane"></i></button>' : ''}
             \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center text-xs transition" title="거절"><i class="fas fa-times"></i></button>\` : ''}
           </div>
         </td>
@@ -730,25 +728,13 @@ function _openDatePickModal(id, preferredDatesRaw, mode, currentScheduled) {
   document.getElementById('datePickModal').classList.add('open')
 }
 
-function approveWithDate(id, preferredDatesRaw) {
-  _openDatePickModal(id, preferredDatesRaw, 'approve', null)
+async function approveWithDate(id, preferredDatesRaw) {
+  await setStatus(id, 'approved')
 }
 
-// 달력 카드에서 호출 — 해당 날짜+시간을 자동 선택된 상태로 모달 오픈
-function approveWithDatePreselect(id, preferredDatesRaw, preTimeInfo) {
-  _openDatePickModal(id, preferredDatesRaw, 'approve', null)
-  // 모달이 열린 직후 preTimeInfo와 일치하는 버튼 자동 클릭
-  if (preTimeInfo) {
-    setTimeout(function() {
-      var btns = document.querySelectorAll('.dp-date-btn')
-      for (var i = 0; i < btns.length; i++) {
-        if (btns[i].textContent.indexOf(preTimeInfo.replace(/[ ]+/g,' ').trim().substring(0,8)) >= 0) {
-          btns[i].click()
-          break
-        }
-      }
-    }, 80)
-  }
+// 달력 카드에서 호출 — 즉시 전달 완료 처리
+async function approveWithDatePreselect(id, preferredDatesRaw, preTimeInfo) {
+  await setStatus(id, 'approved')
 }
 
 function rescheduleApp(id, preferredDatesRaw, currentScheduled) {
@@ -930,14 +916,11 @@ function openAppDetail(a) {
   const dates    = (a.preferred_dates || '').split('/').map(d => d.trim()).filter(Boolean)
   // 상세 모달 내 날짜 버튼: 클릭 → 모달 닫고 날짜선택 모달 오픈
   const dateHtml = dates.map(d => {
-    var act2 = a.status === 'approved' ? 'reschedule' : 'approve'
     var safePD2 = (a.preferred_dates||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
-    var safeSd2 = (a.scheduled_date||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
-    return '<button type="button" class="dp-action-btn dp-detail-btn w-full flex items-center gap-2 py-2 px-2 rounded-xl border border-transparent hover:border-amber-300 hover:bg-amber-50 transition text-left group"' + ' data-act="' + act2 + '" data-aid="' + a.id + '" data-pd="' + safePD2 + '" data-sd="' + safeSd2 + '" data-close-modal="appModal">'
-      + '<i class="far fa-calendar-alt text-amber-400 text-xs w-4 flex-shrink-0 group-hover:text-amber-600"></i>'
-      + '<span class="text-sm text-gray-700 flex-1 group-hover:text-amber-800 font-medium">' + d + '</span>'
-      + '<span class="text-[10px] text-amber-500 opacity-0 group-hover:opacity-100 transition font-semibold flex-shrink-0">' + (act2 === 'reschedule' ? '일정 수정 →' : '승칸 →') + '</span>'
-      + '</button>'
+    return '<div class="w-full flex items-center gap-2 py-2 px-2 rounded-xl border border-transparent text-left">'
+      + '<i class="far fa-calendar-alt text-amber-400 text-xs w-4 flex-shrink-0"></i>'
+      + '<span class="text-sm text-gray-700 flex-1 font-medium">' + d + '</span>'
+      + '</div>'
 
   }).join('')
   const clinicMsg = buildClinicMsg(a)
@@ -1011,12 +994,11 @@ function openAppDetail(a) {
 
     <div class="flex items-center justify-between pt-1">
       <div>
-        <span class="badge badge-\${a.status} mr-2">\${{ pending:'⏳ Pending', approved:'✅ Approved', rejected:'❌ Rejected' }[a.status]}</span>
+        <span class="badge badge-\${a.status} mr-2">\${{ pending:'⏳ 대기', approved:'✅ 전달 완료', rejected:'❌ 거절' }[a.status]}</span>
         <span class="text-[10px] text-gray-400">\${new Date(a.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
       </div>
       <div class="flex gap-2 flex-wrap">
-        \${a.status !== 'approved' ? '<button class="dp-action-btn bg-green-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-green-700 flex items-center gap-1" data-act="approve" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="" data-close-modal="appModal"><i class="fas fa-check"></i>Approve</button>' : ''}
-        \${a.status === 'approved' ? '<button class="dp-action-btn bg-amber-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-amber-600 flex items-center gap-1" data-act="reschedule" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="' + (a.scheduled_date||'').replace(/"/g,'&quot;') + '" data-close-modal="appModal"><i class="fas fa-calendar-pen"></i>\xec\x9d\xbc\xec\xa0\x95 \xec\x88\x98\xec\xa0\x95</button>' : ''}
+        \${a.status !== 'approved' ? '<button class="dp-action-btn bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-blue-700 flex items-center gap-1" data-act="approve" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="" data-close-modal="appModal"><i class="fas fa-paper-plane"></i>전달 완료</button>' : ''}
         \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');document.getElementById('appModal').classList.remove('open')" class="bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-red-600 flex items-center gap-1"><i class="fas fa-times"></i>Reject</button>\` : ''}
       </div>
     </div>\`
@@ -1569,10 +1551,10 @@ function selectDay(dateStr) {
     var a           = e.app
     var isScheduled = e.isScheduled
     var timeInfo    = isScheduled ? (a.scheduled_date || '') : (e.timeStr || '')
-    var badgeCls    = isScheduled ? 'background:#dcfce7;color:#166534'
+    var badgeCls    = a.status === 'approved' ? 'background:#dbeafe;color:#1e40af'
                       : a.status === 'rejected' ? 'background:#fee2e2;color:#991b1b'
                       : 'background:#fef9c3;color:#854d0e'
-    var statusKo    = isScheduled ? '\u2705 \ud655\uc815' : a.status === 'rejected' ? '\u274c \uac70\uc808' : '\u23f3 \ub300\uae30'
+    var statusKo    = a.status === 'approved' ? '\u2705 \uc804\ub2ec \uc644\ub8cc' : a.status === 'rejected' ? '\u274c \uac70\uc808' : '\u23f3 \ub300\uae30'
     var instaUrl    = a.instagram ? 'https://instagram.com/' + a.instagram : ''
     var msgLines    = '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n'
       + '\ud83d\udccb \ubc29\ubb38 \uc2e0\uccad\uc790 \uc815\ubcf4\\n'
@@ -1609,9 +1591,9 @@ function selectDay(dateStr) {
       + '<button data-appid="' + a.id + '" data-datestr="' + dateStr + '" onclick="var b=this;copyCalMsg(b.dataset.appid,b.dataset.datestr,b)" class="ml-auto text-[11px] px-2.5 py-1 rounded-lg btn-gold flex items-center gap-1"><i class="fas fa-copy text-[10px]"></i>\uc5c5\uccb4 \uc804\ub2ec \ubcf5\uc0ac</button>'
       + '</div>'
       + '<div class="px-4 pb-3 border-t border-stone-50 pt-2.5 flex gap-2">'
-      + (isScheduled
-          ? '<button class="dp-action-btn flex-1 text-xs bg-amber-500 text-white rounded-xl py-2 font-semibold hover:bg-amber-600 flex items-center justify-center gap-1.5 shadow-sm"' + ' data-act="reschedule" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="' + (a.scheduled_date||'').replace(/"/g,'&quot;') + '">' + '<i class="fas fa-calendar-pen"></i>시간/날짜 수정</button>'
-          : '<button class="dp-action-btn flex-1 text-xs bg-green-600 text-white rounded-xl py-2 font-semibold hover:bg-green-700 flex items-center justify-center gap-1.5 shadow-sm"' + ' data-act="approve" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="" data-preselect="' + (timeInfo||'').replace(/"/g,'&quot;') + '">' + '<i class="fas fa-check"></i>이 날짜로 승인</button>'
+      + (a.status !== 'approved'
+          ? '<button class="dp-action-btn flex-1 text-xs bg-blue-600 text-white rounded-xl py-2 font-semibold hover:bg-blue-700 flex items-center justify-center gap-1.5 shadow-sm"' + ' data-act="approve" data-aid="' + a.id + '" data-pd="" data-sd="">' + '<i class="fas fa-paper-plane"></i>전달 완료</button>'
+          : '<span class="flex-1 text-xs text-center text-blue-600 font-semibold">✅ 전달 완료</span>'
       + '</div>'
       + '</div>'
   }).join('')
@@ -1858,8 +1840,6 @@ document.addEventListener('click', function(e) {
   if (act === 'approve') {
     if (pre) approveWithDatePreselect(aid, pd, pre)
     else     approveWithDate(aid, pd)
-  } else if (act === 'reschedule') {
-    rescheduleApp(aid, pd, sd)
   }
 })
 <\/script>
