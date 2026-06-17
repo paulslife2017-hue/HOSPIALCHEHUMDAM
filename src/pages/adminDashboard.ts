@@ -668,8 +668,7 @@ async function loadApps() {
             <button onclick='openAppDetail(\${JSON.stringify(a).replace(/"/g,"&quot;")})' class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-amber-50 text-gray-500 hover:text-amber-600 flex items-center justify-center text-xs transition" title="상세">
               <i class="fas fa-eye"></i>
             </button>
-            \${a.status !== 'approved' ? '<button class="dp-action-btn w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition" data-act="approve" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="" title="승인"><i class="fas fa-check"></i></button>' : ''}
-            \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center text-xs transition" title="거절"><i class="fas fa-times"></i></button>\` : ''}
+
           </div>
         </td>
       </tr>\`
@@ -1018,8 +1017,7 @@ function openAppDetail(a) {
         <span class="text-[10px] text-gray-400">\${new Date(a.created_at).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}</span>
       </div>
       <div class="flex gap-2 flex-wrap">
-        \${a.status !== 'approved' ? '<button class="dp-action-btn bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-blue-700 flex items-center gap-1" data-act="approve" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="" data-close-modal="appModal"><i class="fas fa-check"></i>승인</button>' : ''}
-        \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');document.getElementById('appModal').classList.remove('open')" class="bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-red-600 flex items-center gap-1"><i class="fas fa-times"></i>Reject</button>\` : ''}
+        <span class="text-[11px] text-gray-400 flex items-center gap-1"><i class="fas fa-store mr-1"></i>업체에서 승인·거절 처리</span>
       </div>
     </div>\`
   document.getElementById('appModal').classList.add('open')
@@ -1055,9 +1053,10 @@ async function loadCamps() {
       const pct        = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
       const thumb      = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
       const campApps   = _campAppsCache[c.id] || []
-      const pendingCnt = campApps.filter(function(a){ return a.status === 'pending'  }).length
-      const approvedCnt= campApps.filter(function(a){ return a.status === 'approved' }).length
-      const totalCnt   = campApps.length
+      const pendingCnt  = campApps.filter(function(a){ return a.status === 'pending'  }).length
+      const approvedCnt = campApps.filter(function(a){ return a.status === 'approved' }).length
+      const rejectedCnt = campApps.filter(function(a){ return a.status === 'rejected' }).length
+      const totalCnt    = campApps.length
       const pwPlain    = c.clinic_password_plain || ''
       const hasPw      = !!c.clinic_password
 
@@ -1079,6 +1078,7 @@ async function loadCamps() {
               <span class="text-xs font-semibold text-amber-600"><i class="fas fa-users mr-1"></i>\${totalCnt}명 신청</span>
               \${pendingCnt  ? \`<span class="text-xs text-amber-500">⏳ 대기 \${pendingCnt}</span>\` : ''}
               \${approvedCnt ? \`<span class="text-xs text-blue-500">✅ 승인 \${approvedCnt}</span>\` : ''}
+              \${rejectedCnt ? \`<span class="text-xs text-red-400">❌ 거절 \${rejectedCnt}</span>\` : ''}
             </div>
             <!-- 비밀번호 배지 -->
             <div class="flex items-center gap-1.5 mt-1.5">
@@ -1211,9 +1211,8 @@ function renderCampAppRows(campId, filter) {
         \${dates.length ? \`<div class="flex flex-wrap gap-1 mt-1.5">\${datesHtml}</div>\` : ''}
         \${a.message ? \`<p class="text-xs text-gray-500 mt-1 bg-white rounded-lg px-2 py-1 border border-stone-100">\${a.message}</p>\` : ''}
       </div>
-      <div class="flex flex-col gap-1 flex-shrink-0">
-        \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved');_campAppsCache[\${campId}].find(function(x){return x.id===\${a.id}}).status='approved';renderCampApps(\${campId})" class="text-[10px] bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700 font-semibold whitespace-nowrap">✅ 승인</button>\` : ''}
-        \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');_campAppsCache[\${campId}].find(function(x){return x.id===\${a.id}}).status='rejected';renderCampApps(\${campId})" class="text-[10px] bg-red-50 text-red-500 px-2 py-1 rounded-lg hover:bg-red-100 font-semibold whitespace-nowrap">❌ 거절</button>\` : ''}
+      <div class="flex-shrink-0">
+        <span class="text-[10px] font-bold px-2 py-1 rounded-lg" style="\${{ pending:'background:#fef9c3;color:#854d0e', approved:'background:#dcfce7;color:#166534', rejected:'background:#fee2e2;color:#991b1b' }[a.status]}">\${{ pending:'⏳ 대기', approved:'✅ 승인', rejected:'❌ 거절' }[a.status]||a.status}</span>
       </div>
     </div>\`
   }).join('')
