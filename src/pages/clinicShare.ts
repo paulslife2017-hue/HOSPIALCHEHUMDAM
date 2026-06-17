@@ -24,9 +24,6 @@ export function clinicShareHTML(): string {
     .settle-done{display:inline-flex;align-items:center;gap:3px;background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;padding:3px 9px;font-size:11px;font-weight:600;}
     .settle-pending{display:inline-flex;align-items:center;gap:3px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:8px;padding:3px 9px;font-size:11px;font-weight:600;}
     .row-approved{background:#f8fdf9;}
-    .row-unsettled{background:#fff9f5;}
-    .progress-bar{height:8px;border-radius:99px;background:#e5e7eb;overflow:hidden;}
-    .progress-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#3b82f6,#6366f1);transition:width .6s ease;}
     .btn-approve{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer;transition:all .15s;}
     .btn-approve:hover{background:#166534;color:#fff;}
     .btn-reject{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer;transition:all .15s;}
@@ -99,15 +96,12 @@ export function clinicShareHTML(): string {
           <p id="clinicTitle" class="text-xs text-gray-400 mt-0.5 truncate"></p>
         </div>
       </div>
-      <!-- 정산 현황 요약 -->
-      <div id="settleSummary" class="mt-4 pt-4 border-t border-stone-100"></div>
     </div>
 
     <!-- 필터 탭 -->
     <div class="flex gap-2 flex-wrap">
       <button onclick="filterApps('all')"       id="f-all"       class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-gray-900 text-white">전체</button>
       <button onclick="filterApps('approved')"  id="f-approved"  class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200">✅ 승인</button>
-      <button onclick="filterApps('unsettled')" id="f-unsettled" class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200">🔴 정산미완료</button>
       <button onclick="filterApps('pending')"   id="f-pending"   class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200">⏳ 대기</button>
       <button onclick="filterApps('rejected')"  id="f-rejected"  class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200">❌ 거절</button>
     </div>
@@ -161,7 +155,6 @@ async function tryLoad(password) {
     document.getElementById('loadingEl').classList.add('hidden')
     document.getElementById('loginEl').classList.add('hidden')
     document.getElementById('mainEl').classList.remove('hidden')
-    renderSummary()
     renderList()
     return true
   } catch(e) { return false }
@@ -201,38 +194,6 @@ function showError(msg) {
   document.getElementById('errorEl').classList.remove('hidden')
 }
 
-// ── 정산 요약 렌더 ───────────────────────────
-function renderSummary() {
-  var total    = allApps.length
-  var approved = allApps.filter(function(a){ return a.status === 'approved' })
-  var settled  = approved.filter(function(a){ return !!a.settlement })
-  var unsettled = approved.filter(function(a){ return !a.settlement })
-  var pct = approved.length ? Math.round(settled.length / approved.length * 100) : 0
-  var el = document.getElementById('settleSummary')
-
-  el.innerHTML =
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">' +
-      _statBox('전체 신청', total, '#6b7280', 'fas fa-users') +
-      _statBox('승인 완료', approved.length, '#166534', 'fas fa-check-circle') +
-      _statBox('정산 미완료', unsettled.length, unsettled.length ? '#c2410c' : '#9ca3af', unsettled.length ? 'fas fa-exclamation-circle' : 'fas fa-circle-check') +
-    '</div>' +
-    '<div>' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">' +
-        '<span style="font-size:11px;color:#6b7280;font-weight:500;">정산 진행률</span>' +
-        '<span style="font-size:12px;font-weight:700;color:' + (pct===100?'#1e40af':'#374151') + ';">' + settled.length + ' / ' + approved.length + '명 (' + pct + '%)</span>' +
-      '</div>' +
-      '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%;"></div></div>' +
-    '</div>'
-}
-
-function _statBox(label, value, color, icon) {
-  return '<div style="background:#f9fafb;border:1px solid #f0ece4;border-radius:12px;padding:10px 12px;text-align:center;">' +
-    '<i class="' + icon + '" style="color:' + color + ';font-size:14px;margin-bottom:4px;display:block;"></i>' +
-    '<div style="font-size:18px;font-weight:800;color:' + color + ';line-height:1.1;">' + value + '</div>' +
-    '<div style="font-size:10px;color:#9ca3af;margin-top:2px;">' + label + '</div>' +
-  '</div>'
-}
-
 // ── 필터 ────────────────────────────────────
 function filterApps(f) {
   currentFilter = f
@@ -248,8 +209,6 @@ function renderList() {
   var list
   if (currentFilter === 'all') {
     list = allApps
-  } else if (currentFilter === 'unsettled') {
-    list = allApps.filter(function(a){ return a.status === 'approved' && !a.settlement })
   } else {
     list = allApps.filter(function(a){ return a.status === currentFilter })
   }
@@ -376,7 +335,6 @@ document.addEventListener('click', async function(e) {
     if (data.success) {
       var idx = allApps.findIndex(function(a) { return String(a.id) === String(appId) })
       if (idx !== -1) allApps[idx].status = action
-      renderSummary()
       renderList()
     } else {
       btn.innerHTML = origHtml; btn.disabled = false
