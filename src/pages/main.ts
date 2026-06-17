@@ -482,6 +482,17 @@ export function mainPageHTML(campaigns: any[]): string {
 '        <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Message <span style="color:#d1d5db;font-weight:400;text-transform:none">(optional)</span></label>\n' +
 '        <textarea id="fMsg" rows="2" placeholder="Any notes for the clinic\u2026" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;font-size:14px;resize:none;font-family:inherit"></textarea>\n' +
 '      </div>\n' +
+'      <div style="background:#fafaf9;border:1.5px solid #e5e7eb;border-radius:14px;padding:16px 18px">\n' +
+'        <p style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">\ud83d\udccb Consent Agreement <span style="color:#f87171">*</span></p>\n' +
+'        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px">\n' +
+'          <input type="checkbox" id="consentPortrait" style="margin-top:2px;width:16px;height:16px;accent-color:#c9a035;flex-shrink:0;cursor:pointer">\n' +
+'          <span style="font-size:13px;color:#374151;line-height:1.6"><b>Portrait Rights</b> \u2014 I consent to photos and videos taken during my visit being used by the clinic for promotional purposes (SNS, website, marketing materials).</span>\n' +
+'        </label>\n' +
+'        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">\n' +
+'          <input type="checkbox" id="consentSecondary" style="margin-top:2px;width:16px;height:16px;accent-color:#c9a035;flex-shrink:0;cursor:pointer">\n' +
+'          <span style="font-size:13px;color:#374151;line-height:1.6"><b>Secondary Use</b> \u2014 I agree that my content (posts, reels, stories) created from this visit may be repurposed by the clinic for advertising, PR, and other commercial purposes.</span>\n' +
+'        </label>\n' +
+'      </div>\n' +
 '      <div id="applyErr" style="display:none;background:#fef2f2;color:#dc2626;font-size:13px;border-radius:12px;padding:12px 16px;border:1px solid #fecaca"></div>\n' +
 '      <div id="applyOk"  style="display:none;background:#f0fdf4;color:#16a34a;font-size:13px;border-radius:12px;padding:12px 16px;border:1px solid #bbf7d0"></div>\n' +
 '      <button type="submit" class="btn-gold" style="width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:600">Submit Application</button>\n' +
@@ -725,6 +736,8 @@ export function mainPageHTML(campaigns: any[]): string {
 '  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Submit Application"; }\n' +
 '  selectedDates = [];\n' +
 '  renderDateChips();\n' +
+'  document.getElementById("consentPortrait").checked = false;\n' +
+'  document.getElementById("consentSecondary").checked = false;\n' +
 '  document.getElementById("timeInput").value = "10:00";\n' +
 '  var todayStr = new Date().toISOString().slice(0,10);\n' +
 '  document.getElementById("dateInput").min = todayStr;\n' +
@@ -777,6 +790,10 @@ export function mainPageHTML(campaigns: any[]): string {
 '  errEl.style.display = "none"; okEl.style.display = "none";\n' +
 '  if (!selectedDates.length) {\n' +
 '    errEl.textContent = "Please add at least one available date & time.";\n' +
+'    errEl.style.display = "block"; return;\n' +
+'  }\n' +
+'  if (!document.getElementById("consentPortrait").checked || !document.getElementById("consentSecondary").checked) {\n' +
+'    errEl.textContent = "Please agree to both consent items to proceed.";\n' +
 '    errEl.style.display = "block"; return;\n' +
 '  }\n' +
 '  var body = {\n' +
