@@ -240,10 +240,10 @@ function renderList() {
       var dateChip = a.scheduled_date
         ? '<span style="display:inline-flex;align-items:center;gap:3px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:7px;padding:3px 8px;font-size:11px;font-weight:600;"><i class="fas fa-calendar-check" style="font-size:9px;"></i>' + a.scheduled_date + '</span>'
         : '<span style="display:inline-flex;align-items:center;gap:3px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:7px;padding:3px 8px;font-size:11px;font-weight:500;"><i class="far fa-calendar" style="font-size:9px;"></i>날짜 미정</span>'
-      var settleBadge = isSettled
-        ? '<span class="settle-done"><i class="fas fa-check-double" style="font-size:9px;"></i>정산완료</span>'
-        : '<span class="settle-pending"><i class="fas fa-exclamation-circle" style="font-size:9px;"></i>정산미완료</span>'
-      approvedRow = '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;">' + dateChip + settleBadge + '</div>'
+      var settleBtn = isSettled
+        ? '<button data-settle-id="' + a.id + '" data-settle-val="1" style="display:inline-flex;align-items:center;gap:4px;background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;"><i class="fas fa-check-double" style="font-size:9px;"></i>정산완료</button>'
+        : '<button data-settle-id="' + a.id + '" data-settle-val="0" style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;"><i class="fas fa-exclamation-circle" style="font-size:9px;"></i>정산미완료</button>'
+      approvedRow = '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;">' + dateChip + settleBtn + '</div>'
     }
 
     // ── 희망날짜 (미승인 상태만)
@@ -310,8 +310,42 @@ function renderList() {
   }).join('')
 }
 
-// ── 상태 변경 (이벤트 위임) ──────────────────
+// ── 이벤트 위임 (상태변경 + 정산토글) ────────
 document.addEventListener('click', async function(e) {
+  // ── 정산 토글
+  var settleBtn = e.target.closest('[data-settle-id]')
+  if (settleBtn) {
+    var appId    = settleBtn.getAttribute('data-settle-id')
+    var curVal   = settleBtn.getAttribute('data-settle-val') === '1'
+    var newVal   = !curVal
+    var pw = sessionStorage.getItem(SESSION_KEY)
+    if (!pw) { alert('세션이 만료되었습니다. 페이지를 새로고침해주세요.'); return }
+    var origHtml = settleBtn.innerHTML
+    settleBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'
+    settleBtn.disabled  = true
+    try {
+      var res = await fetch('/api/clinic/share/applications/' + appId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: _slug, password: pw, settlement: newVal })
+      })
+      var json = await res.json()
+      if (json.success) {
+        var idx = allApps.findIndex(function(a) { return String(a.id) === String(appId) })
+        if (idx !== -1) allApps[idx].settlement = newVal ? 1 : 0
+        renderList()
+      } else {
+        settleBtn.innerHTML = origHtml; settleBtn.disabled = false
+        alert(json.error || '오류가 발생했습니다.')
+      }
+    } catch(err) {
+      settleBtn.innerHTML = origHtml; settleBtn.disabled = false
+      alert('네트워크 오류가 발생했습니다.')
+    }
+    return
+  }
+
+  // ── 상태 변경 (승인/거절/대기)
   var btn = e.target.closest('[data-action]')
   if (!btn) return
   var appId  = btn.getAttribute('data-id')

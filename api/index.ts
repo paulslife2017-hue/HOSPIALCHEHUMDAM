@@ -350,9 +350,11 @@ app.patch('/api/clinic/applications/:id', async (c) => {
 app.patch('/api/clinic/share/applications/:id', async (c) => {
   try {
     const appId = c.req.param('id')
-    const { slug, password, status } = await c.req.json()
+    const { slug, password, status, settlement } = await c.req.json()
     if (!slug || !password) return c.json({ success: false, error: 'slug and password required.' }, 400)
-    if (!['approved','rejected','pending'].includes(status))
+    if (status === undefined && settlement === undefined)
+      return c.json({ success: false, error: 'status or settlement required.' }, 400)
+    if (status !== undefined && !['approved','rejected','pending'].includes(status))
       return c.json({ success: false, error: 'Invalid status.' }, 400)
 
     // slug → campaign 검색
@@ -376,7 +378,11 @@ app.patch('/api/clinic/share/applications/:id', async (c) => {
     const appRow2 = await dbFirst('SELECT id FROM applications WHERE id = ? AND campaign_id = ?', [appId, campaign.id])
     if (!appRow2) return c.json({ success: false, error: 'Application not found.' }, 404)
 
-    await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, appId])
+    if (settlement !== undefined) {
+      await dbRun('UPDATE applications SET settlement = ? WHERE id = ?', [settlement ? 1 : 0, appId])
+    } else {
+      await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, appId])
+    }
     return c.json({ success: true })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
