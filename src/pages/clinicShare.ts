@@ -215,7 +215,8 @@ function renderList() {
   if (!list.length) { el.innerHTML = ''; empty.classList.remove('hidden'); return }
   empty.classList.add('hidden')
   el.innerHTML = list.map(function(a, i) {
-    var statusBadge = a.status === 'approved'
+    var isApproved = a.status === 'approved'
+    var statusBadge = isApproved
       ? '<span class="badge badge-approved">✅ 승인</span>'
       : a.status === 'rejected'
       ? '<span class="badge badge-rejected">❌ 거절</span>'
@@ -227,6 +228,21 @@ function renderList() {
     var datesHtml = dates.map(function(d){
       return '<span class="text-xs bg-stone-50 border border-stone-200 rounded-lg px-2 py-1">' + d + '</span>'
     }).join('')
+
+    // 승인된 신청자: 확정날짜 + 정산여부 배지
+    var approvedInfo = ''
+    if (isApproved) {
+      var scheduledChip = a.scheduled_date
+        ? '<span style="display:inline-flex;align-items:center;gap:4px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;"><i class="fas fa-calendar-check" style="font-size:10px;"></i>' + a.scheduled_date + '</span>'
+        : '<span style="display:inline-flex;align-items:center;gap:4px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500;"><i class="far fa-calendar" style="font-size:10px;"></i>날짜 미정</span>'
+      var settleBadge = a.settlement
+        ? '<span style="display:inline-flex;align-items:center;gap:4px;background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;"><i class="fas fa-check-double" style="font-size:10px;"></i>정산완료</span>'
+        : '<span style="display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500;"><i class="fas fa-clock" style="font-size:10px;"></i>정산미완료</span>'
+      approvedInfo = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding:10px 12px;background:#f8fdf9;border:1px solid #dcfce7;border-radius:10px;">' +
+        scheduledChip + settleBadge +
+      '</div>'
+    }
+
     // 현재 상태에 따라 버튼 구성
     var actionBtns = ''
     if (a.status === 'pending') {
@@ -261,7 +277,8 @@ function renderList() {
         (a.email ? '<a href="mailto:' + a.email + '" class="text-xs text-blue-500 hover:underline">' + a.email + '</a>' : '') +
         (a.phone ? '<span class="text-xs text-gray-400"><i class="fab fa-whatsapp mr-1 text-green-500"></i>' + a.phone + '</span>' : '') +
       '</div>' +
-      (dates.length ? '<div class="mt-3"><p class="text-xs text-gray-400 mb-1.5"><i class="fas fa-calendar mr-1"></i>Available dates</p><div class="flex flex-wrap gap-1.5">' + datesHtml + '</div></div>' : '') +
+      approvedInfo +
+      (dates.length && !isApproved ? '<div class="mt-3"><p class="text-xs text-gray-400 mb-1.5"><i class="fas fa-calendar mr-1"></i>Available dates</p><div class="flex flex-wrap gap-1.5">' + datesHtml + '</div></div>' : '') +
       (a.message ? '<div class="mt-3 bg-stone-50 rounded-xl px-3 py-2"><p class="text-xs text-gray-500">' + a.message + '</p></div>' : '') +
       actionBtns +
       '<p class="text-xs text-gray-300 mt-3">' + (a.created_at || '').replace('T',' ').split(' ')[0] + '</p>' +

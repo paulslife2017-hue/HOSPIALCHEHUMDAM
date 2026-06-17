@@ -1148,6 +1148,8 @@ async function loadApproved() {
       var apps = groups[cid]
       var first = apps[0]
       var clinicName = first.place_name_ko || first.place_name || first.campaign_title || ('업체 ' + cid)
+      var clinicSlug = makeSlug(first.place_name_ko || first.place_name || '') || cid
+      var shareUrl   = location.origin + '/clinic/' + clinicSlug
 
       var rows = apps.map(function(a) {
         // 확정날짜 or 희망날짜 한 줄
@@ -1177,13 +1179,17 @@ async function loadApproved() {
         '</tr>'
       }).join('')
 
+      var settledCnt = apps.filter(function(a){ return !!a.settlement }).length
       return '<div class="card p-0 overflow-hidden">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#fafaf9;border-bottom:1px solid #f0ece4;">' +
-          '<div>' +
-            '<p style="font-weight:700;font-size:14px;color:#111827;margin:0;">' + clinicName + '</p>' +
-            '<p style="font-size:11px;color:#9ca3af;margin:2px 0 0;">승인 ' + apps.length + '명 · 정산완료 ' + apps.filter(function(a){ return !!a.settlement }).length + '명</p>' +
+          '<div style="min-width:0;">' +
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+              '<p style="font-weight:700;font-size:14px;color:#111827;margin:0;">' + clinicName + '</p>' +
+              '<a href="' + shareUrl + '" target="_blank" style="display:inline-flex;align-items:center;gap:3px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:600;text-decoration:none;white-space:nowrap;" title="업체 공유 링크 열기"><i class="fas fa-external-link-alt" style="font-size:8px;"></i>업체 링크</a>' +
+            '</div>' +
+            '<p style="font-size:11px;color:#9ca3af;margin:3px 0 0;">승인 ' + apps.length + '명 &nbsp;·&nbsp; 정산완료 ' + settledCnt + '명 &nbsp;·&nbsp; 미정산 ' + (apps.length - settledCnt) + '명</p>' +
           '</div>' +
-          '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:99px;padding:3px 12px;font-size:11px;font-weight:600;">✅ ' + apps.length + '명</span>' +
+          '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:99px;padding:3px 12px;font-size:11px;font-weight:600;white-space:nowrap;">✅ ' + apps.length + '명</span>' +
         '</div>' +
         '<table style="width:100%;border-collapse:collapse;">' +
           '<thead><tr style="border-bottom:1px solid #f0ece4;">' +

@@ -270,7 +270,7 @@ app.post('/api/clinic/verify', async (c) => {
       return c.json({ success: false, error: '비밀번호가 올바르지 않습니다.' }, 401)
 
     const apps = await dbAll(
-      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
+      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,status,scheduled_date,settlement,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
       [campaign.id]
     )
     return c.json({ success: true, campaign_id: campaign.id, campaign: sanitize(campaign), applications: sanitize(apps) })
@@ -321,7 +321,7 @@ app.get('/api/clinic/dashboard', async (c) => {
     const campaign = await isClinic(c)
     if (!campaign) return c.json({ success: false, error: '세션이 만료되었습니다. 다시 로그인해주세요.' }, 401)
     const apps = await dbAll(
-      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
+      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,status,scheduled_date,settlement,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
       [campaign.id]
     )
     return c.json({ success: true, campaign: sanitize(campaign), applications: sanitize(apps) })
