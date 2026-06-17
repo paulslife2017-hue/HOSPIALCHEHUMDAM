@@ -808,7 +808,7 @@ async function quickApproveDate(btn) {
   var isReschedule = (mode === 'reschedule')
   var label = isReschedule ? '이 날짜로 일정 변경' : '이 날짜로 승인'
 
-  if (!confirm(dated + '\n\n' + label + '할까요?')) return
+  if (!confirm(dated + String.fromCharCode(10) + label + '할까요?')) return
 
   var origHtml = btn.innerHTML
   btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:10px"></i>'
