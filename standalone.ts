@@ -18,10 +18,12 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { createClient } from '@libsql/client/http'
 import { createHash, randomUUID } from 'crypto'
-import { mainPageHTML }       from './src/pages/main'
-import { adminLoginHTML }     from './src/pages/adminLogin'
-import { adminDashboardHTML } from './src/pages/adminDashboard'
-import { clinicShareHTML }    from './src/pages/clinicShare'
+import { mainPageHTML }        from './src/pages/main'
+import { adminLoginHTML }      from './src/pages/adminLogin'
+import { adminDashboardHTML }  from './src/pages/adminDashboard'
+import { clinicShareHTML }     from './src/pages/clinicShare'
+import { clinicLoginHTML }     from './src/pages/clinicLogin'
+import { clinicDashboardHTML } from './src/pages/clinicDashboard'
 
 // ── Turso DB 싱글톤 ──────────────────────────
 let _db: ReturnType<typeof createClient> | null = null
@@ -123,9 +125,11 @@ app.get('/', async (c) => {
     return c.html(mainPageHTML([]))
   }
 })
-app.get('/admin',           (c) => c.html(adminLoginHTML()))
-app.get('/admin/dashboard', (c) => c.html(adminDashboardHTML()))
-app.get('/clinic/:id',      (c) => c.html(clinicShareHTML()))
+app.get('/admin',            (c) => c.html(adminLoginHTML()))
+app.get('/admin/dashboard',  (c) => c.html(adminDashboardHTML()))
+app.get('/clinic/:id',       (c) => c.html(clinicShareHTML()))
+app.get('/clinic-login',     (c) => c.html(clinicLoginHTML()))
+app.get('/clinic-dashboard', (c) => c.html(clinicDashboardHTML()))
 
 // ── Campaigns ─────────────────────────────────
 app.get('/api/campaigns', async (c) => {
@@ -219,6 +223,59 @@ app.post('/api/apply', async (c) => {
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
+// ── Clinic Login (업체 로그인) ────────────────
+app.post('/api/clinic/login', async (c) => {
+  try {
+    const { clinic_id, password } = await c.req.json()
+    if (!clinic_id || !password) return c.json({ success: false, error: 'clinic_id and password are required.' }, 400)
+
+    // 숫자면 ID로, 아니면 업체명(place_name_ko or place_name)으로 검색
+    let campaign: any = null
+    if (/^\d+$/.test(clinic_id)) {
+      campaign = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [clinic_id])
+    }
+    if (!campaign) {
+      campaign = await dbFirst(
+        "SELECT * FROM campaigns WHERE (place_name_ko = ? OR place_name = ?) AND status = 'active' LIMIT 1",
+        [clinic_id, clinic_id]
+      )
+    }
+    if (!campaign) return c.json({ success: false, error: '업체를 찾을 수 없습니다.' }, 404)
+    if (!campaign.clinic_password) return c.json({ success: false, error: '이 업체는 아직 로그인 비밀번호가 설정되지 않았습니다.' }, 403)
+
+    const hashed = sha256(password)
+    if (campaign.clinic_password !== hashed && campaign.clinic_password !== password)
+      return c.json({ success: false, error: '비밀번호가 올바르지 않습니다.' }, 401)
+
+    // 세션 토큰 발급
+    const token = 'clinic-token-' + randomUUID()
+    await dbRun('UPDATE campaigns SET clinic_session_token = ? WHERE id = ?', [token, campaign.id])
+    return c.json({ success: true, token, campaign_id: campaign.id })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
+// 업체 세션 인증 헬퍼
+async function isClinic(c: any): Promise<any | null> {
+  const t   = c.req.header('X-Clinic-Token')
+  const cid = c.req.query('campaign_id')
+  if (!t || !cid) return null
+  const campaign = await dbFirst('SELECT * FROM campaigns WHERE id = ? AND clinic_session_token = ?', [cid, t])
+  return campaign || null
+}
+
+// 업체 대시보드 API
+app.get('/api/clinic/dashboard', async (c) => {
+  try {
+    const campaign = await isClinic(c)
+    if (!campaign) return c.json({ success: false, error: '세션이 만료되었습니다. 다시 로그인해주세요.' }, 401)
+    const apps = await dbAll(
+      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
+      [campaign.id]
+    )
+    return c.json({ success: true, campaign: sanitize(campaign), applications: sanitize(apps) })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
 // ── Clinic Share ──────────────────────────────
 app.get('/api/clinic/:id', async (c) => {
   try {
@@ -294,8 +351,16 @@ app.patch('/api/admin/applications/:id', async (c) => {
 // ── Admin Campaigns ───────────────────────────
 app.get('/api/admin/campaigns', async (c) => {
   if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
-  try { return c.json({ success: true, data: await dbAll('SELECT * FROM campaigns ORDER BY created_at DESC') }) }
-  catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+  try {
+    const rows = await dbAll('SELECT * FROM campaigns ORDER BY created_at DESC')
+    // clinic_password: 실제 값 대신 설정 여부(bool)만 노출
+    const safeRows = rows.map((r: any) => ({
+      ...r,
+      clinic_password: r.clinic_password ? true : false,
+      clinic_session_token: undefined,
+    }))
+    return c.json({ success: true, data: safeRows })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
 app.post('/api/admin/campaigns', async (c) => {
@@ -318,10 +383,12 @@ app.patch('/api/admin/campaigns/:id', async (c) => {
   try {
     const b = await c.req.json()
     const fields: string[] = [], vals: any[] = []
-    const allowed = ['title','description','benefits','requirements','category','place_name','deadline','max_participants','status']
+    const allowed = ['title','description','benefits','requirements','category','place_name','deadline','max_participants','status','clinic_password']
     for (const key of allowed) {
       if (key in b) {
-        const v = (key === 'place_name' || key === 'title') ? extractEnglishName(String(b[key])) : b[key]
+        let v: any = b[key]
+        if (key === 'place_name' || key === 'title') v = extractEnglishName(String(v))
+        if (key === 'clinic_password' && v) v = sha256(String(v))
         fields.push(`${key} = ?`); vals.push(v)
       }
     }

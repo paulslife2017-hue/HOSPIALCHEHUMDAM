@@ -487,6 +487,26 @@ TELEGRAM_CHAT_ID=123456789</pre>
         <input type="hidden" id="ec_req_final">
       </div>
 
+      <!-- 업체 로그인 비밀번호 -->
+      <div class="border-t border-stone-100 pt-4">
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+          <i class="fas fa-key mr-1 text-amber-500"></i>Clinic Login Password
+          <span class="text-gray-300 font-normal normal-case ml-1">(업체가 /clinic-login 으로 로그인할 때 사용)</span>
+        </label>
+        <div class="flex gap-2">
+          <input id="ec_clinic_pw" type="text" placeholder="비워두면 변경 안 됨"
+            class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+          <button type="button" onclick="genClinicPw()" title="랜덤 비밀번호 생성"
+            class="px-3 py-2.5 bg-stone-100 hover:bg-stone-200 text-gray-600 rounded-xl text-xs font-semibold whitespace-nowrap">
+            <i class="fas fa-dice mr-1"></i>랜덤
+          </button>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">
+          설정된 비밀번호: <span id="ec_pw_status" class="font-medium text-gray-600">확인 중…</span>
+          &nbsp;·&nbsp; 로그인 URL: <a id="ec_login_url" href="/clinic-login" target="_blank" class="text-blue-500 hover:underline">/clinic-login</a>
+        </p>
+      </div>
+
       <div id="editCampErr" class="hidden bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3 border border-red-100"></div>
       <div id="editCampOk"  class="hidden bg-green-50 text-green-700 text-sm rounded-xl px-4 py-3 border border-green-100"></div>
 
@@ -1780,6 +1800,13 @@ async function testTelegram() {
 // ════════════════════════════════════════════
 // 7-1. Edit Campaign 함수
 // ════════════════════════════════════════════
+function genClinicPw() {
+  var chars = 'abcdefghijkmnpqrstuvwxyz23456789'
+  var pw = ''
+  for (var i = 0; i < 8; i++) pw += chars[Math.floor(Math.random() * chars.length)]
+  document.getElementById('ec_clinic_pw').value = pw
+}
+
 function openEditCamp(c) {
   document.getElementById('ec_id').value       = c.id
   document.getElementById('ec_title').value    = c.title || ''
@@ -1803,6 +1830,9 @@ function openEditCamp(c) {
   document.getElementById('editCampSubtitle').textContent = (c.place_name_ko || c.place_name || '') + (c.title ? ' · ' + c.title : '')
   document.getElementById('editCampErr').classList.add('hidden')
   document.getElementById('editCampOk').classList.add('hidden')
+  // 비밀번호 필드 초기화
+  document.getElementById('ec_clinic_pw').value = ''
+  document.getElementById('ec_pw_status').textContent = c.clinic_password ? '✅ 설정됨' : '❌ 미설정'
   document.getElementById('editCampModal').classList.add('open')
 }
 
@@ -1895,6 +1925,7 @@ document.getElementById('editCampForm').addEventListener('submit', async e => {
   const reqVal  = await gtTranslate(rawReq)
 
   btn.textContent = '저장 중…'
+  const newPw = document.getElementById('ec_clinic_pw').value.trim()
   const body = {
     title:        document.getElementById('ec_title').value.trim(),
     category:     document.getElementById('ec_category').value,
@@ -1902,6 +1933,7 @@ document.getElementById('editCampForm').addEventListener('submit', async e => {
     benefits:     benVal,
     requirements: reqVal,
   }
+  if (newPw) body.clinic_password = newPw
 
   try {
     const res  = await fetch('/api/admin/campaigns/' + id, { method:'PATCH', headers:H, body: JSON.stringify(body) })
