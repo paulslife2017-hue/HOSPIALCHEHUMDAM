@@ -1093,8 +1093,8 @@ async function loadCamps() {
               <i class="fas fa-pen text-[10px]"></i>
             </button>
             \${c.share_token
-              ? \`<button onclick="event.stopPropagation();copyShareLink(\${c.id},'\${c.share_token}',this)" class="text-xs text-blue-500 hover:text-blue-600 border border-blue-100 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg transition font-medium" title="업체 공유 링크">
-                  <i class="fas fa-link text-[10px]"></i>
+              ? \`<button onclick="event.stopPropagation();copyShareLink(\${c.id},'\${c.share_token}',this)" data-name="\${c.place_name_ko||c.place_name||''}" class="text-xs text-blue-500 hover:text-blue-600 border border-blue-100 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg transition font-medium" title="공유 링크 복사">
+                  <i class="fas fa-link text-[10px] mr-0.5"></i>링크
                 </button>\`
               : ''}
             <i id="camp-chevron-\${c.id}" class="fas fa-chevron-down text-gray-300 text-xs ml-1 transition-transform"></i>
@@ -1228,8 +1228,19 @@ function copyPw(pw, btn) {
   })
 }
 
+function makeSlug(name) {
+  return (name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/, '')
+    .slice(0, 60)
+}
+
 function copyShareLink(id, token, btn) {
-  const url = location.origin + '/clinic/' + id + '?token=' + token
+  var name = btn.getAttribute('data-name') || String(id)
+  var slug = makeSlug(name) || String(id)
+  const url = location.origin + '/clinic/' + slug + '?token=' + token
   navigator.clipboard.writeText(url).then(() => {
     const orig = btn.innerHTML
     btn.innerHTML = '<i class="fas fa-check text-[10px] mr-0.5"></i>복사됨!'
@@ -1237,7 +1248,7 @@ function copyShareLink(id, token, btn) {
     btn.classList.remove('text-blue-500','border-blue-100')
     setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('text-green-600','border-green-200','bg-green-50'); btn.classList.add('text-blue-500','border-blue-100') }, 2000)
   }).catch(() => {
-    prompt('아래 링크를 복사하세요:', location.origin + '/clinic/' + id + '?token=' + token)
+    prompt('아래 링크를 복사하세요:', url)
   })
 }
 

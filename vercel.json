@@ -8,13 +8,13 @@
     }
   ],
   "routes": [
-    { "src": "/api/(.*)",           "dest": "/api/index.ts" },
-    { "src": "/admin/dashboard",    "dest": "/api/index.ts" },
-    { "src": "/admin",              "dest": "/api/index.ts" },
-    { "src": "/clinic-login",       "dest": "/api/index.ts" },
-    { "src": "/clinic-dashboard",   "dest": "/api/index.ts" },
-    { "src": "/clinic/(.*)",        "dest": "/api/index.ts" },
-    { "src": "/favicon.ico",        "dest": "/api/index.ts" },
-    { "src": "/(.*)",               "dest": "/api/index.ts" }
+    { "src": "/api/(.*)",          "dest": "/api/index.ts" },
+    { "src": "/admin/dashboard",   "dest": "/api/index.ts" },
+    { "src": "/admin",             "dest": "/api/index.ts" },
+    { "src": "/clinic-login",      "dest": "/api/index.ts" },
+    { "src": "/clinic-dashboard",  "dest": "/api/index.ts" },
+    { "src": "/clinic/(.*)",       "dest": "/api/index.ts" },
+    { "src": "/favicon.ico",       "dest": "/api/index.ts" },
+    { "src": "/(.*)",              "dest": "/api/index.ts" }
   ]
 }

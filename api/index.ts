@@ -60,6 +60,16 @@ async function dbRun(sql: string, args: any[] = []) {
 }
 
 // ── 랜덤 비밀번호 생성 ──
+
+// ── 슬러그 생성 (업체명 → URL용) ──────────────
+function makeSlug(name: string): string {
+  return (name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60)
+}
 function genClinicPassword(): string {
   const chars = 'abcdefghijkmnpqrstuvwxyz23456789'
   let pw = ''
@@ -216,6 +226,41 @@ app.post('/api/apply', async (c) => {
       fetch(`https://api.telegram.org/bot${tok}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ chat_id: cid, text: msg, parse_mode:'HTML' }) }).catch(()=>{})
     }
     return c.json({ success: true, message: 'Thank you for your application! The clinic will review your submission and contact you directly if they decide to proceed.' })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
+// ── Clinic Share 비밀번호 검증 API ────────────
+app.post('/api/clinic/verify', async (c) => {
+  try {
+    const { slug, password, token } = await c.req.json()
+    if (!slug) return c.json({ success: false, error: 'slug required.' }, 400)
+
+    // 슬러그 또는 숫자 ID 또는 share_token으로 캠페인 검색
+    let campaign: any = null
+    if (/^\d+$/.test(slug)) {
+      campaign = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [slug])
+    }
+    if (!campaign && token) {
+      campaign = await dbFirst('SELECT * FROM campaigns WHERE share_token = ?', [token])
+    }
+    if (!campaign) {
+      // 슬러그: place_name_ko 또는 place_name 변환으로 매칭
+      const rows = await dbAll("SELECT * FROM campaigns WHERE status = 'active'")
+      campaign = rows.find((r: any) => makeSlug(r.place_name_ko || r.place_name) === slug) || null
+    }
+    if (!campaign) return c.json({ success: false, error: '업체를 찾을 수 없습니다.' }, 404)
+
+    // 비밀번호 확인 (share_token으로 온 경우도 비번 필요)
+    if (!campaign.clinic_password) return c.json({ success: false, error: '비밀번호가 설정되지 않았습니다.' }, 403)
+    const hashed = sha256(password || '')
+    if (campaign.clinic_password !== hashed && campaign.clinic_password_plain !== (password || ''))
+      return c.json({ success: false, error: '비밀번호가 올바르지 않습니다.' }, 401)
+
+    const apps = await dbAll(
+      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
+      [campaign.id]
+    )
+    return c.json({ success: true, campaign_id: campaign.id, campaign: sanitize(campaign), applications: sanitize(apps) })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
