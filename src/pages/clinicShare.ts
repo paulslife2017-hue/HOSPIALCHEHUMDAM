@@ -4,28 +4,35 @@
 // ════════════════════════════════════════════
 export function clinicShareHTML(): string {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Applicants – Seoul Beauty Trip</title>
+  <title>신청자 현황 – Seoul Beauty Trip</title>
   <script src="https://cdn.tailwindcss.com"><\/script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f3f0;}
     .card{background:#fff;border-radius:16px;border:1px solid #ede9e2;box-shadow:0 1px 4px rgba(0,0,0,.04);}
-    .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:600;}
+    .btn-gold{background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;font-weight:600;border:none;cursor:pointer;}
+    .btn-gold:hover{opacity:.9;}
+    .filter-btn{transition:all .15s;}
+    .badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;}
     .badge-pending {background:#fef9c3;color:#854d0e;}
     .badge-approved{background:#dcfce7;color:#166534;}
     .badge-rejected{background:#fee2e2;color:#991b1b;}
-    .btn-gold{background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;font-weight:600;border:none;cursor:pointer;}
-    .btn-gold:hover{opacity:.9;}
-    .btn-approve{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-size:11px;font-weight:600;padding:4px 12px;border-radius:8px;cursor:pointer;transition:all .15s;}
+    .settle-done{display:inline-flex;align-items:center;gap:3px;background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;padding:3px 9px;font-size:11px;font-weight:600;}
+    .settle-pending{display:inline-flex;align-items:center;gap:3px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:8px;padding:3px 9px;font-size:11px;font-weight:600;}
+    .row-approved{background:#f8fdf9;}
+    .row-unsettled{background:#fff9f5;}
+    .progress-bar{height:8px;border-radius:99px;background:#e5e7eb;overflow:hidden;}
+    .progress-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#3b82f6,#6366f1);transition:width .6s ease;}
+    .btn-approve{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer;transition:all .15s;}
     .btn-approve:hover{background:#166534;color:#fff;}
-    .btn-reject{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;font-size:11px;font-weight:600;padding:4px 12px;border-radius:8px;cursor:pointer;transition:all .15s;}
+    .btn-reject{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer;transition:all .15s;}
     .btn-reject:hover{background:#991b1b;color:#fff;}
-    .btn-pending-reset{background:#fef9c3;color:#854d0e;border:1px solid #fde68a;font-size:11px;font-weight:600;padding:4px 12px;border-radius:8px;cursor:pointer;transition:all .15s;}
-    .btn-pending-reset:hover{background:#854d0e;color:#fff;}
+    .btn-reset{background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer;transition:all .15s;}
+    .btn-reset:hover{background:#6b7280;color:#fff;}
     ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#d4c4a0;border-radius:4px;}
   </style>
 </head>
@@ -39,20 +46,20 @@ export function clinicShareHTML(): string {
       </div>
       <span class="font-bold text-gray-900 text-sm">Seoul Beauty Trip</span>
     </div>
-    <span id="headerBadge" class="text-xs text-gray-400"></span>
+    <span id="headerBadge" class="text-xs text-gray-400 font-medium"></span>
   </div>
 </header>
 
-<main class="max-w-3xl mx-auto px-5 py-6">
+<main class="max-w-3xl mx-auto px-5 py-6 space-y-4">
 
-  <!-- 비밀번호 입력 화면 -->
+  <!-- 비밀번호 입력 -->
   <div id="loginEl" class="hidden">
     <div class="card p-8 max-w-sm mx-auto mt-10 text-center">
       <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">
         <i class="fas fa-lock text-white text-xl"></i>
       </div>
       <h2 id="loginTitle" class="font-bold text-gray-900 text-lg mb-1">업체 확인</h2>
-      <p class="text-xs text-gray-400 mb-6">비밀번호를 입력하면 신청자 목록을 확인할 수 있습니다</p>
+      <p class="text-xs text-gray-400 mb-6">비밀번호를 입력하면 신청자 현황을 확인할 수 있습니다</p>
       <div class="relative mb-3">
         <input id="pwInput" type="password" placeholder="비밀번호 입력"
           class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-center tracking-widest focus:outline-none focus:border-amber-400"
@@ -77,62 +84,59 @@ export function clinicShareHTML(): string {
     <i class="fas fa-lock text-3xl text-gray-300 mb-3 block"></i>
     <p class="text-gray-500 text-sm" id="errorMsg">Access denied.</p>
   </div>
-  <!-- 메인 컨텐츠 -->
-  <div id="mainEl" class="hidden space-y-5">
-    <!-- 업체 헤더 -->
-    <div class="card p-5 flex items-center gap-4">
-      <div id="clinicThumb" class="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-stone-100 flex items-center justify-center">
-        <i class="fas fa-hospital text-2xl text-gray-300"></i>
-      </div>
-      <div class="flex-1 min-w-0">
-        <h1 id="clinicName" class="font-bold text-gray-900 text-lg"></h1>
-        <p id="clinicTitle" class="text-sm text-gray-500 mt-0.5"></p>
-        <div class="flex items-center gap-3 mt-1.5 flex-wrap">
-          <span class="text-xs text-gray-400"><i class="fas fa-users mr-1"></i><span id="clinicCount">0</span> applicants</span>
-          <span class="text-xs text-green-600 font-semibold"><i class="fas fa-check-circle mr-1"></i><span id="clinicApproved">0</span> approved</span>
-          <span class="text-xs text-red-400 font-semibold"><i class="fas fa-times-circle mr-1"></i><span id="clinicRejected">0</span> rejected</span>
+
+  <!-- ── 메인 컨텐츠 ── -->
+  <div id="mainEl" class="hidden space-y-4">
+
+    <!-- 업체 헤더 카드 -->
+    <div class="card p-5">
+      <div class="flex items-center gap-4">
+        <div id="clinicThumb" class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-stone-100 flex items-center justify-center">
+          <i class="fas fa-hospital text-2xl text-gray-300"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h1 id="clinicName" class="font-bold text-gray-900 text-base leading-tight"></h1>
+          <p id="clinicTitle" class="text-xs text-gray-400 mt-0.5 truncate"></p>
         </div>
       </div>
+      <!-- 정산 현황 요약 -->
+      <div id="settleSummary" class="mt-4 pt-4 border-t border-stone-100"></div>
     </div>
 
-    <!-- 필터 -->
+    <!-- 필터 탭 -->
     <div class="flex gap-2 flex-wrap">
-      <button onclick="filterApps('all')"      id="f-all"      class="filter-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-900 text-white">전체</button>
-      <button onclick="filterApps('pending')"  id="f-pending"  class="filter-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200">⏳ 대기</button>
-      <button onclick="filterApps('approved')" id="f-approved" class="filter-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200">✅ 승인</button>
-      <button onclick="filterApps('rejected')" id="f-rejected" class="filter-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200">❌ 거절</button>
+      <button onclick="filterApps('all')"       id="f-all"       class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-gray-900 text-white">전체</button>
+      <button onclick="filterApps('approved')"  id="f-approved"  class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200">✅ 승인</button>
+      <button onclick="filterApps('unsettled')" id="f-unsettled" class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200">🔴 정산미완료</button>
+      <button onclick="filterApps('pending')"   id="f-pending"   class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200">⏳ 대기</button>
+      <button onclick="filterApps('rejected')"  id="f-rejected"  class="filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200">❌ 거절</button>
     </div>
 
     <!-- 신청자 목록 -->
-    <div id="appList" class="space-y-3"></div>
-    <p id="emptyEl" class="hidden text-center text-gray-400 text-sm py-10">No applicants yet.</p>
+    <div id="appList" class="space-y-2.5"></div>
+    <p id="emptyEl" class="hidden text-center text-gray-400 text-sm py-10">해당 신청자가 없습니다.</p>
   </div>
+
 </main>
 
 <script>
-// URL에서 slug, token 파싱
 var _pathParts = location.pathname.split('/')
 var _slug  = decodeURIComponent(_pathParts[_pathParts.length - 1].split('?')[0])
 var _token = new URLSearchParams(location.search).get('token')
 var _campaignId = null
 var allApps = []
 var currentFilter = 'all'
-
-// 세션 키 (새로고침 유지)
 var SESSION_KEY = 'clinic_share_pw_' + _slug
 
+// ── 초기화 ──────────────────────────────────
 async function init() {
   if (!_slug) { showError('Invalid link.'); return }
-
-  // 저장된 비번 있으면 바로 시도
   var saved = sessionStorage.getItem(SESSION_KEY)
   if (saved) {
     var ok = await tryLoad(saved)
     if (ok) return
     sessionStorage.removeItem(SESSION_KEY)
   }
-
-  // 비밀번호 화면 표시
   document.getElementById('loadingEl').classList.add('hidden')
   document.getElementById('loginEl').classList.remove('hidden')
 }
@@ -147,19 +151,17 @@ async function tryLoad(password) {
     _campaignId = data.campaign_id
     allApps = data.applications || []
     var c = data.campaign
-    document.getElementById('clinicName').textContent     = c.place_name_ko || c.place_name || c.title
-    document.getElementById('clinicTitle').textContent    = c.title
-    document.getElementById('headerBadge').textContent    = c.place_name_ko || c.place_name
-    document.getElementById('clinicCount').textContent    = allApps.length
-    document.getElementById('clinicApproved').textContent = allApps.filter(function(a){ return a.status==='approved' }).length
-    document.getElementById('clinicRejected').textContent = allApps.filter(function(a){ return a.status==='rejected' }).length
-    document.getElementById('loginTitle').textContent     = c.place_name_ko || c.place_name || c.title
+    document.getElementById('clinicName').textContent  = c.place_name_ko || c.place_name || c.title
+    document.getElementById('clinicTitle').textContent = c.title
+    document.getElementById('headerBadge').textContent = c.place_name_ko || c.place_name
+    document.getElementById('loginTitle').textContent  = c.place_name_ko || c.place_name || c.title
     if (c.place_photo_ref) {
       document.getElementById('clinicThumb').innerHTML = '<img src="/api/places/photo?ref=' + c.place_photo_ref + '" class="w-full h-full object-cover">'
     }
     document.getElementById('loadingEl').classList.add('hidden')
     document.getElementById('loginEl').classList.add('hidden')
     document.getElementById('mainEl').classList.remove('hidden')
+    renderSummary()
     renderList()
     return true
   } catch(e) { return false }
@@ -199,94 +201,157 @@ function showError(msg) {
   document.getElementById('errorEl').classList.remove('hidden')
 }
 
+// ── 정산 요약 렌더 ───────────────────────────
+function renderSummary() {
+  var total    = allApps.length
+  var approved = allApps.filter(function(a){ return a.status === 'approved' })
+  var settled  = approved.filter(function(a){ return !!a.settlement })
+  var unsettled = approved.filter(function(a){ return !a.settlement })
+  var pct = approved.length ? Math.round(settled.length / approved.length * 100) : 0
+  var el = document.getElementById('settleSummary')
+
+  el.innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">' +
+      _statBox('전체 신청', total, '#6b7280', 'fas fa-users') +
+      _statBox('승인 완료', approved.length, '#166534', 'fas fa-check-circle') +
+      _statBox('정산 미완료', unsettled.length, unsettled.length ? '#c2410c' : '#9ca3af', unsettled.length ? 'fas fa-exclamation-circle' : 'fas fa-circle-check') +
+    '</div>' +
+    '<div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">' +
+        '<span style="font-size:11px;color:#6b7280;font-weight:500;">정산 진행률</span>' +
+        '<span style="font-size:12px;font-weight:700;color:' + (pct===100?'#1e40af':'#374151') + ';">' + settled.length + ' / ' + approved.length + '명 (' + pct + '%)</span>' +
+      '</div>' +
+      '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%;"></div></div>' +
+    '</div>'
+}
+
+function _statBox(label, value, color, icon) {
+  return '<div style="background:#f9fafb;border:1px solid #f0ece4;border-radius:12px;padding:10px 12px;text-align:center;">' +
+    '<i class="' + icon + '" style="color:' + color + ';font-size:14px;margin-bottom:4px;display:block;"></i>' +
+    '<div style="font-size:18px;font-weight:800;color:' + color + ';line-height:1.1;">' + value + '</div>' +
+    '<div style="font-size:10px;color:#9ca3af;margin-top:2px;">' + label + '</div>' +
+  '</div>'
+}
+
+// ── 필터 ────────────────────────────────────
 function filterApps(f) {
   currentFilter = f
   document.querySelectorAll('.filter-btn').forEach(function(b) {
-    b.className = 'filter-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200'
+    b.className = 'filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200'
   })
-  document.getElementById('f-' + f).className = 'filter-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-900 text-white'
+  document.getElementById('f-' + f).className = 'filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-gray-900 text-white'
   renderList()
 }
 
+// ── 목록 렌더 ────────────────────────────────
 function renderList() {
-  var list = currentFilter === 'all' ? allApps : allApps.filter(function(a){ return a.status === currentFilter })
-  var el   = document.getElementById('appList')
+  var list
+  if (currentFilter === 'all') {
+    list = allApps
+  } else if (currentFilter === 'unsettled') {
+    list = allApps.filter(function(a){ return a.status === 'approved' && !a.settlement })
+  } else {
+    list = allApps.filter(function(a){ return a.status === currentFilter })
+  }
+
+  var el    = document.getElementById('appList')
   var empty = document.getElementById('emptyEl')
   if (!list.length) { el.innerHTML = ''; empty.classList.remove('hidden'); return }
   empty.classList.add('hidden')
+
   el.innerHTML = list.map(function(a, i) {
     var isApproved = a.status === 'approved'
+    var isSettled  = isApproved && !!a.settlement
+
+    // ── 상태 배지
     var statusBadge = isApproved
       ? '<span class="badge badge-approved">✅ 승인</span>'
       : a.status === 'rejected'
       ? '<span class="badge badge-rejected">❌ 거절</span>'
       : '<span class="badge badge-pending">⏳ 대기</span>'
-    var instaLink = a.instagram
-      ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" class="text-pink-500 hover:underline text-xs font-semibold"><i class="fab fa-instagram mr-1"></i>@' + a.instagram + '</a>'
-      : ''
-    var dates = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
-    var datesHtml = dates.map(function(d){
-      return '<span class="text-xs bg-stone-50 border border-stone-200 rounded-lg px-2 py-1">' + d + '</span>'
-    }).join('')
 
-    // 승인된 신청자: 확정날짜 + 정산여부 배지
-    var approvedInfo = ''
+    // ── 인스타그램
+    var instaLink = a.instagram
+      ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="margin-right:2px;"></i>@' + a.instagram + '</a>'
+      : '<span style="color:#d1d5db;font-size:11px;">—</span>'
+
+    // ── 승인된 사람: 확정날짜 + 정산여부 인라인 표시
+    var approvedRow = ''
     if (isApproved) {
-      var scheduledChip = a.scheduled_date
-        ? '<span style="display:inline-flex;align-items:center;gap:4px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;"><i class="fas fa-calendar-check" style="font-size:10px;"></i>' + a.scheduled_date + '</span>'
-        : '<span style="display:inline-flex;align-items:center;gap:4px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500;"><i class="far fa-calendar" style="font-size:10px;"></i>날짜 미정</span>'
-      var settleBadge = a.settlement
-        ? '<span style="display:inline-flex;align-items:center;gap:4px;background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;"><i class="fas fa-check-double" style="font-size:10px;"></i>정산완료</span>'
-        : '<span style="display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500;"><i class="fas fa-clock" style="font-size:10px;"></i>정산미완료</span>'
-      approvedInfo = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding:10px 12px;background:#f8fdf9;border:1px solid #dcfce7;border-radius:10px;">' +
-        scheduledChip + settleBadge +
-      '</div>'
+      var dateChip = a.scheduled_date
+        ? '<span style="display:inline-flex;align-items:center;gap:3px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:7px;padding:3px 8px;font-size:11px;font-weight:600;"><i class="fas fa-calendar-check" style="font-size:9px;"></i>' + a.scheduled_date + '</span>'
+        : '<span style="display:inline-flex;align-items:center;gap:3px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:7px;padding:3px 8px;font-size:11px;font-weight:500;"><i class="far fa-calendar" style="font-size:9px;"></i>날짜 미정</span>'
+      var settleBadge = isSettled
+        ? '<span class="settle-done"><i class="fas fa-check-double" style="font-size:9px;"></i>정산완료</span>'
+        : '<span class="settle-pending"><i class="fas fa-exclamation-circle" style="font-size:9px;"></i>정산미완료</span>'
+      approvedRow = '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;">' + dateChip + settleBadge + '</div>'
     }
 
-    // 현재 상태에 따라 버튼 구성
+    // ── 희망날짜 (미승인 상태만)
+    var datesHtml = ''
+    if (!isApproved) {
+      var dates = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
+      if (dates.length) {
+        datesHtml = '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">' +
+          dates.map(function(d){ return '<span style="font-size:10px;background:#f5f5f4;border:1px solid #e7e5e4;border-radius:6px;padding:2px 7px;color:#78716c;">' + d + '</span>' }).join('') +
+        '</div>'
+      }
+    }
+
+    // ── 액션 버튼
     var actionBtns = ''
     if (a.status === 'pending') {
-      actionBtns = '<div class="flex gap-2 mt-3">' +
-        '<button class="btn-approve" data-id="' + a.id + '" data-action="approved"><i class="fas fa-check mr-1"></i>승인</button>' +
-        '<button class="btn-reject"  data-id="' + a.id + '" data-action="rejected"><i class="fas fa-times mr-1"></i>거절</button>' +
+      actionBtns = '<div style="display:flex;gap:6px;margin-top:10px;">' +
+        '<button class="btn-approve" data-id="' + a.id + '" data-action="approved"><i class="fas fa-check" style="margin-right:3px;"></i>승인</button>' +
+        '<button class="btn-reject"  data-id="' + a.id + '" data-action="rejected"><i class="fas fa-times" style="margin-right:3px;"></i>거절</button>' +
       '</div>'
     } else if (a.status === 'approved') {
-      actionBtns = '<div class="flex gap-2 mt-3">' +
-        '<button class="btn-reject"         data-id="' + a.id + '" data-action="rejected"><i class="fas fa-times mr-1"></i>거절로 변경</button>' +
-        '<button class="btn-pending-reset"  data-id="' + a.id + '" data-action="pending"><i class="fas fa-undo mr-1"></i>대기로 변경</button>' +
+      actionBtns = '<div style="display:flex;gap:6px;margin-top:10px;">' +
+        '<button class="btn-reject" data-id="' + a.id + '" data-action="rejected"><i class="fas fa-times" style="margin-right:3px;"></i>거절로 변경</button>' +
+        '<button class="btn-reset"  data-id="' + a.id + '" data-action="pending"><i class="fas fa-undo" style="margin-right:3px;"></i>대기로 변경</button>' +
       '</div>'
     } else if (a.status === 'rejected') {
-      actionBtns = '<div class="flex gap-2 mt-3">' +
-        '<button class="btn-approve"        data-id="' + a.id + '" data-action="approved"><i class="fas fa-check mr-1"></i>승인으로 변경</button>' +
-        '<button class="btn-pending-reset" data-id="' + a.id + '" data-action="pending"><i class="fas fa-undo mr-1"></i>대기로 변경</button>' +
+      actionBtns = '<div style="display:flex;gap:6px;margin-top:10px;">' +
+        '<button class="btn-approve" data-id="' + a.id + '" data-action="approved"><i class="fas fa-check" style="margin-right:3px;"></i>승인으로 변경</button>' +
+        '<button class="btn-reset"   data-id="' + a.id + '" data-action="pending"><i class="fas fa-undo" style="margin-right:3px;"></i>대기로 변경</button>' +
       '</div>'
     }
-    return '<div class="card p-4" data-appid="' + a.id + '">' +
-      '<div class="flex items-start justify-between gap-3">' +
-        '<div class="flex items-center gap-3">' +
-          '<div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">' + (i+1) + '</div>' +
+
+    // ── 카드 배경: 승인+정산완료=초록 tint / 승인+미완료=주황 tint
+    var cardBg = isApproved ? (isSettled ? 'background:#f8fdf9;border-color:#d1fae5;' : 'background:#fff9f5;border-color:#fed7aa;') : ''
+
+    return '<div style="background:#fff;border-radius:14px;border:1px solid #ede9e2;' + cardBg + 'box-shadow:0 1px 3px rgba(0,0,0,.04);padding:14px 16px;">' +
+      // 헤더 행: 번호 + 이름 + 상태배지
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;background:linear-gradient(135deg,#c9a035,#e8c16a);">' + (i+1) + '</div>' +
           '<div>' +
-            '<p class="font-semibold text-gray-900 text-sm">' + (a.applicant_name || '') + '</p>' +
-            '<p class="text-xs text-gray-400">' + (a.nationality || '') + '</p>' +
+            '<p style="font-weight:700;font-size:13px;color:#111827;margin:0;">' + (a.applicant_name || '') + '</p>' +
+            '<p style="font-size:11px;color:#9ca3af;margin:1px 0 0;">' + (a.nationality || '') + '</p>' +
           '</div>' +
         '</div>' +
         statusBadge +
       '</div>' +
-      '<div class="mt-3 flex flex-wrap items-center gap-3">' +
+      // 연락처 행
+      '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:8px;">' +
         instaLink +
-        (a.email ? '<a href="mailto:' + a.email + '" class="text-xs text-blue-500 hover:underline">' + a.email + '</a>' : '') +
-        (a.phone ? '<span class="text-xs text-gray-400"><i class="fab fa-whatsapp mr-1 text-green-500"></i>' + a.phone + '</span>' : '') +
+        (a.email ? '<a href="mailto:' + a.email + '" style="color:#3b82f6;font-size:11px;text-decoration:none;">' + a.email + '</a>' : '') +
+        (a.phone ? '<span style="font-size:11px;color:#6b7280;"><i class="fab fa-whatsapp" style="color:#22c55e;margin-right:2px;"></i>' + a.phone + '</span>' : '') +
       '</div>' +
-      approvedInfo +
-      (dates.length && !isApproved ? '<div class="mt-3"><p class="text-xs text-gray-400 mb-1.5"><i class="fas fa-calendar mr-1"></i>Available dates</p><div class="flex flex-wrap gap-1.5">' + datesHtml + '</div></div>' : '') +
-      (a.message ? '<div class="mt-3 bg-stone-50 rounded-xl px-3 py-2"><p class="text-xs text-gray-500">' + a.message + '</p></div>' : '') +
+      // 승인 정보 (날짜 + 정산) or 희망날짜
+      approvedRow +
+      datesHtml +
+      // 메시지
+      (a.message ? '<div style="margin-top:8px;background:#f9fafb;border-radius:8px;padding:7px 10px;"><p style="font-size:11px;color:#6b7280;margin:0;">' + a.message + '</p></div>' : '') +
+      // 액션 버튼
       actionBtns +
-      '<p class="text-xs text-gray-300 mt-3">' + (a.created_at || '').replace('T',' ').split(' ')[0] + '</p>' +
+      // 신청일
+      '<p style="font-size:10px;color:#d1d5db;margin:8px 0 0;">' + (a.created_at || '').replace('T',' ').slice(0,16) + '</p>' +
     '</div>'
   }).join('')
 }
 
-// ── 상태 변경 (이벤트 위임) ──────────────────────
+// ── 상태 변경 (이벤트 위임) ──────────────────
 document.addEventListener('click', async function(e) {
   var btn = e.target.closest('[data-action]')
   if (!btn) return
@@ -297,10 +362,9 @@ document.addEventListener('click', async function(e) {
   var pw = sessionStorage.getItem(SESSION_KEY)
   if (!pw) { alert('세션이 만료되었습니다. 페이지를 새로고침해주세요.'); return }
 
-  // 버튼 로딩
   var origHtml = btn.innerHTML
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'
-  btn.disabled = true
+  btn.disabled  = true
 
   try {
     var res = await fetch('/api/clinic/share/applications/' + appId, {
@@ -310,21 +374,16 @@ document.addEventListener('click', async function(e) {
     })
     var data = await res.json()
     if (data.success) {
-      // allApps 배열 업데이트
       var idx = allApps.findIndex(function(a) { return String(a.id) === String(appId) })
       if (idx !== -1) allApps[idx].status = action
-      // 카운터 업데이트
-      document.getElementById('clinicApproved').textContent = allApps.filter(function(a){ return a.status==='approved' }).length
-      document.getElementById('clinicRejected').textContent = allApps.filter(function(a){ return a.status==='rejected' }).length
+      renderSummary()
       renderList()
     } else {
-      btn.innerHTML = origHtml
-      btn.disabled = false
+      btn.innerHTML = origHtml; btn.disabled = false
       alert(data.error || '오류가 발생했습니다.')
     }
   } catch(err) {
-    btn.innerHTML = origHtml
-    btn.disabled = false
+    btn.innerHTML = origHtml; btn.disabled = false
     alert('네트워크 오류가 발생했습니다.')
   }
 })
