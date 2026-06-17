@@ -1086,7 +1086,7 @@ function openAppDetail(a) {
 // ════════════════════════════════════════════
 // 4-A. 업체 승인 내역
 // ════════════════════════════════════════════
-var _approvedData: any[] = []
+var _approvedData = []
 
 async function loadApproved() {
   const loadEl  = document.getElementById('approvedLoading')
@@ -1100,21 +1100,21 @@ async function loadApproved() {
     const res  = await fetch('/api/admin/applications?status=approved', { headers: H })
     const json = await res.json()
     if (!json.success && json.error === 'Unauthorized') { window.location.href = '/admin'; return }
-    const data: any[] = json.data || []
+    const data = json.data || []
     _approvedData = data
 
     // 요약
-    const clinicSet = new Set(data.map(function(a: any){ return a.campaign_id }))
+    const clinicSet = new Set(data.map(function(a){ return a.campaign_id }))
     document.getElementById('appr-total').textContent    = String(data.length)
     document.getElementById('appr-clinics').textContent  = String(clinicSet.size)
-    document.getElementById('appr-scheduled').textContent = String(data.filter(function(a: any){ return a.scheduled_date }).length)
-    document.getElementById('appr-pending-date').textContent = String(data.filter(function(a: any){ return !a.scheduled_date }).length)
+    document.getElementById('appr-scheduled').textContent = String(data.filter(function(a){ return a.scheduled_date }).length)
+    document.getElementById('appr-pending-date').textContent = String(data.filter(function(a){ return !a.scheduled_date }).length)
 
     // 업체 필터 셀렉트 업데이트
-    const sel = document.getElementById('approvedFilterCamp') as HTMLSelectElement
+    const sel = document.getElementById('approvedFilterCamp')
     const prevVal = sel.value
-    const clinicMap: Record<string, string> = {}
-    data.forEach(function(a: any) {
+    const clinicMap = {}
+    data.forEach(function(a) {
       clinicMap[a.campaign_id] = a.place_name_ko || a.place_name || a.campaign_title || ('Campaign ' + a.campaign_id)
     })
     sel.innerHTML = '<option value="">전체 업체</option>' +
@@ -1122,14 +1122,14 @@ async function loadApproved() {
 
     // 필터
     const filterCid = sel.value
-    const filtered  = filterCid ? data.filter(function(a: any){ return String(a.campaign_id) === filterCid }) : data
+    const filtered  = filterCid ? data.filter(function(a){ return String(a.campaign_id) === filterCid }) : data
 
     loadEl.classList.add('hidden')
     if (!filtered.length) { emptyEl.classList.remove('hidden'); return }
 
     // 업체별 그룹핑
-    const groups: Record<string, any[]> = {}
-    filtered.forEach(function(a: any) {
+    const groups = {}
+    filtered.forEach(function(a) {
       const key = String(a.campaign_id)
       if (!groups[key]) groups[key] = []
       groups[key].push(a)
@@ -1137,10 +1137,10 @@ async function loadApproved() {
 
     listEl.innerHTML = Object.entries(groups).map(function([cid, apps]) {
       const clinicName = apps[0].place_name_ko || apps[0].place_name || apps[0].campaign_title || ('Campaign ' + cid)
-      const scheduledCnt = apps.filter(function(a: any){ return a.scheduled_date }).length
+      const scheduledCnt = apps.filter(function(a){ return a.scheduled_date }).length
 
-      const cards = apps.map(function(a: any) {
-        const dates = (a.preferred_dates || '').split('/').map(function(d: string){ return d.trim() }).filter(Boolean)
+      const cards = apps.map(function(a) {
+        const dates = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
         const insta = a.instagram
           ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" class="inline-flex items-center gap-1 text-pink-500 text-xs font-semibold hover:underline"><i class="fab fa-instagram"></i>@' + a.instagram + '</a>'
           : ''
@@ -1196,8 +1196,8 @@ async function loadApproved() {
 
 function exportApproved() {
   if (!_approvedData.length) { alert('내보낼 데이터가 없습니다.'); return }
-  const rows = [['업체명','신청자명','국적','이메일','WhatsApp','인스타그램','희망날짜','확정날짜','신청일시']]
-  _approvedData.forEach(function(a: any) {
+  var rows = [['업체명','신청자명','국적','이메일','WhatsApp','인스타그램','희망날짜','확정날짜','신청일시']]
+  _approvedData.forEach(function(a) {
     rows.push([
       a.place_name_ko || a.place_name || a.campaign_title || '',
       a.applicant_name || '',
@@ -1205,19 +1205,25 @@ function exportApproved() {
       a.email || '',
       a.phone || '',
       a.instagram ? '@' + a.instagram : '',
-      (a.preferred_dates || '').replace(/\//g, ' / '),
+      (a.preferred_dates || '').split('/').join(' / '),
       a.scheduled_date || '',
       (a.created_at || '').replace('T', ' ').slice(0, 16)
     ])
   })
-  const csv = rows.map(function(r) {
-    return r.map(function(cell) { return '"' + String(cell).replace(/"/g, '""') + '"' }).join(',')
-  }).join('\n')
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href = url; a.download = 'approved_applicants_' + new Date().toISOString().slice(0,10) + '.csv'
-  a.click(); URL.revokeObjectURL(url)
+  var NL = String.fromCharCode(10)
+  var csv = rows.map(function(r) {
+    return r.map(function(cell) {
+      var s = String(cell).split('"').join('""')
+      return '"' + s + '"'
+    }).join(',')
+  }).join(NL)
+  var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  var url  = URL.createObjectURL(blob)
+  var dl   = document.createElement('a')
+  dl.href = url
+  dl.download = 'approved_applicants_' + new Date().toISOString().slice(0,10) + '.csv'
+  dl.click()
+  URL.revokeObjectURL(url)
 }
 
 // ════════════════════════════════════════════
