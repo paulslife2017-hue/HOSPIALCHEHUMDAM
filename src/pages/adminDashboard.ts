@@ -53,11 +53,12 @@ export function adminDashboardHTML(): string {
 <!-- Tabs -->
 <div class="bg-white border-b border-stone-200 sticky top-14 z-40">
   <div class="max-w-7xl mx-auto px-5 flex overflow-x-auto" style="scrollbar-width:none;">
-    <button id="tab-apps"  onclick="showTab('apps')"  class="tab-btn on">Applicants</button>
-    <button id="tab-cal"   onclick="showTab('cal')"   class="tab-btn"><i class="fas fa-calendar-alt mr-1"></i>Calendar</button>
-    <button id="tab-camps" onclick="showTab('camps')" class="tab-btn">Campaigns</button>
-    <button id="tab-new"   onclick="showTab('new')"   class="tab-btn">+ New</button>
-    <button id="tab-tg"    onclick="showTab('tg')"    class="tab-btn">Telegram</button>
+    <button id="tab-apps"     onclick="showTab('apps')"     class="tab-btn on">Applicants</button>
+    <button id="tab-cal"      onclick="showTab('cal')"      class="tab-btn"><i class="fas fa-calendar-alt mr-1"></i>Calendar</button>
+    <button id="tab-approved" onclick="showTab('approved')" class="tab-btn"><i class="fas fa-check-circle mr-1"></i>업체 승인 내역</button>
+    <button id="tab-camps"    onclick="showTab('camps')"    class="tab-btn">Campaigns</button>
+    <button id="tab-new"      onclick="showTab('new')"      class="tab-btn">+ New</button>
+    <button id="tab-tg"       onclick="showTab('tg')"       class="tab-btn">Telegram</button>
   </div>
 </div>
 
@@ -346,6 +347,61 @@ TELEGRAM_CHAT_ID=123456789</pre>
     </div>
   </div>
 
+  <!-- ── 업체 승인 내역 panel ── -->
+  <div id="panel-approved" class="hidden">
+
+    <!-- 헤더 + 필터 -->
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <div>
+        <h2 class="font-bold text-gray-900 text-base"><i class="fas fa-check-circle text-green-500 mr-2"></i>업체 승인 내역</h2>
+        <p class="text-xs text-gray-400 mt-0.5">업체 또는 관리자가 승인 처리한 신청자 목록입니다</p>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <select id="approvedFilterCamp" onchange="loadApproved()" class="text-xs border border-stone-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-amber-400">
+          <option value="">전체 업체</option>
+        </select>
+        <button onclick="loadApproved()" class="text-xs btn-gold px-3 py-2 rounded-xl flex items-center gap-1.5">
+          <i class="fas fa-sync-alt"></i>새로고침
+        </button>
+        <button onclick="exportApproved()" class="text-xs bg-green-50 text-green-700 border border-green-200 font-semibold px-3 py-2 rounded-xl hover:bg-green-100 transition flex items-center gap-1.5">
+          <i class="fas fa-download"></i>CSV 내보내기
+        </button>
+      </div>
+    </div>
+
+    <!-- 요약 카드 -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+      <div class="card p-4 text-center">
+        <div class="text-2xl font-bold text-green-600" id="appr-total">—</div>
+        <div class="text-xs text-gray-400 mt-0.5">총 승인</div>
+      </div>
+      <div class="card p-4 text-center">
+        <div class="text-2xl font-bold text-gray-900" id="appr-clinics">—</div>
+        <div class="text-xs text-gray-400 mt-0.5">업체 수</div>
+      </div>
+      <div class="card p-4 text-center">
+        <div class="text-2xl font-bold text-amber-500" id="appr-scheduled">—</div>
+        <div class="text-xs text-gray-400 mt-0.5">날짜 확정</div>
+      </div>
+      <div class="card p-4 text-center">
+        <div class="text-2xl font-bold text-blue-500" id="appr-pending-date">—</div>
+        <div class="text-xs text-gray-400 mt-0.5">날짜 미정</div>
+      </div>
+    </div>
+
+    <!-- 로딩 -->
+    <div id="approvedLoading" class="text-center py-16 text-gray-400">
+      <i class="fas fa-spinner fa-spin text-2xl mb-2 block"></i>불러오는 중…
+    </div>
+
+    <!-- 업체별 그룹 목록 -->
+    <div id="approvedList" class="space-y-6 hidden"></div>
+    <p id="approvedEmpty" class="hidden text-center text-gray-400 text-sm py-16">
+      <i class="fas fa-inbox text-3xl block mb-3 text-gray-200"></i>승인된 신청자가 없습니다
+    </p>
+
+  </div>
+
 </main>
 
 <!-- Applicant detail modal -->
@@ -541,13 +597,14 @@ function logout() {
 }
 
 function showTab(t) {
-  ['apps','cal','camps','new','tg'].forEach(id => {
+  ['apps','cal','approved','camps','new','tg'].forEach(id => {
     document.getElementById('panel-' + id).classList.toggle('hidden', id !== t)
     document.getElementById('tab-' + id).classList.toggle('on', id === t)
   })
-  if (t === 'apps')  loadApps()
-  if (t === 'camps') loadCamps()
-  if (t === 'cal')   loadCalData()
+  if (t === 'apps')     loadApps()
+  if (t === 'camps')    loadCamps()
+  if (t === 'cal')      loadCalData()
+  if (t === 'approved') loadApproved()
 }
 
 // ════════════════════════════════════════════
@@ -1025,6 +1082,144 @@ function openAppDetail(a) {
 
 // ════════════════════════════════════════════
 // 4. Campaigns
+// ════════════════════════════════════════════
+// ════════════════════════════════════════════
+// 4-A. 업체 승인 내역
+// ════════════════════════════════════════════
+var _approvedData: any[] = []
+
+async function loadApproved() {
+  const loadEl  = document.getElementById('approvedLoading')
+  const listEl  = document.getElementById('approvedList')
+  const emptyEl = document.getElementById('approvedEmpty')
+  loadEl.classList.remove('hidden')
+  listEl.classList.add('hidden')
+  emptyEl.classList.add('hidden')
+
+  try {
+    const res  = await fetch('/api/admin/applications?status=approved', { headers: H })
+    const json = await res.json()
+    if (!json.success && json.error === 'Unauthorized') { window.location.href = '/admin'; return }
+    const data: any[] = json.data || []
+    _approvedData = data
+
+    // 요약
+    const clinicSet = new Set(data.map(function(a: any){ return a.campaign_id }))
+    document.getElementById('appr-total').textContent    = String(data.length)
+    document.getElementById('appr-clinics').textContent  = String(clinicSet.size)
+    document.getElementById('appr-scheduled').textContent = String(data.filter(function(a: any){ return a.scheduled_date }).length)
+    document.getElementById('appr-pending-date').textContent = String(data.filter(function(a: any){ return !a.scheduled_date }).length)
+
+    // 업체 필터 셀렉트 업데이트
+    const sel = document.getElementById('approvedFilterCamp') as HTMLSelectElement
+    const prevVal = sel.value
+    const clinicMap: Record<string, string> = {}
+    data.forEach(function(a: any) {
+      clinicMap[a.campaign_id] = a.place_name_ko || a.place_name || a.campaign_title || ('Campaign ' + a.campaign_id)
+    })
+    sel.innerHTML = '<option value="">전체 업체</option>' +
+      Object.entries(clinicMap).map(function([id, name]){ return '<option value="' + id + '"' + (prevVal == id ? ' selected' : '') + '>' + name + '</option>' }).join('')
+
+    // 필터
+    const filterCid = sel.value
+    const filtered  = filterCid ? data.filter(function(a: any){ return String(a.campaign_id) === filterCid }) : data
+
+    loadEl.classList.add('hidden')
+    if (!filtered.length) { emptyEl.classList.remove('hidden'); return }
+
+    // 업체별 그룹핑
+    const groups: Record<string, any[]> = {}
+    filtered.forEach(function(a: any) {
+      const key = String(a.campaign_id)
+      if (!groups[key]) groups[key] = []
+      groups[key].push(a)
+    })
+
+    listEl.innerHTML = Object.entries(groups).map(function([cid, apps]) {
+      const clinicName = apps[0].place_name_ko || apps[0].place_name || apps[0].campaign_title || ('Campaign ' + cid)
+      const scheduledCnt = apps.filter(function(a: any){ return a.scheduled_date }).length
+
+      const cards = apps.map(function(a: any) {
+        const dates = (a.preferred_dates || '').split('/').map(function(d: string){ return d.trim() }).filter(Boolean)
+        const insta = a.instagram
+          ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" class="inline-flex items-center gap-1 text-pink-500 text-xs font-semibold hover:underline"><i class="fab fa-instagram"></i>@' + a.instagram + '</a>'
+          : ''
+        const dateLabel = a.scheduled_date
+          ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold" style="background:#dcfce7;color:#166534"><i class="fas fa-calendar-check text-[10px]"></i>' + a.scheduled_date + '</span>'
+          : (dates.length
+            ? '<span class="text-xs text-gray-400"><i class="far fa-calendar mr-1"></i>' + dates.join(' / ') + '</span>'
+            : '<span class="text-xs text-gray-300">날짜 미정</span>')
+        const appliedAt = (a.created_at || '').replace('T',' ').slice(0, 16)
+        return '<div class="flex flex-wrap items-start justify-between gap-3 py-3 border-b border-stone-50 last:border-0">' +
+          '<div class="flex items-center gap-3 min-w-0">' +
+            '<div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">' +
+              '<i class="fas fa-user text-xs"></i>' +
+            '</div>' +
+            '<div class="min-w-0">' +
+              '<p class="font-semibold text-gray-900 text-sm">' + (a.applicant_name || '') + '</p>' +
+              '<p class="text-xs text-gray-400">' + (a.nationality || '') + ' · ' + (a.email || '') + '</p>' +
+              (a.phone ? '<p class="text-xs text-gray-400"><i class="fab fa-whatsapp text-green-500 mr-0.5"></i>' + a.phone + '</p>' : '') +
+              '<div class="flex flex-wrap items-center gap-2 mt-1">' + insta + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="text-right flex-shrink-0">' +
+            '<div class="mb-1">' + dateLabel + '</div>' +
+            '<p class="text-[10px] text-gray-300">신청 ' + appliedAt + '</p>' +
+          '</div>' +
+        '</div>'
+      }).join('')
+
+      return '<div class="card p-5">' +
+        '<div class="flex items-center justify-between gap-3 mb-3">' +
+          '<div class="flex items-center gap-3">' +
+            '<div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">' +
+              '<i class="fas fa-hospital text-white text-sm"></i>' +
+            '</div>' +
+            '<div>' +
+              '<h3 class="font-bold text-gray-900 text-sm">' + clinicName + '</h3>' +
+              '<p class="text-xs text-gray-400">' + apps.length + '명 승인 · 날짜확정 ' + scheduledCnt + '명</p>' +
+            '</div>' +
+          '</div>' +
+          '<span class="text-xs bg-green-50 text-green-700 border border-green-100 font-semibold px-3 py-1 rounded-full">✅ ' + apps.length + '명</span>' +
+        '</div>' +
+        '<div class="divide-y divide-stone-50">' + cards + '</div>' +
+      '</div>'
+    }).join('')
+
+    listEl.classList.remove('hidden')
+  } catch(e) {
+    loadEl.classList.add('hidden')
+    emptyEl.textContent = '데이터를 불러오지 못했습니다.'
+    emptyEl.classList.remove('hidden')
+  }
+}
+
+function exportApproved() {
+  if (!_approvedData.length) { alert('내보낼 데이터가 없습니다.'); return }
+  const rows = [['업체명','신청자명','국적','이메일','WhatsApp','인스타그램','희망날짜','확정날짜','신청일시']]
+  _approvedData.forEach(function(a: any) {
+    rows.push([
+      a.place_name_ko || a.place_name || a.campaign_title || '',
+      a.applicant_name || '',
+      a.nationality || '',
+      a.email || '',
+      a.phone || '',
+      a.instagram ? '@' + a.instagram : '',
+      (a.preferred_dates || '').replace(/\//g, ' / '),
+      a.scheduled_date || '',
+      (a.created_at || '').replace('T', ' ').slice(0, 16)
+    ])
+  })
+  const csv = rows.map(function(r) {
+    return r.map(function(cell) { return '"' + String(cell).replace(/"/g, '""') + '"' }).join(',')
+  }).join('\n')
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href = url; a.download = 'approved_applicants_' + new Date().toISOString().slice(0,10) + '.csv'
+  a.click(); URL.revokeObjectURL(url)
+}
+
 // ════════════════════════════════════════════
 // 4. Campaigns (업체별 신청자 보기 포함)
 // ════════════════════════════════════════════
