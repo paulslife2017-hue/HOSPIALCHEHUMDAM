@@ -350,53 +350,32 @@ TELEGRAM_CHAT_ID=123456789</pre>
   <!-- ── 업체 승인 내역 panel ── -->
   <div id="panel-approved" class="hidden">
 
-    <!-- 헤더 + 필터 -->
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <!-- 헤더 -->
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
       <div>
         <h2 class="font-bold text-gray-900 text-base"><i class="fas fa-check-circle text-green-500 mr-2"></i>업체 승인 내역</h2>
-        <p class="text-xs text-gray-400 mt-0.5">업체 또는 관리자가 승인 처리한 신청자 목록입니다</p>
+        <p class="text-xs text-gray-400 mt-0.5">승인된 신청자를 업체·날짜별로 확인합니다</p>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
-        <select id="approvedFilterCamp" onchange="loadApproved()" class="text-xs border border-stone-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-amber-400">
-          <option value="">전체 업체</option>
-        </select>
         <button onclick="loadApproved()" class="text-xs btn-gold px-3 py-2 rounded-xl flex items-center gap-1.5">
           <i class="fas fa-sync-alt"></i>새로고침
         </button>
         <button onclick="exportApproved()" class="text-xs bg-green-50 text-green-700 border border-green-200 font-semibold px-3 py-2 rounded-xl hover:bg-green-100 transition flex items-center gap-1.5">
-          <i class="fas fa-download"></i>CSV 내보내기
+          <i class="fas fa-file-csv"></i>CSV
         </button>
       </div>
     </div>
 
-    <!-- 요약 카드 -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-      <div class="card p-4 text-center">
-        <div class="text-2xl font-bold text-green-600" id="appr-total">—</div>
-        <div class="text-xs text-gray-400 mt-0.5">총 승인</div>
-      </div>
-      <div class="card p-4 text-center">
-        <div class="text-2xl font-bold text-gray-900" id="appr-clinics">—</div>
-        <div class="text-xs text-gray-400 mt-0.5">업체 수</div>
-      </div>
-      <div class="card p-4 text-center">
-        <div class="text-2xl font-bold text-amber-500" id="appr-scheduled">—</div>
-        <div class="text-xs text-gray-400 mt-0.5">날짜 확정</div>
-      </div>
-      <div class="card p-4 text-center">
-        <div class="text-2xl font-bold text-blue-500" id="appr-pending-date">—</div>
-        <div class="text-xs text-gray-400 mt-0.5">날짜 미정</div>
-      </div>
-    </div>
-
     <!-- 로딩 -->
-    <div id="approvedLoading" class="text-center py-16 text-gray-400">
+    <div id="approvedLoading" class="text-center py-20 text-gray-400">
       <i class="fas fa-spinner fa-spin text-2xl mb-2 block"></i>불러오는 중…
     </div>
 
-    <!-- 업체별 그룹 목록 -->
-    <div id="approvedList" class="space-y-6 hidden"></div>
-    <p id="approvedEmpty" class="hidden text-center text-gray-400 text-sm py-16">
+    <!-- 업체별 섹션 목록 -->
+    <div id="approvedList" class="space-y-8 hidden"></div>
+
+    <!-- 비어있음 -->
+    <p id="approvedEmpty" class="hidden text-center text-gray-400 text-sm py-20">
       <i class="fas fa-inbox text-3xl block mb-3 text-gray-200"></i>승인된 신청자가 없습니다
     </p>
 
@@ -669,9 +648,14 @@ async function loadApps() {
       // 날짜 버튼: 클릭 → 승인 or 일정수정 모달 바로 오픈
       const dateHtml = dates.map(function(d){
         var safeD  = d.replace(/&/g,'&amp;').replace(/"/g,'&quot;')
-        var safePD = (a.preferred_dates||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
-        var safeSd = (a.scheduled_date||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
-        return '<span style="display:inline-flex;align-items:center;gap:3px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:500;margin:1px;">' + '<i class="far fa-calendar-check" style="font-size:9px;opacity:0.7;"></i>' + safeD + '</span>'
+        var isApproved = a.status === 'approved'
+        var btnStyle = isApproved
+          ? 'display:inline-flex;align-items:center;gap:3px;background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:500;margin:1px;cursor:pointer;'
+          : 'display:inline-flex;align-items:center;gap:3px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:500;margin:1px;cursor:pointer;'
+        var btnTitle = isApproved ? '이 날짜로 일정 변경' : '이 날짜로 승인'
+        var icon = isApproved ? 'fa-calendar-pen' : 'fa-calendar-check'
+        return '<button type="button" data-appid="' + a.id + '" data-dated="' + safeD + '" data-mode="' + (isApproved ? 'reschedule' : 'approve') + '" data-pd="' + (a.preferred_dates||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" onclick="quickApproveDate(this)" title="' + btnTitle + '" style="' + btnStyle + '">'
+          + '<i class="far ' + icon + '" style="font-size:9px;opacity:0.7;"></i>' + safeD + '</button>'
       }).join('')
       const statusKo = a.status === 'approved' ? '✅ 승인' : a.status === 'rejected' ? '❌ 거절' : '⏳ 대기'
       var scheduledLine = a.scheduled_date
@@ -811,6 +795,48 @@ async function approveWithDate(id, preferredDatesRaw) {
 // 달력 카드에서 호출 — 즉시 승인 처리
 async function approveWithDatePreselect(id, preferredDatesRaw, preTimeInfo) {
   await setStatus(id, 'approved')
+}
+
+// 날짜 버튼 클릭 → 해당 날짜로 즉시 승인/일정변경
+async function quickApproveDate(btn) {
+  var appId     = btn.getAttribute('data-appid')
+  var dated     = btn.getAttribute('data-dated')
+  var mode      = btn.getAttribute('data-mode')   // 'approve' | 'reschedule'
+  var pd        = btn.getAttribute('data-pd') || ''
+  if (!appId || !dated) return
+
+  var isReschedule = (mode === 'reschedule')
+  var label = isReschedule ? '이 날짜로 일정 변경' : '이 날짜로 승인'
+
+  if (!confirm(dated + '\n\n' + label + '할까요?')) return
+
+  var origHtml = btn.innerHTML
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:10px"></i>'
+  btn.disabled = true
+
+  try {
+    var payload = isReschedule
+      ? { scheduled_date: dated }
+      : { status: 'approved', scheduled_date: dated }
+    var res = await fetch('/api/admin/applications/' + appId, {
+      method: 'PATCH', headers: H, body: JSON.stringify(payload)
+    })
+    var data = await res.json()
+    if (data.success || res.ok) {
+      // 모달 열려있으면 닫기
+      document.getElementById('appModal').classList.remove('open')
+      loadApps()
+      loadStats()
+    } else {
+      alert(data.error || '오류가 발생했습니다.')
+      btn.innerHTML = origHtml
+      btn.disabled = false
+    }
+  } catch(e) {
+    alert('네트워크 오류')
+    btn.innerHTML = origHtml
+    btn.disabled = false
+  }
 }
 
 function rescheduleApp(id, preferredDatesRaw, currentScheduled) {
@@ -991,13 +1017,27 @@ function copyAppMsg(id, btnEl) {
 function openAppDetail(a) {
   const dates    = (a.preferred_dates || '').split('/').map(d => d.trim()).filter(Boolean)
   // 상세 모달 내 날짜 버튼: 클릭 → 모달 닫고 날짜선택 모달 오픈
+  const isApproved = a.status === 'approved'
   const dateHtml = dates.map(d => {
-    var safePD2 = (a.preferred_dates||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
-    return '<div class="w-full flex items-center gap-2 py-2 px-2 rounded-xl border border-transparent text-left">'
+    var safeD = d.replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    var btnLabel = isApproved ? '일정 변경' : '이 날짜로 승인'
+    var btnColor = isApproved
+      ? 'background:#fef3c7;border:1px solid #fde68a;color:#92400e;'
+      : 'background:#dcfce7;border:1px solid #bbf7d0;color:#166534;'
+    var btnIcon = isApproved ? 'fa-calendar-pen' : 'fa-check'
+    return '<div class="w-full flex items-center gap-2 py-2 px-2 rounded-xl border border-stone-100 hover:border-amber-200 hover:bg-amber-50/30 transition">'
       + '<i class="far fa-calendar-alt text-amber-400 text-xs w-4 flex-shrink-0"></i>'
-      + '<span class="text-sm text-gray-700 flex-1 font-medium">' + d + '</span>'
+      + '<span class="text-sm text-gray-700 flex-1 font-medium">' + safeD + '</span>'
+      + '<button type="button"'
+      + ' data-appid="' + a.id + '"'
+      + ' data-dated="' + safeD + '"'
+      + ' data-mode="' + (isApproved ? 'reschedule' : 'approve') + '"'
+      + ' data-pd="' + (a.preferred_dates||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '"'
+      + ' onclick="quickApproveDate(this)"'
+      + ' style="flex-shrink:0;' + btnColor + 'border-radius:8px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;">'
+      + '<i class="fas ' + btnIcon + ' mr-1" style="font-size:10px;"></i>' + btnLabel
+      + '</button>'
       + '</div>'
-
   }).join('')
   const clinicMsg = buildClinicMsg(a)
   const instaUrl  = a.instagram ? 'https://instagram.com/' + a.instagram : ''
@@ -1073,8 +1113,10 @@ function openAppDetail(a) {
         <span class="badge badge-\${a.status} mr-2">\${{ pending:'⏳ 대기', approved:'✅ 승인', rejected:'❌ 거절' }[a.status]}</span>
         <span class="text-[10px] text-gray-400">\${new Date(a.created_at).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}</span>
       </div>
-      <div class="flex gap-2 flex-wrap">
-        <span class="text-[11px] text-gray-400 flex items-center gap-1"><i class="fas fa-store mr-1"></i>업체에서 승인·거절 처리</span>
+      <div class="flex gap-1.5 flex-wrap">
+        \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved');document.getElementById('appModal').classList.remove('open')" style="background:#dcfce7;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;"><i class="fas fa-check mr-1"></i>승인</button>\` : ''}
+        \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');document.getElementById('appModal').classList.remove('open')" style="background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;"><i class="fas fa-times mr-1"></i>거절</button>\` : ''}
+        \${a.status !== 'pending' ? \`<button onclick="setStatus(\${a.id},'pending');document.getElementById('appModal').classList.remove('open')" style="background:#fef9c3;border:1px solid #fde68a;color:#854d0e;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;"><i class="fas fa-undo mr-1"></i>대기</button>\` : ''}
       </div>
     </div>\`
   document.getElementById('appModal').classList.add('open')
@@ -1086,103 +1128,117 @@ function openAppDetail(a) {
 // ════════════════════════════════════════════
 // 4-A. 업체 승인 내역
 // ════════════════════════════════════════════
+// ── 업체 승인 내역 ────────────────────────────
 var _approvedData = []
 
 async function loadApproved() {
-  const loadEl  = document.getElementById('approvedLoading')
-  const listEl  = document.getElementById('approvedList')
-  const emptyEl = document.getElementById('approvedEmpty')
+  var loadEl  = document.getElementById('approvedLoading')
+  var listEl  = document.getElementById('approvedList')
+  var emptyEl = document.getElementById('approvedEmpty')
   loadEl.classList.remove('hidden')
   listEl.classList.add('hidden')
   emptyEl.classList.add('hidden')
 
   try {
-    const res  = await fetch('/api/admin/applications?status=approved', { headers: H })
-    const json = await res.json()
+    var res  = await fetch('/api/admin/applications?status=approved', { headers: H })
+    var json = await res.json()
     if (!json.success && json.error === 'Unauthorized') { window.location.href = '/admin'; return }
-    const data = json.data || []
+    var data = json.data || []
     _approvedData = data
 
-    // 요약
-    const clinicSet = new Set(data.map(function(a){ return a.campaign_id }))
-    document.getElementById('appr-total').textContent    = String(data.length)
-    document.getElementById('appr-clinics').textContent  = String(clinicSet.size)
-    document.getElementById('appr-scheduled').textContent = String(data.filter(function(a){ return a.scheduled_date }).length)
-    document.getElementById('appr-pending-date').textContent = String(data.filter(function(a){ return !a.scheduled_date }).length)
-
-    // 업체 필터 셀렉트 업데이트
-    const sel = document.getElementById('approvedFilterCamp')
-    const prevVal = sel.value
-    const clinicMap = {}
-    data.forEach(function(a) {
-      clinicMap[a.campaign_id] = a.place_name_ko || a.place_name || a.campaign_title || ('Campaign ' + a.campaign_id)
-    })
-    sel.innerHTML = '<option value="">전체 업체</option>' +
-      Object.entries(clinicMap).map(function([id, name]){ return '<option value="' + id + '"' + (prevVal == id ? ' selected' : '') + '>' + name + '</option>' }).join('')
-
-    // 필터
-    const filterCid = sel.value
-    const filtered  = filterCid ? data.filter(function(a){ return String(a.campaign_id) === filterCid }) : data
-
     loadEl.classList.add('hidden')
-    if (!filtered.length) { emptyEl.classList.remove('hidden'); return }
+    if (!data.length) { emptyEl.classList.remove('hidden'); return }
 
-    // 업체별 그룹핑
-    const groups = {}
-    filtered.forEach(function(a) {
-      const key = String(a.campaign_id)
+    // 업체(campaign_id)별 그룹핑
+    var groups = {}
+    data.forEach(function(a) {
+      var key = String(a.campaign_id)
       if (!groups[key]) groups[key] = []
       groups[key].push(a)
     })
 
-    listEl.innerHTML = Object.entries(groups).map(function([cid, apps]) {
-      const clinicName = apps[0].place_name_ko || apps[0].place_name || apps[0].campaign_title || ('Campaign ' + cid)
-      const scheduledCnt = apps.filter(function(a){ return a.scheduled_date }).length
+    listEl.innerHTML = Object.keys(groups).map(function(cid) {
+      var apps = groups[cid]
+      var clinic = apps[0]
+      var clinicName = clinic.place_name_ko || clinic.place_name || clinic.campaign_title || ('업체 ' + cid)
+      var totalCnt = apps.length
+      var scheduledCnt = apps.filter(function(a){ return !!a.scheduled_date }).length
+      var pendingDateCnt = totalCnt - scheduledCnt
 
-      const cards = apps.map(function(a) {
-        const dates = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
-        const insta = a.instagram
-          ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" class="inline-flex items-center gap-1 text-pink-500 text-xs font-semibold hover:underline"><i class="fab fa-instagram"></i>@' + a.instagram + '</a>'
-          : ''
-        const dateLabel = a.scheduled_date
-          ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold" style="background:#dcfce7;color:#166534"><i class="fas fa-calendar-check text-[10px]"></i>' + a.scheduled_date + '</span>'
-          : (dates.length
-            ? '<span class="text-xs text-gray-400"><i class="far fa-calendar mr-1"></i>' + dates.join(' / ') + '</span>'
-            : '<span class="text-xs text-gray-300">날짜 미정</span>')
-        const appliedAt = (a.created_at || '').replace('T',' ').slice(0, 16)
-        return '<div class="flex flex-wrap items-start justify-between gap-3 py-3 border-b border-stone-50 last:border-0">' +
-          '<div class="flex items-center gap-3 min-w-0">' +
-            '<div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">' +
-              '<i class="fas fa-user text-xs"></i>' +
+      // 날짜별 그룹핑 (scheduled_date 기준, 없으면 희망일별)
+      var dateGroups = {}
+      apps.forEach(function(a) {
+        var key = a.scheduled_date
+          ? '확정: ' + a.scheduled_date
+          : '날짜 미정'
+        if (!dateGroups[key]) dateGroups[key] = []
+        dateGroups[key].push(a)
+      })
+
+      // 날짜 그룹 정렬 (확정 먼저, 미정 마지막)
+      var sortedKeys = Object.keys(dateGroups).sort(function(a, b) {
+        if (a === '날짜 미정') return 1
+        if (b === '날짜 미정') return -1
+        return a < b ? -1 : 1
+      })
+
+      var dateGroupsHtml = sortedKeys.map(function(dk) {
+        var group = dateGroups[dk]
+        var isConfirmed = dk !== '날짜 미정'
+        var dkLabel = isConfirmed
+          ? '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:8px;padding:2px 10px;font-size:11px;font-weight:600;"><i class="fas fa-calendar-check" style="margin-right:4px;font-size:10px;"></i>' + dk.replace('확정: ', '') + '</span>'
+          : '<span style="background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;border-radius:8px;padding:2px 10px;font-size:11px;font-weight:500;"><i class="far fa-calendar" style="margin-right:4px;font-size:10px;"></i>날짜 미정</span>'
+
+        var rows = group.map(function(a) {
+          var insta = a.instagram
+            ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="margin-right:2px;"></i>@' + a.instagram + '</a>'
+            : ''
+          var preferredDates = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
+          var prefHtml = (!isConfirmed && preferredDates.length)
+            ? '<div style="margin-top:4px;">' + preferredDates.map(function(d){
+                return '<span style="display:inline-block;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:6px;padding:1px 8px;font-size:10px;margin:1px;">' + d + '</span>'
+              }).join('') + '</div>'
+            : ''
+          var rescheduleBtn = '<button type="button" data-appid="' + a.id + '" data-dated="" data-mode="reschedule" data-pd="' + (a.preferred_dates||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" onclick="openRescheduleFromApproved(this)" style="flex-shrink:0;background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:3px 8px;font-size:10px;font-weight:600;cursor:pointer;"><i class="fas fa-calendar-pen" style="margin-right:2px;"></i>일정변경</button>'
+          var rejectBtn   = '<button type="button" onclick="setStatusFromApproved(' + a.id + ',this)" style="flex-shrink:0;background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:3px 8px;font-size:10px;font-weight:600;cursor:pointer;"><i class="fas fa-times" style="margin-right:2px;"></i>취소</button>'
+          return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f9fafb;">' +
+            '<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#c9a035,#e8c16a);display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+              '<i class="fas fa-user" style="color:#fff;font-size:11px;"></i>' +
             '</div>' +
-            '<div class="min-w-0">' +
-              '<p class="font-semibold text-gray-900 text-sm">' + (a.applicant_name || '') + '</p>' +
-              '<p class="text-xs text-gray-400">' + (a.nationality || '') + ' · ' + (a.email || '') + '</p>' +
-              (a.phone ? '<p class="text-xs text-gray-400"><i class="fab fa-whatsapp text-green-500 mr-0.5"></i>' + a.phone + '</p>' : '') +
-              '<div class="flex flex-wrap items-center gap-2 mt-1">' + insta + '</div>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<p style="font-weight:600;font-size:13px;color:#111827;margin:0 0 1px;">' + (a.applicant_name || '') + '</p>' +
+              '<p style="font-size:11px;color:#9ca3af;margin:0;">' + (a.nationality || '') + (a.email ? ' · ' + a.email : '') + '</p>' +
+              (a.phone ? '<p style="font-size:11px;color:#9ca3af;margin:0;"><i class="fab fa-whatsapp" style="color:#22c55e;margin-right:2px;"></i>' + a.phone + '</p>' : '') +
+              (insta ? '<div style="margin-top:3px;">' + insta + '</div>' : '') +
+              prefHtml +
             '</div>' +
+            '<div style="display:flex;gap:4px;flex-shrink:0;">' + rescheduleBtn + rejectBtn + '</div>' +
+          '</div>'
+        }).join('')
+
+        return '<div style="margin-bottom:12px;">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+            dkLabel +
+            '<span style="font-size:11px;color:#9ca3af;">' + group.length + '명</span>' +
           '</div>' +
-          '<div class="text-right flex-shrink-0">' +
-            '<div class="mb-1">' + dateLabel + '</div>' +
-            '<p class="text-[10px] text-gray-300">신청 ' + appliedAt + '</p>' +
-          '</div>' +
+          '<div style="padding-left:4px;">' + rows + '</div>' +
         '</div>'
       }).join('')
 
-      return '<div class="card p-5">' +
-        '<div class="flex items-center justify-between gap-3 mb-3">' +
-          '<div class="flex items-center gap-3">' +
-            '<div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">' +
-              '<i class="fas fa-hospital text-white text-sm"></i>' +
+      return '<div class="card p-5 mb-2">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #f3f4f6;">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#c9a035,#e8c16a);display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+              '<i class="fas fa-hospital" style="color:#fff;font-size:14px;"></i>' +
             '</div>' +
             '<div>' +
-              '<h3 class="font-bold text-gray-900 text-sm">' + clinicName + '</h3>' +
-              '<p class="text-xs text-gray-400">' + apps.length + '명 승인 · 날짜확정 ' + scheduledCnt + '명</p>' +
+              '<h3 style="font-weight:700;font-size:14px;color:#111827;margin:0 0 2px;">' + clinicName + '</h3>' +
+              '<p style="font-size:11px;color:#9ca3af;margin:0;">승인 ' + totalCnt + '명' + (scheduledCnt ? ' · 날짜확정 ' + scheduledCnt + '명' : '') + (pendingDateCnt ? ' · 미정 ' + pendingDateCnt + '명' : '') + '</p>' +
             '</div>' +
           '</div>' +
-          '<span class="text-xs bg-green-50 text-green-700 border border-green-100 font-semibold px-3 py-1 rounded-full">✅ ' + apps.length + '명</span>' +
+          '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:99px;padding:3px 12px;font-size:11px;font-weight:600;">✅ ' + totalCnt + '명 승인</span>' +
         '</div>' +
-        '<div class="divide-y divide-stone-50">' + cards + '</div>' +
+        dateGroupsHtml +
       '</div>'
     }).join('')
 
@@ -1191,12 +1247,40 @@ async function loadApproved() {
     loadEl.classList.add('hidden')
     emptyEl.textContent = '데이터를 불러오지 못했습니다.'
     emptyEl.classList.remove('hidden')
+    console.error('loadApproved error', e)
+  }
+}
+
+// 승인 내역에서 일정 변경 버튼 클릭
+function openRescheduleFromApproved(btn) {
+  var appId = btn.getAttribute('data-appid')
+  var pd    = btn.getAttribute('data-pd') || ''
+  // scheduled_date는 현재 카드에서 가져오기 — _approvedData 에서 찾기
+  var found = _approvedData.filter(function(a){ return String(a.id) === String(appId) })
+  var cur   = found.length ? (found[0].scheduled_date || '') : ''
+  _openDatePickModal(appId, pd, 'reschedule', cur)
+}
+
+// 승인 내역에서 취소(거절) 처리
+async function setStatusFromApproved(id, btn) {
+  if (!confirm('이 승인을 취소(거절)하시겠습니까?')) return
+  var origHtml = btn.innerHTML
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:10px"></i>'
+  btn.disabled = true
+  try {
+    await fetch('/api/admin/applications/' + id, { method:'PATCH', headers:H, body: JSON.stringify({ status:'rejected' }) })
+    loadApproved()
+    loadStats()
+  } catch(e) {
+    btn.innerHTML = origHtml
+    btn.disabled = false
+    alert('오류가 발생했습니다.')
   }
 }
 
 function exportApproved() {
   if (!_approvedData.length) { alert('내보낼 데이터가 없습니다.'); return }
-  var rows = [['업체명','신청자명','국적','이메일','WhatsApp','인스타그램','희망날짜','확정날짜','신청일시']]
+  var rows = [['업체명','신청자명','국적','이메일','WhatsApp','인스타그램','확정날짜','희망날짜','신청일시']]
   _approvedData.forEach(function(a) {
     rows.push([
       a.place_name_ko || a.place_name || a.campaign_title || '',
@@ -1205,23 +1289,22 @@ function exportApproved() {
       a.email || '',
       a.phone || '',
       a.instagram ? '@' + a.instagram : '',
-      (a.preferred_dates || '').split('/').join(' / '),
       a.scheduled_date || '',
-      (a.created_at || '').replace('T', ' ').slice(0, 16)
+      (a.preferred_dates || '').split('/').join(' / '),
+      (a.created_at || '').replace('T',' ').slice(0,16)
     ])
   })
   var NL = String.fromCharCode(10)
-  var csv = rows.map(function(r) {
-    return r.map(function(cell) {
-      var s = String(cell).split('"').join('""')
-      return '"' + s + '"'
+  var csv = rows.map(function(r){
+    return r.map(function(cell){
+      return '"' + String(cell).split('"').join('""') + '"'
     }).join(',')
   }).join(NL)
-  var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  var blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' })
   var url  = URL.createObjectURL(blob)
   var dl   = document.createElement('a')
   dl.href = url
-  dl.download = 'approved_applicants_' + new Date().toISOString().slice(0,10) + '.csv'
+  dl.download = 'approved_' + new Date().toISOString().slice(0,10) + '.csv'
   dl.click()
   URL.revokeObjectURL(url)
 }
