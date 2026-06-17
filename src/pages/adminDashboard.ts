@@ -350,31 +350,21 @@ TELEGRAM_CHAT_ID=123456789</pre>
   <!-- ── 업체 승인 내역 panel ── -->
   <div id="panel-approved" class="hidden">
 
-    <!-- 헤더 -->
     <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
       <div>
         <h2 class="font-bold text-gray-900 text-base"><i class="fas fa-check-circle text-green-500 mr-2"></i>업체 승인 내역</h2>
-        <p class="text-xs text-gray-400 mt-0.5">승인된 신청자를 업체·날짜별로 확인합니다</p>
+        <p class="text-xs text-gray-400 mt-0.5">승인된 인플루언서를 업체별로 확인합니다</p>
       </div>
-      <div class="flex items-center gap-2 flex-wrap">
-        <button onclick="loadApproved()" class="text-xs btn-gold px-3 py-2 rounded-xl flex items-center gap-1.5">
-          <i class="fas fa-sync-alt"></i>새로고침
-        </button>
-        <button onclick="exportApproved()" class="text-xs bg-green-50 text-green-700 border border-green-200 font-semibold px-3 py-2 rounded-xl hover:bg-green-100 transition flex items-center gap-1.5">
-          <i class="fas fa-file-csv"></i>CSV
-        </button>
+      <div class="flex items-center gap-2">
+        <button onclick="loadApproved()" class="text-xs btn-gold px-3 py-2 rounded-xl flex items-center gap-1.5"><i class="fas fa-sync-alt"></i>새로고침</button>
+        <button onclick="exportApproved()" class="text-xs bg-white border border-stone-200 text-gray-600 font-semibold px-3 py-2 rounded-xl hover:bg-stone-50 transition flex items-center gap-1.5"><i class="fas fa-file-csv text-green-500"></i>CSV</button>
       </div>
     </div>
 
-    <!-- 로딩 -->
     <div id="approvedLoading" class="text-center py-20 text-gray-400">
       <i class="fas fa-spinner fa-spin text-2xl mb-2 block"></i>불러오는 중…
     </div>
-
-    <!-- 업체별 섹션 목록 -->
-    <div id="approvedList" class="space-y-8 hidden"></div>
-
-    <!-- 비어있음 -->
+    <div id="approvedList" class="space-y-4 hidden"></div>
     <p id="approvedEmpty" class="hidden text-center text-gray-400 text-sm py-20">
       <i class="fas fa-inbox text-3xl block mb-3 text-gray-200"></i>승인된 신청자가 없습니다
     </p>
@@ -1127,8 +1117,7 @@ function openAppDetail(a) {
 // ════════════════════════════════════════════
 // ════════════════════════════════════════════
 // 4-A. 업체 승인 내역
-// ════════════════════════════════════════════
-// ── 업체 승인 내역 ────────────────────────────
+// ── 업체 승인 내역 ──────────────────────────────
 var _approvedData = []
 
 async function loadApproved() {
@@ -1138,107 +1127,65 @@ async function loadApproved() {
   loadEl.classList.remove('hidden')
   listEl.classList.add('hidden')
   emptyEl.classList.add('hidden')
-
   try {
     var res  = await fetch('/api/admin/applications?status=approved', { headers: H })
     var json = await res.json()
     if (!json.success && json.error === 'Unauthorized') { window.location.href = '/admin'; return }
     var data = json.data || []
     _approvedData = data
-
     loadEl.classList.add('hidden')
     if (!data.length) { emptyEl.classList.remove('hidden'); return }
 
-    // 업체(campaign_id)별 그룹핑
+    // 업체별 그룹
     var groups = {}
     data.forEach(function(a) {
-      var key = String(a.campaign_id)
-      if (!groups[key]) groups[key] = []
-      groups[key].push(a)
+      var k = String(a.campaign_id)
+      if (!groups[k]) groups[k] = []
+      groups[k].push(a)
     })
 
     listEl.innerHTML = Object.keys(groups).map(function(cid) {
       var apps = groups[cid]
-      var clinic = apps[0]
-      var clinicName = clinic.place_name_ko || clinic.place_name || clinic.campaign_title || ('업체 ' + cid)
-      var totalCnt = apps.length
-      var scheduledCnt = apps.filter(function(a){ return !!a.scheduled_date }).length
-      var pendingDateCnt = totalCnt - scheduledCnt
+      var first = apps[0]
+      var clinicName = first.place_name_ko || first.place_name || first.campaign_title || ('업체 ' + cid)
 
-      // 날짜별 그룹핑 (scheduled_date 기준, 없으면 희망일별)
-      var dateGroups = {}
-      apps.forEach(function(a) {
-        var key = a.scheduled_date
-          ? '확정: ' + a.scheduled_date
-          : '날짜 미정'
-        if (!dateGroups[key]) dateGroups[key] = []
-        dateGroups[key].push(a)
-      })
-
-      // 날짜 그룹 정렬 (확정 먼저, 미정 마지막)
-      var sortedKeys = Object.keys(dateGroups).sort(function(a, b) {
-        if (a === '날짜 미정') return 1
-        if (b === '날짜 미정') return -1
-        return a < b ? -1 : 1
-      })
-
-      var dateGroupsHtml = sortedKeys.map(function(dk) {
-        var group = dateGroups[dk]
-        var isConfirmed = dk !== '날짜 미정'
-        var dkLabel = isConfirmed
-          ? '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:8px;padding:2px 10px;font-size:11px;font-weight:600;"><i class="fas fa-calendar-check" style="margin-right:4px;font-size:10px;"></i>' + dk.replace('확정: ', '') + '</span>'
-          : '<span style="background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;border-radius:8px;padding:2px 10px;font-size:11px;font-weight:500;"><i class="far fa-calendar" style="margin-right:4px;font-size:10px;"></i>날짜 미정</span>'
-
-        var rows = group.map(function(a) {
-          var insta = a.instagram
-            ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="margin-right:2px;"></i>@' + a.instagram + '</a>'
-            : ''
-          var preferredDates = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
-          var prefHtml = (!isConfirmed && preferredDates.length)
-            ? '<div style="margin-top:4px;">' + preferredDates.map(function(d){
-                return '<span style="display:inline-block;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:6px;padding:1px 8px;font-size:10px;margin:1px;">' + d + '</span>'
-              }).join('') + '</div>'
-            : ''
-          var rescheduleBtn = '<button type="button" data-appid="' + a.id + '" data-dated="" data-mode="reschedule" data-pd="' + (a.preferred_dates||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" onclick="openRescheduleFromApproved(this)" style="flex-shrink:0;background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:3px 8px;font-size:10px;font-weight:600;cursor:pointer;"><i class="fas fa-calendar-pen" style="margin-right:2px;"></i>일정변경</button>'
-          var rejectBtn   = '<button type="button" onclick="setStatusFromApproved(' + a.id + ',this)" style="flex-shrink:0;background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:3px 8px;font-size:10px;font-weight:600;cursor:pointer;"><i class="fas fa-times" style="margin-right:2px;"></i>취소</button>'
-          return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f9fafb;">' +
-            '<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#c9a035,#e8c16a);display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
-              '<i class="fas fa-user" style="color:#fff;font-size:11px;"></i>' +
-            '</div>' +
-            '<div style="flex:1;min-width:0;">' +
-              '<p style="font-weight:600;font-size:13px;color:#111827;margin:0 0 1px;">' + (a.applicant_name || '') + '</p>' +
-              '<p style="font-size:11px;color:#9ca3af;margin:0;">' + (a.nationality || '') + (a.email ? ' · ' + a.email : '') + '</p>' +
-              (a.phone ? '<p style="font-size:11px;color:#9ca3af;margin:0;"><i class="fab fa-whatsapp" style="color:#22c55e;margin-right:2px;"></i>' + a.phone + '</p>' : '') +
-              (insta ? '<div style="margin-top:3px;">' + insta + '</div>' : '') +
-              prefHtml +
-            '</div>' +
-            '<div style="display:flex;gap:4px;flex-shrink:0;">' + rescheduleBtn + rejectBtn + '</div>' +
-          '</div>'
-        }).join('')
-
-        return '<div style="margin-bottom:12px;">' +
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
-            dkLabel +
-            '<span style="font-size:11px;color:#9ca3af;">' + group.length + '명</span>' +
-          '</div>' +
-          '<div style="padding-left:4px;">' + rows + '</div>' +
-        '</div>'
+      var rows = apps.map(function(a) {
+        // 확정날짜 or 희망날짜 한 줄
+        var dateChip = a.scheduled_date
+          ? '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:6px;padding:1px 8px;font-size:11px;font-weight:600;white-space:nowrap;"><i class="fas fa-calendar-check" style="font-size:9px;margin-right:3px;"></i>' + a.scheduled_date + '</span>'
+          : '<span style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:6px;padding:1px 8px;font-size:11px;font-weight:500;white-space:nowrap;"><i class="far fa-calendar" style="font-size:9px;margin-right:3px;"></i>날짜 미정</span>'
+        var instaLink = a.instagram
+          ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="margin-right:2px;"></i>@' + a.instagram + '</a>'
+          : '<span style="color:#d1d5db;font-size:11px;">—</span>'
+        var cancelBtn = '<button type="button" onclick="approvedCancel(' + a.id + ',this)" style="flex-shrink:0;background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;"><i class="fas fa-times" style="margin-right:2px;"></i>취소</button>'
+        return '<tr style="border-bottom:1px solid #f3f4f6;">' +
+          '<td style="padding:10px 8px;">' +
+            '<p style="font-weight:600;font-size:13px;color:#111827;margin:0;">' + (a.applicant_name || '') + '</p>' +
+            '<p style="font-size:11px;color:#9ca3af;margin:2px 0 0;">' + (a.nationality || '') + '</p>' +
+          '</td>' +
+          '<td style="padding:10px 8px;">' + instaLink + '</td>' +
+          '<td style="padding:10px 8px;">' + dateChip + '</td>' +
+          '<td style="padding:10px 8px;text-align:right;">' + cancelBtn + '</td>' +
+        '</tr>'
       }).join('')
 
-      return '<div class="card p-5 mb-2">' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #f3f4f6;">' +
-          '<div style="display:flex;align-items:center;gap:10px;">' +
-            '<div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#c9a035,#e8c16a);display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
-              '<i class="fas fa-hospital" style="color:#fff;font-size:14px;"></i>' +
-            '</div>' +
-            '<div>' +
-              '<h3 style="font-weight:700;font-size:14px;color:#111827;margin:0 0 2px;">' + clinicName + '</h3>' +
-              '<p style="font-size:11px;color:#9ca3af;margin:0;">승인 ' + totalCnt + '명' + (scheduledCnt ? ' · 날짜확정 ' + scheduledCnt + '명' : '') + (pendingDateCnt ? ' · 미정 ' + pendingDateCnt + '명' : '') + '</p>' +
-            '</div>' +
+      return '<div class="card p-0 overflow-hidden">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#fafaf9;border-bottom:1px solid #f0ece4;">' +
+          '<div>' +
+            '<p style="font-weight:700;font-size:14px;color:#111827;margin:0;">' + clinicName + '</p>' +
+            '<p style="font-size:11px;color:#9ca3af;margin:2px 0 0;">승인 ' + apps.length + '명</p>' +
           '</div>' +
-          '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:99px;padding:3px 12px;font-size:11px;font-weight:600;">✅ ' + totalCnt + '명 승인</span>' +
+          '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:99px;padding:3px 12px;font-size:11px;font-weight:600;">✅ ' + apps.length + '명</span>' +
         '</div>' +
-        dateGroupsHtml +
+        '<table style="width:100%;border-collapse:collapse;">' +
+          '<thead><tr style="border-bottom:1px solid #f0ece4;">' +
+            '<th style="padding:7px 8px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">신청자</th>' +
+            '<th style="padding:7px 8px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">인스타그램</th>' +
+            '<th style="padding:7px 8px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">날짜</th>' +
+            '<th style="padding:7px 8px;"></th>' +
+          '</tr></thead>' +
+          '<tbody style="background:#fff;">' + rows + '</tbody>' +
+        '</table>' +
       '</div>'
     }).join('')
 
@@ -1247,35 +1194,19 @@ async function loadApproved() {
     loadEl.classList.add('hidden')
     emptyEl.textContent = '데이터를 불러오지 못했습니다.'
     emptyEl.classList.remove('hidden')
-    console.error('loadApproved error', e)
   }
 }
 
-// 승인 내역에서 일정 변경 버튼 클릭
-function openRescheduleFromApproved(btn) {
-  var appId = btn.getAttribute('data-appid')
-  var pd    = btn.getAttribute('data-pd') || ''
-  // scheduled_date는 현재 카드에서 가져오기 — _approvedData 에서 찾기
-  var found = _approvedData.filter(function(a){ return String(a.id) === String(appId) })
-  var cur   = found.length ? (found[0].scheduled_date || '') : ''
-  _openDatePickModal(appId, pd, 'reschedule', cur)
-}
-
-// 승인 내역에서 취소(거절) 처리
-async function setStatusFromApproved(id, btn) {
-  if (!confirm('이 승인을 취소(거절)하시겠습니까?')) return
-  var origHtml = btn.innerHTML
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:10px"></i>'
+async function approvedCancel(id, btn) {
+  if (!confirm('이 승인을 취소하시겠습니까?')) return
+  var orig = btn.innerHTML
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'
   btn.disabled = true
   try {
-    await fetch('/api/admin/applications/' + id, { method:'PATCH', headers:H, body: JSON.stringify({ status:'rejected' }) })
+    await fetch('/api/admin/applications/' + id, { method:'PATCH', headers:H, body: JSON.stringify({ status:'pending' }) })
     loadApproved()
     loadStats()
-  } catch(e) {
-    btn.innerHTML = origHtml
-    btn.disabled = false
-    alert('오류가 발생했습니다.')
-  }
+  } catch(e) { btn.innerHTML = orig; btn.disabled = false; alert('오류가 발생했습니다.') }
 }
 
 function exportApproved() {
@@ -1296,16 +1227,12 @@ function exportApproved() {
   })
   var NL = String.fromCharCode(10)
   var csv = rows.map(function(r){
-    return r.map(function(cell){
-      return '"' + String(cell).split('"').join('""') + '"'
-    }).join(',')
+    return r.map(function(cell){ return '"' + String(cell).split('"').join('""') + '"' }).join(',')
   }).join(NL)
   var blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' })
   var url  = URL.createObjectURL(blob)
   var dl   = document.createElement('a')
-  dl.href = url
-  dl.download = 'approved_' + new Date().toISOString().slice(0,10) + '.csv'
-  dl.click()
+  dl.href = url; dl.download = 'approved_' + new Date().toISOString().slice(0,10) + '.csv'; dl.click()
   URL.revokeObjectURL(url)
 }
 
