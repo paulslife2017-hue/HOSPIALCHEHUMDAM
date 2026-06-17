@@ -20,6 +20,12 @@ export function clinicShareHTML(): string {
     .badge-rejected{background:#fee2e2;color:#991b1b;}
     .btn-gold{background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;font-weight:600;border:none;cursor:pointer;}
     .btn-gold:hover{opacity:.9;}
+    .btn-approve{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-size:11px;font-weight:600;padding:4px 12px;border-radius:8px;cursor:pointer;transition:all .15s;}
+    .btn-approve:hover{background:#166534;color:#fff;}
+    .btn-reject{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;font-size:11px;font-weight:600;padding:4px 12px;border-radius:8px;cursor:pointer;transition:all .15s;}
+    .btn-reject:hover{background:#991b1b;color:#fff;}
+    .btn-pending-reset{background:#fef9c3;color:#854d0e;border:1px solid #fde68a;font-size:11px;font-weight:600;padding:4px 12px;border-radius:8px;cursor:pointer;transition:all .15s;}
+    .btn-pending-reset:hover{background:#854d0e;color:#fff;}
     ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#d4c4a0;border-radius:4px;}
   </style>
 </head>
@@ -220,7 +226,25 @@ function renderList() {
     var datesHtml = dates.map(function(d){
       return '<span class="text-xs bg-stone-50 border border-stone-200 rounded-lg px-2 py-1">' + d + '</span>'
     }).join('')
-    return '<div class="card p-4">' +
+    // 현재 상태에 따라 버튼 구성
+    var actionBtns = ''
+    if (a.status === 'pending') {
+      actionBtns = '<div class="flex gap-2 mt-3">' +
+        '<button class="btn-approve" data-id="' + a.id + '" data-action="approved"><i class="fas fa-check mr-1"></i>승인</button>' +
+        '<button class="btn-reject"  data-id="' + a.id + '" data-action="rejected"><i class="fas fa-times mr-1"></i>거절</button>' +
+      '</div>'
+    } else if (a.status === 'approved') {
+      actionBtns = '<div class="flex gap-2 mt-3">' +
+        '<button class="btn-reject"         data-id="' + a.id + '" data-action="rejected"><i class="fas fa-times mr-1"></i>거절로 변경</button>' +
+        '<button class="btn-pending-reset"  data-id="' + a.id + '" data-action="pending"><i class="fas fa-undo mr-1"></i>대기로 변경</button>' +
+      '</div>'
+    } else if (a.status === 'rejected') {
+      actionBtns = '<div class="flex gap-2 mt-3">' +
+        '<button class="btn-approve"        data-id="' + a.id + '" data-action="approved"><i class="fas fa-check mr-1"></i>승인으로 변경</button>' +
+        '<button class="btn-pending-reset" data-id="' + a.id + '" data-action="pending"><i class="fas fa-undo mr-1"></i>대기로 변경</button>' +
+      '</div>'
+    }
+    return '<div class="card p-4" data-appid="' + a.id + '">' +
       '<div class="flex items-start justify-between gap-3">' +
         '<div class="flex items-center gap-3">' +
           '<div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">' + (i+1) + '</div>' +
@@ -238,10 +262,54 @@ function renderList() {
       '</div>' +
       (dates.length ? '<div class="mt-3"><p class="text-xs text-gray-400 mb-1.5"><i class="fas fa-calendar mr-1"></i>Available dates</p><div class="flex flex-wrap gap-1.5">' + datesHtml + '</div></div>' : '') +
       (a.message ? '<div class="mt-3 bg-stone-50 rounded-xl px-3 py-2"><p class="text-xs text-gray-500">' + a.message + '</p></div>' : '') +
+      actionBtns +
       '<p class="text-xs text-gray-300 mt-3">' + (a.created_at || '').replace('T',' ').split(' ')[0] + '</p>' +
     '</div>'
   }).join('')
 }
+
+// ── 상태 변경 (이벤트 위임) ──────────────────────
+document.addEventListener('click', async function(e) {
+  var btn = e.target.closest('[data-action]')
+  if (!btn) return
+  var appId  = btn.getAttribute('data-id')
+  var action = btn.getAttribute('data-action')
+  if (!appId || !action) return
+
+  var pw = sessionStorage.getItem(SESSION_KEY)
+  if (!pw) { alert('세션이 만료되었습니다. 페이지를 새로고침해주세요.'); return }
+
+  // 버튼 로딩
+  var origHtml = btn.innerHTML
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'
+  btn.disabled = true
+
+  try {
+    var res = await fetch('/api/clinic/share/applications/' + appId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: _slug, password: pw, status: action })
+    })
+    var data = await res.json()
+    if (data.success) {
+      // allApps 배열 업데이트
+      var idx = allApps.findIndex(function(a) { return String(a.id) === String(appId) })
+      if (idx !== -1) allApps[idx].status = action
+      // 카운터 업데이트
+      document.getElementById('clinicApproved').textContent = allApps.filter(function(a){ return a.status==='approved' }).length
+      document.getElementById('clinicRejected').textContent = allApps.filter(function(a){ return a.status==='rejected' }).length
+      renderList()
+    } else {
+      btn.innerHTML = origHtml
+      btn.disabled = false
+      alert(data.error || '오류가 발생했습니다.')
+    }
+  } catch(err) {
+    btn.innerHTML = origHtml
+    btn.disabled = false
+    alert('네트워크 오류가 발생했습니다.')
+  }
+})
 
 init()
 <\/script>

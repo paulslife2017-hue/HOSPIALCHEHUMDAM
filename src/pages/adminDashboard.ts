@@ -1240,7 +1240,7 @@ function makeSlug(name) {
 function copyShareLink(id, token, btn) {
   var name = btn.getAttribute('data-name') || String(id)
   var slug = makeSlug(name) || String(id)
-  const url = location.origin + '/clinic/' + slug + '?token=' + token
+  const url = location.origin + '/clinic/' + slug
   navigator.clipboard.writeText(url).then(() => {
     const orig = btn.innerHTML
     btn.innerHTML = '<i class="fas fa-check text-[10px] mr-0.5"></i>복사됨!'

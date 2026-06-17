@@ -349,6 +349,41 @@ app.patch('/api/clinic/applications/:id', async (c) => {
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
+// ── Clinic Share: 공유링크 신청자 상태 변경 (slug+password 인증) ──
+app.patch('/api/clinic/share/applications/:id', async (c) => {
+  try {
+    const appId = c.req.param('id')
+    const { slug, password, status } = await c.req.json()
+    if (!slug || !password) return c.json({ success: false, error: 'slug and password required.' }, 400)
+    if (!['approved','rejected','pending'].includes(status))
+      return c.json({ success: false, error: 'Invalid status.' }, 400)
+
+    // slug → campaign 검색
+    let campaign: any = null
+    if (/^\d+$/.test(slug)) {
+      campaign = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [slug])
+    }
+    if (!campaign) {
+      const rows = await dbAll("SELECT * FROM campaigns WHERE status = 'active'")
+      campaign = rows.find((r: any) => makeSlug(r.place_name_ko || r.place_name) === slug) || null
+    }
+    if (!campaign) return c.json({ success: false, error: '업체를 찾을 수 없습니다.' }, 404)
+
+    // 비밀번호 확인
+    if (!campaign.clinic_password) return c.json({ success: false, error: '비밀번호가 설정되지 않았습니다.' }, 403)
+    const hashed = sha256(password)
+    if (campaign.clinic_password !== hashed && campaign.clinic_password_plain !== password)
+      return c.json({ success: false, error: '비밀번호가 올바르지 않습니다.' }, 401)
+
+    // 신청자가 이 캠페인 소속인지 확인
+    const app2 = await dbFirst('SELECT id FROM applications WHERE id = ? AND campaign_id = ?', [appId, campaign.id])
+    if (!app2) return c.json({ success: false, error: 'Application not found.' }, 404)
+
+    await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, appId])
+    return c.json({ success: true })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
 // ── Clinic Share ──────────────────────────────
 app.get('/api/clinic/:id', async (c) => {
   try {
