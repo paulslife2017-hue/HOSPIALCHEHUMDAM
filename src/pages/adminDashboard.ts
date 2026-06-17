@@ -1008,51 +1008,186 @@ function openAppDetail(a) {
 // ════════════════════════════════════════════
 // 4. Campaigns
 // ════════════════════════════════════════════
+// 4. Campaigns (업체별 신청자 보기 포함)
+// ════════════════════════════════════════════
+var _campAppsCache = {}
+
 async function loadCamps() {
   const el = document.getElementById('campsContent')
   el.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">Loading…</p>'
   try {
-    const { data } = await (await fetch('/api/admin/campaigns', { headers: H })).json()
-    if (!data?.length) { el.innerHTML = '<p class="text-xs text-gray-400 text-center py-8">No campaigns</p>'; return }
-    el.innerHTML = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">' + data.map(c => {
-      const pct   = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
-      const thumb = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
-      return \`<div class="border border-stone-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-        <div class="h-28 bg-stone-100">
-          \${thumb
-            ? \`<img src="\${thumb}" class="w-full h-full object-cover">\`
-            : \`<div class="w-full h-full flex items-center justify-center text-stone-200"><i class="fas fa-hospital text-3xl"></i></div>\`}
-        </div>
-        <div class="p-3">
-          <div class="flex items-center justify-between mb-1">
-            <p class="font-semibold text-xs text-gray-900 truncate flex-1">\${c.title}</p>
-            <span class="text-xs ml-2 \${c.status === 'active' ? 'text-green-500' : 'text-gray-300'}">\${c.status === 'active' ? '●' : '○'}</span>
+    const [campRes, appRes] = await Promise.all([
+      fetch('/api/admin/campaigns',    { headers: H }),
+      fetch('/api/admin/applications', { headers: H })
+    ])
+    const { data: camps } = await campRes.json()
+    const { data: apps  } = await appRes.json()
+    if (!camps?.length) { el.innerHTML = '<p class="text-xs text-gray-400 text-center py-8">No campaigns</p>'; return }
+
+    // 캠페인별 신청자 캐싱
+    _campAppsCache = {}
+    ;(apps || []).forEach(function(a) {
+      if (!_campAppsCache[a.campaign_id]) _campAppsCache[a.campaign_id] = []
+      _campAppsCache[a.campaign_id].push(a)
+    })
+
+    el.innerHTML = '<div class="space-y-3">' + camps.map(function(c) {
+      const pct        = Math.min(100, Math.round((c.current_participants / c.max_participants) * 100))
+      const thumb      = c.place_photo_ref ? \`/api/places/photo?ref=\${c.place_photo_ref}\` : ''
+      const campApps   = _campAppsCache[c.id] || []
+      const pendingCnt = campApps.filter(function(a){ return a.status === 'pending'  }).length
+      const approvedCnt= campApps.filter(function(a){ return a.status === 'approved' }).length
+      const totalCnt   = campApps.length
+
+      return \`<div class="border border-stone-100 rounded-2xl overflow-hidden bg-white shadow-sm">
+        <!-- 업체 헤더 -->
+        <div class="flex items-center gap-3 p-4 cursor-pointer hover:bg-stone-50 transition" onclick="toggleCampApps(\${c.id})">
+          <div class="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-stone-100 flex items-center justify-center">
+            \${thumb
+              ? \`<img src="\${thumb}" class="w-full h-full object-cover">\`
+              : \`<i class="fas fa-hospital text-xl text-stone-300"></i>\`}
           </div>
-          <p class="text-xs text-gray-400 mb-2">\${c.place_name_ko || c.place_name} · \${c.category}</p>
-          <div class="flex justify-between text-xs text-gray-400 mb-1">
-            <span>\${c.current_participants}/\${c.max_participants} applicants</span>
-            <span>\${pct}%</span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-0.5">
+              <p class="font-bold text-sm text-gray-900 truncate">\${c.place_name_ko || c.place_name}</p>
+              <span class="text-xs \${c.status === 'active' ? 'text-green-500' : 'text-gray-300'}">\${c.status === 'active' ? '● 모집중' : '○ 종료'}</span>
+            </div>
+            <p class="text-xs text-gray-400 truncate">\${c.title}</p>
+            <div class="flex items-center gap-3 mt-1.5">
+              <span class="text-xs font-semibold text-amber-600"><i class="fas fa-users mr-1"></i>\${totalCnt}명 신청</span>
+              \${pendingCnt  ? \`<span class="text-xs text-amber-500">⏳ 대기 \${pendingCnt}</span>\` : ''}
+              \${approvedCnt ? \`<span class="text-xs text-blue-500">✅ 전달완료 \${approvedCnt}</span>\` : ''}
+            </div>
           </div>
-          <div class="h-1 bg-stone-100 rounded-full mb-2.5">
-            <div class="h-full rounded-full" style="width:\${pct}%;background:linear-gradient(90deg,#c9a035,#e8c16a)"></div>
-          </div>
-          <div class="flex gap-1.5 mt-1">
-            <button onclick="openEditCamp(\${JSON.stringify(c).replace(/"/g,'&quot;')})" class="flex-1 text-xs text-amber-600 hover:text-amber-700 border border-amber-100 hover:bg-amber-50 py-1.5 rounded-lg transition font-medium">
-              <i class="fas fa-pen text-[10px] mr-0.5"></i>Edit
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <button onclick="event.stopPropagation();openEditCamp(\${JSON.stringify(c).replace(/"/g,'&quot;')})" class="text-xs text-amber-600 hover:text-amber-700 border border-amber-100 hover:bg-amber-50 px-2.5 py-1.5 rounded-lg transition font-medium">
+              <i class="fas fa-pen text-[10px]"></i>
             </button>
             \${c.share_token
-              ? \`<button onclick="copyShareLink(\${c.id},'\${c.share_token}',this)" class="flex-1 text-xs text-blue-500 hover:text-blue-600 border border-blue-100 hover:bg-blue-50 py-1.5 rounded-lg transition font-medium" title="업체 공유 링크 복사">
-                  <i class="fas fa-link text-[10px] mr-0.5"></i>공유
+              ? \`<button onclick="event.stopPropagation();copyShareLink(\${c.id},'\${c.share_token}',this)" class="text-xs text-blue-500 hover:text-blue-600 border border-blue-100 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg transition font-medium" title="업체 공유 링크">
+                  <i class="fas fa-link text-[10px]"></i>
                 </button>\`
               : ''}
-            \${c.status === 'active'
-              ? \`<button onclick="deactivate(\${c.id})" class="flex-1 text-xs text-red-400 hover:text-red-500 border border-red-100 hover:bg-red-50 py-1.5 rounded-lg transition">Deactivate</button>\`
-              : \`<span class="flex-1 block text-center text-xs text-gray-300 py-1.5">Inactive</span>\`}
+            <i id="camp-chevron-\${c.id}" class="fas fa-chevron-down text-gray-300 text-xs ml-1 transition-transform"></i>
           </div>
+        </div>
+
+        <!-- 진행도 바 -->
+        <div class="px-4 pb-3">
+          <div class="flex justify-between text-[10px] text-gray-400 mb-1">
+            <span>\${c.current_participants} / \${c.max_participants === 9999 ? '∞' : c.max_participants}</span>
+            <span>\${c.max_participants === 9999 ? '' : pct + '%'}</span>
+          </div>
+          <div class="h-1 bg-stone-100 rounded-full">
+            <div class="h-full rounded-full transition-all" style="width:\${c.max_participants === 9999 ? 0 : pct}%;background:linear-gradient(90deg,#c9a035,#e8c16a)"></div>
+          </div>
+        </div>
+
+        <!-- 신청자 목록 (접힘) -->
+        <div id="camp-apps-\${c.id}" class="hidden border-t border-stone-100">
+          \${totalCnt === 0
+            ? \`<p class="text-center text-xs text-gray-400 py-6">아직 신청자가 없습니다</p>\`
+            : \`<div class="p-3 space-y-2" id="camp-apps-list-\${c.id}"></div>\`}
         </div>
       </div>\`
     }).join('') + '</div>'
+
+    // 신청자 있는 첫번째 캠페인 자동 펼치기
+    const firstWithApps = camps.find(function(c){ return (_campAppsCache[c.id] || []).length > 0 })
+    if (firstWithApps) toggleCampApps(firstWithApps.id, true)
+
   } catch(e) { console.error('loadCamps error', e) }
+}
+
+function toggleCampApps(campId, forceOpen) {
+  const panel   = document.getElementById('camp-apps-' + campId)
+  const chevron = document.getElementById('camp-chevron-' + campId)
+  if (!panel) return
+  const isHidden = panel.classList.contains('hidden')
+  const open     = forceOpen !== undefined ? forceOpen : isHidden
+  if (open) {
+    panel.classList.remove('hidden')
+    if (chevron) chevron.style.transform = 'rotate(180deg)'
+    renderCampApps(campId)
+  } else {
+    panel.classList.add('hidden')
+    if (chevron) chevron.style.transform = ''
+  }
+}
+
+function renderCampApps(campId) {
+  const listEl = document.getElementById('camp-apps-list-' + campId)
+  if (!listEl) return
+  const apps = _campAppsCache[campId] || []
+  if (!apps.length) return
+
+  // 필터 버튼
+  const filterHtml = \`<div class="flex gap-1.5 mb-3">
+    <button onclick="filterCampApps(\${campId},'all')"      id="cf-\${campId}-all"      class="camp-filter-\${campId} px-3 py-1 rounded-full text-[11px] font-semibold bg-gray-800 text-white">전체 \${apps.length}</button>
+    <button onclick="filterCampApps(\${campId},'pending')"  id="cf-\${campId}-pending"  class="camp-filter-\${campId} px-3 py-1 rounded-full text-[11px] font-semibold bg-white text-gray-500 border border-gray-200">⏳ 대기 \${apps.filter(function(a){ return a.status==='pending' }).length}</button>
+    <button onclick="filterCampApps(\${campId},'approved')" id="cf-\${campId}-approved" class="camp-filter-\${campId} px-3 py-1 rounded-full text-[11px] font-semibold bg-white text-gray-500 border border-gray-200">✅ 전달완료 \${apps.filter(function(a){ return a.status==='approved' }).length}</button>
+    <button onclick="filterCampApps(\${campId},'rejected')" id="cf-\${campId}-rejected" class="camp-filter-\${campId} px-3 py-1 rounded-full text-[11px] font-semibold bg-white text-gray-500 border border-gray-200">❌ 거절 \${apps.filter(function(a){ return a.status==='rejected' }).length}</button>
+  </div>\`
+
+  listEl.innerHTML = filterHtml + \`<div id="camp-apps-rows-\${campId}"></div>\`
+  renderCampAppRows(campId, 'all')
+}
+
+function filterCampApps(campId, filter) {
+  // 버튼 스타일 토글
+  document.querySelectorAll('.camp-filter-' + campId).forEach(function(b) {
+    b.className = \`camp-filter-\${campId} px-3 py-1 rounded-full text-[11px] font-semibold bg-white text-gray-500 border border-gray-200\`
+  })
+  const activeBtn = document.getElementById('cf-' + campId + '-' + filter)
+  if (activeBtn) activeBtn.className = \`camp-filter-\${campId} px-3 py-1 rounded-full text-[11px] font-semibold bg-gray-800 text-white\`
+  renderCampAppRows(campId, filter)
+}
+
+function renderCampAppRows(campId, filter) {
+  const rowsEl = document.getElementById('camp-apps-rows-' + campId)
+  if (!rowsEl) return
+  const all  = _campAppsCache[campId] || []
+  const list = filter === 'all' ? all : all.filter(function(a){ return a.status === filter })
+
+  if (!list.length) {
+    rowsEl.innerHTML = '<p class="text-center text-xs text-gray-400 py-4">해당 신청자 없음</p>'
+    return
+  }
+
+  rowsEl.innerHTML = list.map(function(a) {
+    const statusMap = { pending: '⏳ 대기', approved: '✅ 전달완료', rejected: '❌ 거절' }
+    const badgeStyle = {
+      pending:  'background:#fef9c3;color:#854d0e',
+      approved: 'background:#dbeafe;color:#1e40af',
+      rejected: 'background:#fee2e2;color:#991b1b'
+    }
+    const dates = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
+    const datesHtml = dates.slice(0,3).map(function(d){
+      return \`<span style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:6px;padding:2px 7px;font-size:10px;">\${d}</span>\`
+    }).join('') + (dates.length > 3 ? \`<span style="font-size:10px;color:#9ca3af;">+\${dates.length-3}개</span>\` : '')
+
+    return \`<div class="bg-stone-50 rounded-xl p-3 flex items-start gap-3">
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">\${(a.applicant_name||'?').charAt(0).toUpperCase()}</div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+          <p class="font-bold text-sm text-gray-900">\${a.applicant_name}</p>
+          <span style="\${badgeStyle[a.status]};display:inline-block;padding:1px 8px;border-radius:99px;font-size:10px;font-weight:700;">\${statusMap[a.status]||a.status}</span>
+        </div>
+        <p class="text-xs text-gray-400">\${a.nationality || ''}</p>
+        <div class="flex flex-wrap items-center gap-2 mt-1.5">
+          \${a.instagram ? \`<a href="https://instagram.com/\${a.instagram}" target="_blank" class="text-xs text-pink-500 font-semibold hover:underline"><i class="fab fa-instagram mr-0.5"></i>@\${a.instagram}</a>\` : ''}
+          <a href="mailto:\${a.email}" class="text-xs text-blue-500 hover:underline">\${a.email}</a>
+          \${a.phone ? \`<span class="text-xs text-gray-400"><i class="fab fa-whatsapp text-green-500 mr-0.5"></i>\${a.phone}</span>\` : ''}
+        </div>
+        \${dates.length ? \`<div class="flex flex-wrap gap-1 mt-1.5">\${datesHtml}</div>\` : ''}
+        \${a.message ? \`<p class="text-xs text-gray-500 mt-1 bg-white rounded-lg px-2 py-1 border border-stone-100">\${a.message}</p>\` : ''}
+      </div>
+      <div class="flex flex-col gap-1 flex-shrink-0">
+        \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved');_campAppsCache[\${campId}].find(function(x){return x.id===\${a.id}}).status='approved';renderCampApps(\${campId})" class="text-[10px] bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700 font-semibold whitespace-nowrap">✅ 전달완료</button>\` : ''}
+        \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');_campAppsCache[\${campId}].find(function(x){return x.id===\${a.id}}).status='rejected';renderCampApps(\${campId})" class="text-[10px] bg-red-50 text-red-500 px-2 py-1 rounded-lg hover:bg-red-100 font-semibold whitespace-nowrap">❌ 거절</button>\` : ''}
+      </div>
+    </div>\`
+  }).join('')
 }
 
 function copyShareLink(id, token, btn) {
