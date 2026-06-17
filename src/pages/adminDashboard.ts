@@ -1157,6 +1157,13 @@ async function loadApproved() {
         var instaLink = a.instagram
           ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="margin-right:2px;"></i>@' + a.instagram + '</a>'
           : '<span style="color:#d1d5db;font-size:11px;">—</span>'
+        var isSettled = !!a.settlement
+        var settleBg  = isSettled ? '#dcfce7' : '#f3f4f6'
+        var settleBdr = isSettled ? '#bbf7d0' : '#e5e7eb'
+        var settleClr = isSettled ? '#166534' : '#6b7280'
+        var settleIco = isSettled ? '&#x2705;' : '&#x25a1;'
+        var settleTxt = isSettled ? '정산완료' : '미정산'
+        var settleBtn = '<button type="button" data-appid="' + a.id + '" data-settled="' + (isSettled ? '1' : '0') + '" onclick="toggleSettlement(this)" style="background:' + settleBg + ';border:1px solid ' + settleBdr + ';color:' + settleClr + ';border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">' + settleIco + ' ' + settleTxt + '</button>'
         var cancelBtn = '<button type="button" onclick="approvedCancel(' + a.id + ',this)" style="flex-shrink:0;background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;"><i class="fas fa-times" style="margin-right:2px;"></i>취소</button>'
         return '<tr style="border-bottom:1px solid #f3f4f6;">' +
           '<td style="padding:10px 8px;">' +
@@ -1165,6 +1172,7 @@ async function loadApproved() {
           '</td>' +
           '<td style="padding:10px 8px;">' + instaLink + '</td>' +
           '<td style="padding:10px 8px;">' + dateChip + '</td>' +
+          '<td style="padding:10px 8px;text-align:center;">' + settleBtn + '</td>' +
           '<td style="padding:10px 8px;text-align:right;">' + cancelBtn + '</td>' +
         '</tr>'
       }).join('')
@@ -1173,7 +1181,7 @@ async function loadApproved() {
         '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#fafaf9;border-bottom:1px solid #f0ece4;">' +
           '<div>' +
             '<p style="font-weight:700;font-size:14px;color:#111827;margin:0;">' + clinicName + '</p>' +
-            '<p style="font-size:11px;color:#9ca3af;margin:2px 0 0;">승인 ' + apps.length + '명</p>' +
+            '<p style="font-size:11px;color:#9ca3af;margin:2px 0 0;">승인 ' + apps.length + '명 · 정산완료 ' + apps.filter(function(a){ return !!a.settlement }).length + '명</p>' +
           '</div>' +
           '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:99px;padding:3px 12px;font-size:11px;font-weight:600;">✅ ' + apps.length + '명</span>' +
         '</div>' +
@@ -1182,6 +1190,7 @@ async function loadApproved() {
             '<th style="padding:7px 8px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">신청자</th>' +
             '<th style="padding:7px 8px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">인스타그램</th>' +
             '<th style="padding:7px 8px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">날짜</th>' +
+            '<th style="padding:7px 8px;font-size:10px;color:#9ca3af;font-weight:500;text-align:center;">정산</th>' +
             '<th style="padding:7px 8px;"></th>' +
           '</tr></thead>' +
           '<tbody style="background:#fff;">' + rows + '</tbody>' +
@@ -1195,6 +1204,34 @@ async function loadApproved() {
     emptyEl.textContent = '데이터를 불러오지 못했습니다.'
     emptyEl.classList.remove('hidden')
   }
+}
+
+async function toggleSettlement(btn) {
+  var appId     = btn.getAttribute('data-appid')
+  var wasSettled = btn.getAttribute('data-settled') === '1'
+  var newVal    = wasSettled ? 0 : 1
+  var origHTML  = btn.innerHTML
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'
+  btn.disabled  = true
+  try {
+    var res = await fetch('/api/admin/applications/' + appId, {
+      method: 'PATCH', headers: H, body: JSON.stringify({ settlement: newVal })
+    })
+    var json = await res.json()
+    if (!json.success) throw new Error(json.error || 'failed')
+    // 버튼 UI 갱신 (페이지 전체 reload 없이 즉시 반영)
+    btn.setAttribute('data-settled', String(newVal))
+    if (newVal) {
+      btn.style.background = '#dcfce7'; btn.style.borderColor = '#bbf7d0'; btn.style.color = '#166534'
+      btn.innerHTML = '&#x2705; 정산완료'
+    } else {
+      btn.style.background = '#f3f4f6'; btn.style.borderColor = '#e5e7eb'; btn.style.color = '#6b7280'
+      btn.innerHTML = '&#x25a1; 미정산'
+    }
+    btn.disabled = false
+    // 헤더 카운트 동기화를 위해 전체 reload
+    loadApproved()
+  } catch(e) { btn.innerHTML = origHTML; btn.disabled = false; alert('정산 상태 변경 중 오류가 발생했습니다.') }
 }
 
 async function approvedCancel(id, btn) {
@@ -1211,7 +1248,7 @@ async function approvedCancel(id, btn) {
 
 function exportApproved() {
   if (!_approvedData.length) { alert('내보낼 데이터가 없습니다.'); return }
-  var rows = [['업체명','신청자명','국적','이메일','WhatsApp','인스타그램','확정날짜','희망날짜','신청일시']]
+  var rows = [['업체명','신청자명','국적','이메일','WhatsApp','인스타그램','확정날짜','희망날짜','정산여부','신청일시']]
   _approvedData.forEach(function(a) {
     rows.push([
       a.place_name_ko || a.place_name || a.campaign_title || '',
@@ -1222,6 +1259,7 @@ function exportApproved() {
       a.instagram ? '@' + a.instagram : '',
       a.scheduled_date || '',
       (a.preferred_dates || '').split('/').join(' / '),
+      a.settlement ? '완료' : '미완료',
       (a.created_at || '').replace('T',' ').slice(0,16)
     ])
   })

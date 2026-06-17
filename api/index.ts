@@ -109,6 +109,19 @@ async function fetchPlaceDetails(placeId: string, apiKey: string) {
   return { place_id: r.place_id, name, address: r.formatted_address || '', rating: r.rating || 0, photo: r.photos?.[0]?.photo_reference || '' }
 }
 
+// ── Startup Migration ──────────────────────────
+async function runMigrations() {
+  const migrations = [
+    `ALTER TABLE applications ADD COLUMN scheduled_date TEXT`,
+    `ALTER TABLE applications ADD COLUMN settlement INTEGER DEFAULT 0`,
+    `ALTER TABLE admins ADD COLUMN current_token TEXT`,
+  ]
+  for (const sql of migrations) {
+    try { await dbRun(sql) } catch (_) { /* 이미 컬럼 존재 시 무시 */ }
+  }
+}
+runMigrations().catch(console.error)
+
 // ── HTML imports ──────────────────────────────
 import { mainPageHTML }        from '../src/pages/main'
 import { adminLoginHTML }      from '../src/pages/adminLogin'
@@ -427,14 +440,18 @@ app.patch('/api/admin/applications/:id', async (c) => {
   if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
     const body = await c.req.json()
-    const { status, scheduled_date } = body
-    if (scheduled_date !== undefined) {
+    const { status, scheduled_date, settlement } = body
+    const id = c.req.param('id')
+    // settlement 토글 전용
+    if (settlement !== undefined && status === undefined && scheduled_date === undefined) {
+      await dbRun('UPDATE applications SET settlement = ? WHERE id = ?', [settlement ? 1 : 0, id])
+    } else if (scheduled_date !== undefined) {
       await dbRun(
         'UPDATE applications SET status = ?, scheduled_date = ? WHERE id = ?',
-        [status || 'approved', scheduled_date, c.req.param('id')]
+        [status || 'approved', scheduled_date, id]
       )
     } else {
-      await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, c.req.param('id')])
+      await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, id])
     }
     return c.json({ success: true })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
