@@ -616,7 +616,7 @@ async function loadApps() {
         var safeSd = (a.scheduled_date||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
         return '<span style="display:inline-flex;align-items:center;gap:3px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:500;margin:1px;">' + '<i class="far fa-calendar-check" style="font-size:9px;opacity:0.7;"></i>' + safeD + '</span>'
       }).join('')
-      const statusKo = a.status === 'approved' ? '✅ 전달 완료' : a.status === 'rejected' ? '❌ 거절' : '⏳ 대기'
+      const statusKo = a.status === 'approved' ? '✅ 승인' : a.status === 'rejected' ? '❌ 거절' : '⏳ 대기'
       var scheduledLine = a.scheduled_date
         ? '\\n📅 확정 날짜: ' + a.scheduled_date + '\\n'
         : (dates.length ? '\\n🗓 희망 날짜:\\n' + dates.map(function(d,i){ return '  ' + (i+1) + '. ' + d }).join('\\n') + '\\n' : '')
@@ -656,7 +656,7 @@ async function loadApps() {
             : \`<div class="flex flex-wrap gap-0.5">\${dateHtml || '<span class="text-xs text-gray-300">—</span>'}</div>\`}
         </td>
         <td class="px-4 py-3.5">
-          <span class="badge badge-\${a.status}">\${{ pending:'⏳ 대기', approved:'✅ 전달 완료', rejected:'❌ 거절' }[a.status] || a.status}</span>
+          <span class="badge badge-\${a.status}">\${{ pending:'⏳ 대기', approved:'✅ 승인', rejected:'❌ 거절' }[a.status] || a.status}</span>
         </td>
         <td class="px-3 py-3.5 text-center">
           <button id="copybtn-\${a.id}" onclick="copyAppMsg(\${a.id},this)" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold btn-gold whitespace-nowrap" title="업체 전달용 메시지 복사">
@@ -668,7 +668,7 @@ async function loadApps() {
             <button onclick='openAppDetail(\${JSON.stringify(a).replace(/"/g,"&quot;")})' class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-amber-50 text-gray-500 hover:text-amber-600 flex items-center justify-center text-xs transition" title="상세">
               <i class="fas fa-eye"></i>
             </button>
-            \${a.status !== 'approved' ? '<button class="dp-action-btn w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition" data-act="approve" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="" title="전달 완료"><i class="fas fa-paper-plane"></i></button>' : ''}
+            \${a.status !== 'approved' ? '<button class="dp-action-btn w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center text-xs transition" data-act="approve" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="" title="승인"><i class="fas fa-check"></i></button>' : ''}
             \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected')" class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center text-xs transition" title="거절"><i class="fas fa-times"></i></button>\` : ''}
           </div>
         </td>
@@ -752,7 +752,7 @@ async function approveWithDate(id, preferredDatesRaw) {
   await setStatus(id, 'approved')
 }
 
-// 달력 카드에서 호출 — 즉시 전달 완료 처리
+// 달력 카드에서 호출 — 즉시 승인 처리
 async function approveWithDatePreselect(id, preferredDatesRaw, preTimeInfo) {
   await setStatus(id, 'approved')
 }
@@ -1006,7 +1006,7 @@ function openAppDetail(a) {
 
     <div class="border-2 border-dashed border-amber-200 rounded-xl p-3 mb-4 bg-amber-50/40">
       <div class="flex items-center justify-between mb-2">
-        <p class="text-[10px] font-bold text-amber-700 uppercase tracking-wide"><i class="fas fa-paper-plane mr-1"></i>Message to Clinic</p>
+        <p class="text-[10px] font-bold text-amber-700 uppercase tracking-wide"><i class="fas fa-check mr-1"></i>Message to Clinic</p>
         <button onclick="copyToClipboard(document.getElementById('clinicMsgText').value,this)" class="text-[10px] px-2.5 py-1 rounded-lg btn-gold flex items-center gap-1"><i class="fas fa-copy mr-0.5"></i>Copy All</button>
       </div>
       <textarea id="clinicMsgText" rows="8" readonly style="width:100%;font-size:11px;line-height:1.6;background:#fff;border:1px solid #fde68a;border-radius:8px;padding:10px;resize:none;font-family:monospace;color:#374151;">\${clinicMsg}</textarea>
@@ -1014,11 +1014,11 @@ function openAppDetail(a) {
 
     <div class="flex items-center justify-between pt-1">
       <div>
-        <span class="badge badge-\${a.status} mr-2">\${{ pending:'⏳ 대기', approved:'✅ 전달 완료', rejected:'❌ 거절' }[a.status]}</span>
+        <span class="badge badge-\${a.status} mr-2">\${{ pending:'⏳ 대기', approved:'✅ 승인', rejected:'❌ 거절' }[a.status]}</span>
         <span class="text-[10px] text-gray-400">\${new Date(a.created_at).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}</span>
       </div>
       <div class="flex gap-2 flex-wrap">
-        \${a.status !== 'approved' ? '<button class="dp-action-btn bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-blue-700 flex items-center gap-1" data-act="approve" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="" data-close-modal="appModal"><i class="fas fa-paper-plane"></i>전달 완료</button>' : ''}
+        \${a.status !== 'approved' ? '<button class="dp-action-btn bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-blue-700 flex items-center gap-1" data-act="approve" data-aid="' + a.id + '" data-pd="' + (a.preferred_dates||'').replace(/"/g,'&quot;') + '" data-sd="" data-close-modal="appModal"><i class="fas fa-check"></i>승인</button>' : ''}
         \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');document.getElementById('appModal').classList.remove('open')" class="bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-red-600 flex items-center gap-1"><i class="fas fa-times"></i>Reject</button>\` : ''}
       </div>
     </div>\`
@@ -1078,7 +1078,7 @@ async function loadCamps() {
             <div class="flex items-center gap-3 mt-1.5 flex-wrap">
               <span class="text-xs font-semibold text-amber-600"><i class="fas fa-users mr-1"></i>\${totalCnt}명 신청</span>
               \${pendingCnt  ? \`<span class="text-xs text-amber-500">⏳ 대기 \${pendingCnt}</span>\` : ''}
-              \${approvedCnt ? \`<span class="text-xs text-blue-500">✅ 전달완료 \${approvedCnt}</span>\` : ''}
+              \${approvedCnt ? \`<span class="text-xs text-blue-500">✅ 승인 \${approvedCnt}</span>\` : ''}
             </div>
             <!-- 비밀번호 배지 -->
             <div class="flex items-center gap-1.5 mt-1.5">
@@ -1154,7 +1154,7 @@ function renderCampApps(campId) {
   const filterHtml = \`<div class="flex gap-1.5 mb-3">
     <button onclick="filterCampApps(\${campId},'all')"      id="cf-\${campId}-all"      class="camp-filter-\${campId} px-3 py-1 rounded-full text-[11px] font-semibold bg-gray-800 text-white">전체 \${apps.length}</button>
     <button onclick="filterCampApps(\${campId},'pending')"  id="cf-\${campId}-pending"  class="camp-filter-\${campId} px-3 py-1 rounded-full text-[11px] font-semibold bg-white text-gray-500 border border-gray-200">⏳ 대기 \${apps.filter(function(a){ return a.status==='pending' }).length}</button>
-    <button onclick="filterCampApps(\${campId},'approved')" id="cf-\${campId}-approved" class="camp-filter-\${campId} px-3 py-1 rounded-full text-[11px] font-semibold bg-white text-gray-500 border border-gray-200">✅ 전달완료 \${apps.filter(function(a){ return a.status==='approved' }).length}</button>
+    <button onclick="filterCampApps(\${campId},'approved')" id="cf-\${campId}-approved" class="camp-filter-\${campId} px-3 py-1 rounded-full text-[11px] font-semibold bg-white text-gray-500 border border-gray-200">✅ 승인 \${apps.filter(function(a){ return a.status==='approved' }).length}</button>
     <button onclick="filterCampApps(\${campId},'rejected')" id="cf-\${campId}-rejected" class="camp-filter-\${campId} px-3 py-1 rounded-full text-[11px] font-semibold bg-white text-gray-500 border border-gray-200">❌ 거절 \${apps.filter(function(a){ return a.status==='rejected' }).length}</button>
   </div>\`
 
@@ -1184,7 +1184,7 @@ function renderCampAppRows(campId, filter) {
   }
 
   rowsEl.innerHTML = list.map(function(a) {
-    const statusMap = { pending: '⏳ 대기', approved: '✅ 전달완료', rejected: '❌ 거절' }
+    const statusMap = { pending: '⏳ 대기', approved: '✅ 승인', rejected: '❌ 거절' }
     const badgeStyle = {
       pending:  'background:#fef9c3;color:#854d0e',
       approved: 'background:#dbeafe;color:#1e40af',
@@ -1212,7 +1212,7 @@ function renderCampAppRows(campId, filter) {
         \${a.message ? \`<p class="text-xs text-gray-500 mt-1 bg-white rounded-lg px-2 py-1 border border-stone-100">\${a.message}</p>\` : ''}
       </div>
       <div class="flex flex-col gap-1 flex-shrink-0">
-        \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved');_campAppsCache[\${campId}].find(function(x){return x.id===\${a.id}}).status='approved';renderCampApps(\${campId})" class="text-[10px] bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700 font-semibold whitespace-nowrap">✅ 전달완료</button>\` : ''}
+        \${a.status !== 'approved' ? \`<button onclick="setStatus(\${a.id},'approved');_campAppsCache[\${campId}].find(function(x){return x.id===\${a.id}}).status='approved';renderCampApps(\${campId})" class="text-[10px] bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700 font-semibold whitespace-nowrap">✅ 승인</button>\` : ''}
         \${a.status !== 'rejected' ? \`<button onclick="setStatus(\${a.id},'rejected');_campAppsCache[\${campId}].find(function(x){return x.id===\${a.id}}).status='rejected';renderCampApps(\${campId})" class="text-[10px] bg-red-50 text-red-500 px-2 py-1 rounded-lg hover:bg-red-100 font-semibold whitespace-nowrap">❌ 거절</button>\` : ''}
       </div>
     </div>\`
@@ -1766,8 +1766,8 @@ function selectDay(dateStr) {
       + '</div>'
       + '<div class="px-4 pb-3 border-t border-stone-50 pt-2.5 flex gap-2">'
       + (a.status !== 'approved'
-          ? '<button class="dp-action-btn flex-1 text-xs bg-blue-600 text-white rounded-xl py-2 font-semibold hover:bg-blue-700 flex items-center justify-center gap-1.5 shadow-sm"' + ' data-act="approve" data-aid="' + a.id + '" data-pd="" data-sd="">' + '<i class="fas fa-paper-plane"></i>전달 완료</button>'
-          : '<span class="flex-1 text-xs text-center text-blue-600 font-semibold">✅ 전달 완료</span>')
+          ? '<button class="dp-action-btn flex-1 text-xs bg-blue-600 text-white rounded-xl py-2 font-semibold hover:bg-blue-700 flex items-center justify-center gap-1.5 shadow-sm"' + ' data-act="approve" data-aid="' + a.id + '" data-pd="" data-sd="">' + '<i class="fas fa-check"></i>승인</button>'
+          : '<span class="flex-1 text-xs text-center text-blue-600 font-semibold">✅ 승인</span>')
       + '</div>'
       + '</div>'
   }).join('')
