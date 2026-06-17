@@ -1249,9 +1249,13 @@ async function loadCamps() {
       fetch('/api/admin/campaigns',    { headers: H }),
       fetch('/api/admin/applications', { headers: H })
     ])
-    const { data: camps } = await campRes.json()
-    const { data: apps  } = await appRes.json()
-    if (!camps?.length) { el.innerHTML = '<p class="text-xs text-gray-400 text-center py-8">No campaigns</p>'; return }
+    const campJson = await campRes.json()
+    const appJson  = await appRes.json()
+    if (!campJson.success && campJson.error === 'Unauthorized') { window.location.href = '/admin'; return }
+    if (!campJson.success) { el.innerHTML = '<p class="text-xs text-red-400 text-center py-8">오류: ' + (campJson.error || 'unknown') + '</p>'; return }
+    const camps = campJson.data || []
+    const apps  = appJson.data  || []
+    if (!camps.length) { el.innerHTML = '<p class="text-xs text-gray-400 text-center py-8">캠페인이 없습니다</p>'; return }
 
     // 캠페인별 신청자 캐싱
     _campAppsCache = {}
