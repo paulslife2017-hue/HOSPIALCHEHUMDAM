@@ -111,7 +111,8 @@ export function clinicShareHTML(): string {
 
 <script>
 // URL에서 slug, token 파싱
-var _slug  = decodeURIComponent(location.pathname.replace(/^\/clinic\//, '').split('?')[0])
+var _pathParts = location.pathname.split('/')
+var _slug  = decodeURIComponent(_pathParts[_pathParts.length - 1].split('?')[0])
 var _token = new URLSearchParams(location.search).get('token')
 var _campaignId = null
 var allApps = []
