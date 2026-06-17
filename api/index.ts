@@ -354,6 +354,19 @@ app.delete('/api/admin/campaigns/:id', async (c) => {
   catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
+// ── Admin Telegram test ───────────────────────
+app.post('/api/admin/telegram/test', async (c) => {
+  if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
+  try {
+    const tok = process.env.TELEGRAM_BOT_TOKEN, cid = process.env.TELEGRAM_CHAT_ID
+    if (!tok || !cid) return c.json({ success: false, error: 'Telegram not configured' }, 400)
+    const msg = `✅ <b>Seoul Beauty Trip</b>\nTelegram connected! 🕐 ${new Date().toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})}`
+    const r = await fetch(`https://api.telegram.org/bot${tok}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ chat_id: cid, text: msg, parse_mode:'HTML' }) })
+    const data: any = await r.json()
+    return c.json({ success: data.ok, error: data.description })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
 // ── Vercel handler ────────────────────────────
 export const config = { api: { bodyParser: false } }
 
