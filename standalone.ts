@@ -18,6 +18,14 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { createClient } from '@libsql/client/http'
 import { createHash, randomUUID } from 'crypto'
+
+// ── 랜덤 비밀번호 생성 ──────────────────────────
+function genClinicPassword(): string {
+  const chars = 'abcdefghijkmnpqrstuvwxyz23456789'
+  let pw = ''
+  for (let i = 0; i < 8; i++) pw += chars[Math.floor(Math.random() * chars.length)]
+  return pw
+}
 import { mainPageHTML }        from './src/pages/main'
 import { adminLoginHTML }      from './src/pages/adminLogin'
 import { adminDashboardHTML }  from './src/pages/adminDashboard'
@@ -276,6 +284,26 @@ app.get('/api/clinic/dashboard', async (c) => {
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
+// 업체 신청자 상태 변경 API (approve / reject)
+app.patch('/api/clinic/applications/:id', async (c) => {
+  try {
+    const appId = c.req.param('id')
+    const { status, campaign_id } = await c.req.json()
+    if (!['approved','rejected','pending'].includes(status))
+      return c.json({ success: false, error: 'Invalid status.' }, 400)
+    // 세션 검증: X-Clinic-Token + campaign_id 헤더로 확인
+    const t = c.req.header('X-Clinic-Token')
+    if (!t || !campaign_id) return c.json({ success: false, error: 'Unauthorized.' }, 401)
+    const campaign = await dbFirst('SELECT id FROM campaigns WHERE id = ? AND clinic_session_token = ?', [campaign_id, t])
+    if (!campaign) return c.json({ success: false, error: '세션이 만료되었습니다.' }, 401)
+    // 해당 신청자가 이 캠페인 소속인지 확인
+    const app = await dbFirst('SELECT id FROM applications WHERE id = ? AND campaign_id = ?', [appId, campaign_id])
+    if (!app) return c.json({ success: false, error: 'Application not found.' }, 404)
+    await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, appId])
+    return c.json({ success: true })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
 // ── Clinic Share ──────────────────────────────
 app.get('/api/clinic/:id', async (c) => {
   try {
@@ -352,12 +380,11 @@ app.patch('/api/admin/applications/:id', async (c) => {
 app.get('/api/admin/campaigns', async (c) => {
   if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
-    const rows = await dbAll('SELECT * FROM campaigns ORDER BY created_at DESC')
-    // clinic_password: 실제 값 대신 설정 여부(bool)만 노출
+    const rows = await dbAll(`SELECT id,title,description,place_id,place_name,place_name_ko,place_address,place_photo_ref,place_rating,category,max_participants,current_participants,deadline,benefits,requirements,status,created_at,share_token,clinic_password,clinic_password_plain FROM campaigns ORDER BY created_at DESC`)
     const safeRows = rows.map((r: any) => ({
       ...r,
       clinic_password: r.clinic_password ? true : false,
-      clinic_session_token: undefined,
+      clinic_password_plain: r.clinic_password_plain || null,
     }))
     return c.json({ success: true, data: safeRows })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
@@ -369,12 +396,14 @@ app.post('/api/admin/campaigns', async (c) => {
     const b = await c.req.json()
     const placeName  = extractEnglishName(b.place_name || '')
     const title      = extractEnglishName(b.title || '')
-    const shareToken = 'sbt-' + Date.now() + '-' + Math.random().toString(36).slice(2,8)
+    const shareToken  = 'sbt-' + Date.now() + '-' + Math.random().toString(36).slice(2,8)
+    const rawPw        = genClinicPassword()
+    const hashedPw     = sha256(rawPw)
     const r = await dbRun(
-      `INSERT INTO campaigns (title,description,place_id,place_name,place_address,place_photo_ref,place_rating,category,max_participants,deadline,benefits,requirements,share_token) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [title, b.description||'', b.place_id, placeName, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||9999, b.deadline||'', b.benefits||'', b.requirements||'', shareToken]
+      `INSERT INTO campaigns (title,description,place_id,place_name,place_address,place_photo_ref,place_rating,category,max_participants,deadline,benefits,requirements,share_token,clinic_password,clinic_password_plain) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [title, b.description||'', b.place_id, placeName, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||9999, b.deadline||'', b.benefits||'', b.requirements||'', shareToken, hashedPw, rawPw]
     )
-    return c.json({ success: true, id: Number(r.lastInsertRowid) })
+    return c.json({ success: true, id: Number(r.lastInsertRowid), clinic_password: rawPw })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })
 
@@ -383,12 +412,17 @@ app.patch('/api/admin/campaigns/:id', async (c) => {
   try {
     const b = await c.req.json()
     const fields: string[] = [], vals: any[] = []
-    const allowed = ['title','description','benefits','requirements','category','place_name','deadline','max_participants','status','clinic_password']
+    const allowed = ['title','description','benefits','requirements','category','place_name','deadline','max_participants','status','clinic_password','clinic_password_plain']
     for (const key of allowed) {
       if (key in b) {
         let v: any = b[key]
         if (key === 'place_name' || key === 'title') v = extractEnglishName(String(v))
-        if (key === 'clinic_password' && v) v = sha256(String(v))
+        if (key === 'clinic_password' && v) {
+          // clinic_password 변경 시 plain도 함께 저장
+          const plainPw = String(v)
+          fields.push('clinic_password_plain = ?'); vals.push(plainPw)
+          v = sha256(plainPw)
+        }
         fields.push(`${key} = ?`); vals.push(v)
       }
     }

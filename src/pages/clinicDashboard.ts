@@ -205,7 +205,25 @@ function renderList() {
       ? '<span class="text-xs text-purple-500 font-semibold"><i class="fas fa-users mr-1"></i>' + Number(a.follower_count).toLocaleString() + ' followers</span>'
       : ''
 
-    return '<div class="card p-4 hover:shadow-md transition">' +
+    // 승인/거절 버튼
+    var actionBtns =
+      a.status !== 'approved'
+        ? '<button onclick="setClinicStatus(' + a.id + ',\'approved\')"
+            class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition"
+            style="background:#22c55e">
+            <i class="fas fa-check"></i> 승인
+           </button>'
+        : '<span class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-green-600 bg-green-50"><i class="fas fa-check"></i> 승인됨</span>'
+    actionBtns +=
+      a.status !== 'rejected'
+        ? '<button onclick="setClinicStatus(' + a.id + ',\'rejected\')"
+            class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition"
+            style="background:#ef4444">
+            <i class="fas fa-times"></i> 거절
+           </button>'
+        : '<span class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-red-500 bg-red-50"><i class="fas fa-times"></i> 거절됨</span>'
+
+    return '<div class="card p-4 transition" id="app-card-' + a.id + '">' +
       '<div class="flex items-start justify-between gap-3">' +
         '<div class="flex items-center gap-3">' +
           '<div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#c9a035,#e8c16a)">' +
@@ -230,9 +248,33 @@ function renderList() {
 
       (a.message ? '<div class="mt-3 bg-stone-50 rounded-xl px-3 py-2.5"><p class="text-xs text-gray-500 leading-relaxed">' + a.message + '</p></div>' : '') +
 
-      '<p class="text-xs text-gray-300 mt-3 text-right">' + (a.created_at || '').replace('T',' ').split('.')[0] + '</p>' +
+      '<div class="mt-3 pt-3 border-t border-stone-100 flex gap-2">' + actionBtns + '</div>' +
     '</div>'
   }).join('')
+}
+
+async function setClinicStatus(appId, status) {
+  var app = allApps.find(function(a) { return a.id === appId })
+  if (!app) return
+  try {
+    var res = await fetch('/api/clinic/applications/' + appId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-Clinic-Token': clinicToken },
+      body: JSON.stringify({ status: status, campaign_id: Number(clinicCampaignId) })
+    })
+    var data = await res.json()
+    if (data.success) {
+      app.status = status
+      // 카운터 업데이트
+      document.getElementById('cntPending').textContent  = allApps.filter(function(a){ return a.status === 'pending'  }).length
+      document.getElementById('cntApproved').textContent = allApps.filter(function(a){ return a.status === 'approved' }).length
+      renderList()
+    } else {
+      alert(data.error || '처리 실패')
+    }
+  } catch(e) {
+    alert('Network error')
+  }
 }
 
 function doLogout() {

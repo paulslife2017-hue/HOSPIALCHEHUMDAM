@@ -1058,6 +1058,8 @@ async function loadCamps() {
       const pendingCnt = campApps.filter(function(a){ return a.status === 'pending'  }).length
       const approvedCnt= campApps.filter(function(a){ return a.status === 'approved' }).length
       const totalCnt   = campApps.length
+      const pwPlain    = c.clinic_password_plain || ''
+      const hasPw      = !!c.clinic_password
 
       return \`<div class="border border-stone-100 rounded-2xl overflow-hidden bg-white shadow-sm">
         <!-- 업체 헤더 -->
@@ -1073,14 +1075,21 @@ async function loadCamps() {
               <span class="text-xs \${c.status === 'active' ? 'text-green-500' : 'text-gray-300'}">\${c.status === 'active' ? '● 모집중' : '○ 종료'}</span>
             </div>
             <p class="text-xs text-gray-400 truncate">\${c.title}</p>
-            <div class="flex items-center gap-3 mt-1.5">
+            <div class="flex items-center gap-3 mt-1.5 flex-wrap">
               <span class="text-xs font-semibold text-amber-600"><i class="fas fa-users mr-1"></i>\${totalCnt}명 신청</span>
               \${pendingCnt  ? \`<span class="text-xs text-amber-500">⏳ 대기 \${pendingCnt}</span>\` : ''}
               \${approvedCnt ? \`<span class="text-xs text-blue-500">✅ 전달완료 \${approvedCnt}</span>\` : ''}
             </div>
+            <!-- 비밀번호 배지 -->
+            <div class="flex items-center gap-1.5 mt-1.5">
+              \${hasPw && pwPlain
+                ? \`<span class="inline-flex items-center gap-1 text-[11px] font-mono font-semibold bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-2 py-0.5" id="pw-badge-\${c.id}">\${pwPlain}</span>
+                   <button onclick="event.stopPropagation();copyPw('\${pwPlain}',this)" class="text-[10px] text-gray-400 hover:text-amber-600 transition" title="비밀번호 복사"><i class="fas fa-copy"></i></button>\`
+                : \`<span class="inline-flex items-center gap-1 text-[11px] text-gray-300"><i class="fas fa-lock-open mr-0.5"></i>비번 미설정</span>\`}
+            </div>
           </div>
           <div class="flex items-center gap-1.5 flex-shrink-0">
-            <button onclick="event.stopPropagation();openEditCamp(\${JSON.stringify(c).replace(/"/g,'&quot;')})" class="text-xs text-amber-600 hover:text-amber-700 border border-amber-100 hover:bg-amber-50 px-2.5 py-1.5 rounded-lg transition font-medium">
+            <button onclick="event.stopPropagation();openEditCamp(\${JSON.stringify(c).replace(/"/g,'&quot;')})" class="text-xs text-amber-600 hover:text-amber-700 border border-amber-100 hover:bg-amber-50 px-2.5 py-1.5 rounded-lg transition font-medium" title="수정">
               <i class="fas fa-pen text-[10px]"></i>
             </button>
             \${c.share_token
@@ -1208,6 +1217,16 @@ function renderCampAppRows(campId, filter) {
       </div>
     </div>\`
   }).join('')
+}
+
+function copyPw(pw, btn) {
+  navigator.clipboard.writeText(pw).then(function() {
+    var orig = btn.innerHTML
+    btn.innerHTML = '<i class="fas fa-check text-green-500"></i>'
+    setTimeout(function() { btn.innerHTML = orig }, 1500)
+  }).catch(function() {
+    prompt('비밀번호를 복사하세요:', pw)
+  })
 }
 
 function copyShareLink(id, token, btn) {
@@ -1832,7 +1851,9 @@ function openEditCamp(c) {
   document.getElementById('editCampOk').classList.add('hidden')
   // 비밀번호 필드 초기화
   document.getElementById('ec_clinic_pw').value = ''
-  document.getElementById('ec_pw_status').textContent = c.clinic_password ? '✅ 설정됨' : '❌ 미설정'
+  document.getElementById('ec_pw_status').textContent = c.clinic_password_plain
+    ? '현재: ' + c.clinic_password_plain
+    : (c.clinic_password ? '✅ 설정됨 (평문 미확인)' : '❌ 미설정')
   document.getElementById('editCampModal').classList.add('open')
 }
 
