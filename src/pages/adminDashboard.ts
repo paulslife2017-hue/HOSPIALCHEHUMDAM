@@ -1285,6 +1285,19 @@ function exportApproved() {
 // ════════════════════════════════════════════
 var _campAppsCache = {}
 
+async function toggleCampStatus(id, newStatus, btn) {
+  var label = newStatus === 'inactive' ? '모집을 중단하시겠습니까?' : '모집을 재개하시겠습니까?'
+  if (!confirm(label)) return
+  var orig = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true
+  try {
+    var res  = await fetch('/api/admin/campaigns/' + id, { method:'PATCH', headers:H, body: JSON.stringify({ status: newStatus }) })
+    var json = await res.json()
+    if (!json.success) throw new Error(json.error || 'failed')
+    loadCamps()
+    loadStats()
+  } catch(e) { btn.innerHTML = orig; btn.disabled = false; alert('오류가 발생했습니다.') }
+}
+
 async function loadCamps() {
   const el = document.getElementById('campsContent')
   el.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">Loading…</p>'
@@ -1348,6 +1361,13 @@ async function loadCamps() {
             </div>
           </div>
           <div class="flex items-center gap-1.5 flex-shrink-0">
+            \${c.status === 'active'
+              ? \`<button onclick="event.stopPropagation();toggleCampStatus(\${c.id},'inactive',this)" class="text-xs text-red-400 hover:text-red-600 border border-red-100 hover:bg-red-50 px-2.5 py-1.5 rounded-lg transition font-medium" title="모집 중단">
+                  <i class="fas fa-pause text-[10px] mr-0.5"></i>중단
+                </button>\`
+              : \`<button onclick="event.stopPropagation();toggleCampStatus(\${c.id},'active',this)" class="text-xs text-green-500 hover:text-green-700 border border-green-100 hover:bg-green-50 px-2.5 py-1.5 rounded-lg transition font-medium" title="모집 재개">
+                  <i class="fas fa-play text-[10px] mr-0.5"></i>재개
+                </button>\`}
             <button onclick="event.stopPropagation();openEditCamp(\${JSON.stringify(c).replace(/"/g,'&quot;')})" class="text-xs text-amber-600 hover:text-amber-700 border border-amber-100 hover:bg-amber-50 px-2.5 py-1.5 rounded-lg transition font-medium" title="수정">
               <i class="fas fa-pen text-[10px]"></i>
             </button>
