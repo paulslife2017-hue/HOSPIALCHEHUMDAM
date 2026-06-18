@@ -235,7 +235,7 @@ app.post('/api/apply', async (c) => {
 
     const tok = process.env.TELEGRAM_BOT_TOKEN, cid = process.env.TELEGRAM_CHAT_ID
     if (tok && cid) {
-      const msg = `🔔 <b>New Application!</b>\n\n📋 <b>Campaign:</b> ${campaign.title}\n👤 <b>Name:</b> ${applicant_name}\n🌏 <b>Nationality:</b> ${nationality}\n📧 <b>Email:</b> ${email}\n📱 <b>WhatsApp:</b> ${phone||'—'}\n📸 <b>Instagram:</b> @${instagram}\n📅 <b>Dates:</b>\n${preferred_dates}${message?'\n💬 '+message:''}`
+      const msg = `🔔 <b>새 신청이 도착했습니다!</b>\n\n📋 <b>캠페인:</b> ${campaign.title}\n👤 <b>이름:</b> ${applicant_name}\n🌏 <b>국적:</b> ${nationality}\n📧 <b>이메일:</b> ${email}\n📱 <b>WhatsApp:</b> ${phone||'—'}\n📸 <b>인스타그램:</b> <a href="https://instagram.com/${instagram}">@${instagram}</a>\n📅 <b>희망 날짜:</b>\n${preferred_dates}${message?'\n💬 <b>메시지:</b> '+message:''}`
       fetch(`https://api.telegram.org/bot${tok}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ chat_id: cid, text: msg, parse_mode:'HTML' }) }).catch(()=>{})
     }
     return c.json({ success: true, message: 'Thank you for your application! The clinic will review your submission and contact you directly if they decide to proceed.' })
