@@ -60,7 +60,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '    /* ═══ HERO ═══ */\n' +
 '    .hero{background:linear-gradient(150deg,#0c0b09 0%,#1c1408 55%,#0e0c09 100%);position:relative;overflow:hidden;color:#fff;}\n' +
 '    /* 모바일 hero */\n' +
-'    .hero{padding:48px 20px 52px;}\n' +
+'    .hero{padding:32px 20px 36px;}\n' +
 '    .hero-inner{max-width:600px;margin:0 auto;position:relative;z-index:1;}\n' +
 '    /* PC hero: 더 넓고 양옆에 여백 */\n' +
 '    @media(min-width:1024px){\n' +
@@ -70,15 +70,15 @@ export function mainPageHTML(campaigns: any[]): string {
 '    }\n' +
 '    .hero-right{display:none;}\n' +
 '    .hero-noise{position:absolute;inset:0;opacity:.04;background-image:url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'.9\' numOctaves=\'4\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E");}\n' +
-'    .hero-badge{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(201,160,53,.35);background:rgba(201,160,53,.08);border-radius:99px;padding:5px 14px;font-size:12px;font-weight:500;color:#fcd34d;margin-bottom:20px;}\n' +
+'    .hero-badge{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(201,160,53,.35);background:rgba(201,160,53,.08);border-radius:99px;padding:5px 13px;font-size:11px;font-weight:500;color:#fcd34d;margin-bottom:16px;}\n' +
 '    .hero-badge span{width:6px;height:6px;border-radius:50%;background:#fbbf24;animation:pulse 2s infinite;flex-shrink:0;}\n' +
 '    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}\n' +
-'    .hero-title{font-family:"Cormorant Garamond",Georgia,serif;font-size:40px;font-weight:600;line-height:1.12;margin-bottom:18px;}\n' +
+'    .hero-title{font-family:"Cormorant Garamond",Georgia,serif;font-size:32px;font-weight:600;line-height:1.12;margin-bottom:14px;}\n' +
 '    @media(min-width:1024px){.hero-title{font-size:58px;}}\n' +
 '    .gold-text{background:linear-gradient(90deg,var(--gold),#f0d585);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}\n' +
-'    .hero-desc{color:#a8a29e;font-size:14px;line-height:1.75;margin-bottom:28px;max-width:440px;}\n' +
+'    .hero-desc{color:#a8a29e;font-size:13px;line-height:1.65;margin-bottom:20px;max-width:440px;}\n' +
 '    @media(min-width:1024px){.hero-desc{font-size:15px;}}\n' +
-'    .hero-chips{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:#a8a29e;}\n' +
+'    .hero-chips{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:#a8a29e;}\n' +
 '    .hero-chips span{display:flex;align-items:center;gap:7px;}\n' +
 '    .hero-dot{width:14px;height:14px;border-radius:50%;background:rgba(251,191,36,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}\n' +
 '    .hero-dot::after{content:"";width:6px;height:6px;border-radius:50%;background:#fbbf24;}\n' +
@@ -94,13 +94,13 @@ export function mainPageHTML(campaigns: any[]): string {
 '    @media(min-width:1024px){.filter-bar{display:none;}}\n' +
 '    .filter-inner{padding:10px 16px;display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}\n' +
 '    .filter-inner::-webkit-scrollbar{display:none;}\n' +
-'    .f-btn{border:1.5px solid #e2ddd6;color:#888;background:#fff;font-size:13px;font-weight:500;padding:8px 18px;border-radius:99px;cursor:pointer;transition:all .2s;white-space:nowrap;font-family:inherit;}\n' +
+'    .f-btn{border:1.5px solid #e2ddd6;color:#777;background:#fff;font-size:12px;font-weight:500;padding:8px 16px;border-radius:99px;cursor:pointer;transition:all .2s;white-space:nowrap;font-family:inherit;-webkit-tap-highlight-color:transparent;}\n' +
 '    .f-btn.active{border-color:var(--gold);background:#fdf8ef;color:#8a6d3b;font-weight:600;}\n' +
 '    .count-badge{margin-left:auto;font-size:12px;color:#aaa;background:#f3f0ec;padding:6px 12px;border-radius:99px;flex-shrink:0;white-space:nowrap;}\n' +
 '\n' +
 '    /* ═══ MAIN LAYOUT ═══ */\n' +
 '    /* 모바일: 단순 single col */\n' +
-'    .page-body{max-width:680px;margin:0 auto;padding:24px 16px;}\n' +
+'    .page-body{max-width:680px;margin:0 auto;padding:16px 14px 32px;}\n' +
 '    /* PC: sidebar + content 2-col */\n' +
 '    @media(min-width:1024px){\n' +
 '      .page-body{max-width:1440px;padding:40px 60px;display:grid;grid-template-columns:260px 1fr;gap:36px;align-items:start;}\n' +
@@ -127,7 +127,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '    }\n' +
 '\n' +
 '    /* ═══ CARD GRID ═══ */\n' +
-'    .card-grid{display:flex;flex-direction:column;gap:12px;}\n' +
+'    .card-grid{display:flex;flex-direction:column;gap:10px;}\n' +
 '    @media(min-width:1024px){\n' +
 '      .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}\n' +
 '    }\n' +
@@ -136,15 +136,16 @@ export function mainPageHTML(campaigns: any[]): string {
 '    /* ═══ CARD BASE (모바일: 가로형) ═══ */\n' +
 '    .camp-card{\n' +
 '      background:#fff;border-radius:16px;overflow:hidden;\n' +
-'      border:1px solid #ede9e2;box-shadow:0 1px 8px rgba(0,0,0,.05);\n' +
+'      border:1px solid #ede9e2;box-shadow:0 2px 10px rgba(0,0,0,.06);\n' +
 '      transition:box-shadow .22s,transform .18s;cursor:pointer;\n' +
 '      display:flex;flex-direction:row;align-items:stretch;\n' +
+'      min-height:110px;\n' +
 '    }\n' +
 '    .camp-card:active{transform:scale(.985);}\n' +
 '    @media(hover:hover){.camp-card:hover{box-shadow:0 10px 32px rgba(0,0,0,.12);border-color:#d4c4a0;transform:translateY(-2px);}}\n' +
 '\n' +
-'    /* 모바일 이미지: 왼쪽 고정 정사각형 */\n' +
-'    .camp-img-wrap{position:relative;flex-shrink:0;width:90px;height:90px;background:#ede9e4;overflow:hidden;}\n' +
+'    /* 모바일 이미지: 왼쪽 고정 */\n' +
+'    .camp-img-wrap{position:relative;flex-shrink:0;width:110px;height:110px;background:#ede9e4;overflow:hidden;}\n' +
 '    .camp-img-wrap img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:block;}\n' +
 '    .img-overlay{position:absolute;inset:0;pointer-events:none;}\n' +
 '    .img-top{position:absolute;top:6px;left:6px;}\n' +
@@ -153,17 +154,17 @@ export function mainPageHTML(campaigns: any[]): string {
 '    .img-fb-icon{font-size:2rem;color:#d1cdc8;}\n' +
 '\n' +
 '    /* 모바일 콘텐츠 */\n' +
-'    .card-content{flex:1;min-width:0;display:flex;flex-direction:column;padding:10px 12px;gap:4px;overflow:hidden;}\n' +
-'    .card-title{font-family:"Cormorant Garamond",Georgia,serif;font-size:14px;font-weight:600;color:#1f2937;line-height:1.3;\n' +
+'    .card-content{flex:1;min-width:0;display:flex;flex-direction:column;padding:11px 13px;gap:5px;overflow:hidden;}\n' +
+'    .card-title{font-family:"Cormorant Garamond",Georgia,serif;font-size:15px;font-weight:600;color:#1f2937;line-height:1.3;\n' +
 '      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}\n' +
 '    .card-venue-row{display:flex;align-items:center;gap:5px;overflow:hidden;}\n' +
-'    .venue-name{font-size:11px;font-weight:700;color:#8a6d3b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n' +
+'    .venue-name{font-size:11px;font-weight:700;color:#8a6d3b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;}\n' +
 '    .venue-addr{font-size:10px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
-'    .card-benefits-mini{font-size:10px;color:#6b7280;line-height:1.55;overflow:hidden;}\n' +
-'    .card-ben-item{display:flex;align-items:baseline;gap:4px;overflow:hidden;}\n' +
-'    .card-ben-dot{color:#f59e0b;font-size:8px;flex-shrink:0;line-height:1.6;}\n' +
-'    .card-ben-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#78350f;font-size:10px;font-weight:500;}\n' +
-'    .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px;border-top:1px solid #f5f2ee;gap:6px;}\n' +
+'    .card-benefits-mini{overflow:hidden;}\n' +
+'    .card-ben-item{display:flex;align-items:baseline;gap:4px;overflow:hidden;line-height:1.5;}\n' +
+'    .card-ben-dot{color:#f59e0b;font-size:7px;flex-shrink:0;line-height:1.8;}\n' +
+'    .card-ben-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#92400e;font-size:11px;font-weight:500;}\n' +
+'    .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:7px;border-top:1px solid #f5f2ee;gap:6px;}\n' +
 '\n' +
 '    /* ══ PC: 세로형 + 완전 고정 높이 ══ */\n' +
 '    @media(min-width:1024px){\n' +
@@ -218,7 +219,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '    .btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff;font-weight:600;transition:all .2s;border:none;cursor:pointer;font-family:inherit;}\n' +
 '    .btn-gold:active{transform:scale(.97);}\n' +
 '    .btn-gold:disabled{background:#e5e7eb;color:#9ca3af;cursor:not-allowed;transform:none;}\n' +
-'    .btn-apply{padding:9px 18px;border-radius:12px;font-size:12px;}\n' +
+'    .btn-apply{padding:9px 16px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.02em;}\n' +
 '\n' +
 '    /* ═══ EMPTY ═══ */\n' +
 '    .empty-box{text-align:center;padding:80px 0;}\n' +
@@ -234,14 +235,17 @@ export function mainPageHTML(campaigns: any[]): string {
 '    /* 모바일: 바텀시트 */\n' +
 '    .modal-bg{display:none;position:fixed;inset:0;background:rgba(8,7,6,.6);z-index:999;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:flex-end;justify-content:center;}\n' +
 '    .modal-bg.open{display:flex;}\n' +
-'    .sheet{width:100%;max-width:560px;max-height:92vh;overflow-y:auto;background:#fff;border-radius:24px 24px 0 0;}\n' +
-'    .sheet-handle{display:flex;justify-content:center;padding:12px 0 4px;}\n' +
-'    .sheet-handle div{width:40px;height:4px;background:#e5e7eb;border-radius:99px;}\n' +
+'    .sheet{width:100%;max-width:560px;max-height:93vh;overflow-y:auto;background:#fff;border-radius:22px 22px 0 0;-webkit-overflow-scrolling:touch;}\n' +
+'    .sheet-handle{display:flex;justify-content:center;padding:10px 0 2px;}\n' +
+'    .sheet-handle div{width:36px;height:4px;background:#e5e7eb;border-radius:99px;}\n' +
+'    /* 모달 이미지 비율 모바일: 더 낙게 */\n' +
+'    .modal-img-wrap{position:relative;width:100%;padding-top:52%;background:#ede9e4;overflow:hidden;}\n' +
 '    /* PC: 중앙 다이얼로그 */\n' +
 '    @media(min-width:1024px){\n' +
 '      .modal-bg{align-items:center;}\n' +
 '      .sheet{border-radius:24px;margin:20px;max-width:620px;max-height:88vh;}\n' +
 '      .sheet-handle{display:none;}\n' +
+'      .modal-img-wrap{padding-top:46%;}\n' +
 '    }\n' +
 '\n' +
 '    /* ═══ DATE CHIP ═══ */\n' +
@@ -249,6 +253,8 @@ export function mainPageHTML(campaigns: any[]): string {
 '    .chip button{color:#c9a96e;background:none;border:none;cursor:pointer;font-size:16px;line-height:1;padding:0 0 0 2px;}\n' +
 '\n' +
 '    input:focus,textarea:focus,select:focus{outline:none!important;border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(201,160,53,.12)!important;}\n' +
+'    .form-row-2{display:grid;grid-template-columns:1fr;gap:12px;}\n' +
+'    @media(min-width:480px){.form-row-2{grid-template-columns:1fr 1fr;}}\n' +
 '    ::-webkit-scrollbar{width:4px;height:4px;}\n' +
 '    ::-webkit-scrollbar-thumb{background:#d4b896;border-radius:99px;}\n' +
 '  </style>\n' +
@@ -421,16 +427,16 @@ export function mainPageHTML(campaigns: any[]): string {
 '        <button onclick="closeApply()" style="color:rgba(255,255,255,.4);background:none;border:none;font-size:26px;line-height:1;cursor:pointer;padding:0;margin-left:16px">&times;</button>\n' +
 '      </div>\n' +
 '    </div>\n' +
-'    <form id="applyForm" style="padding:20px 24px;display:flex;flex-direction:column;gap:16px">\n' +
+'    <form id="applyForm" style="padding:16px 18px;display:flex;flex-direction:column;gap:14px">\n' +
 '      <input type="hidden" id="applyCapId">\n' +
-'      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n' +
+'      <div class="form-row-2">\n' +
 '        <div>\n' +
 '          <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Full Name <span style="color:#f87171">*</span></label>\n' +
-'          <input id="fName" type="text" placeholder="Your name" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;font-size:14px;font-family:inherit" required>\n' +
+'          <input id="fName" type="text" placeholder="Your name" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:11px 13px;font-size:15px;font-family:inherit" required>\n' +
 '        </div>\n' +
 '        <div>\n' +
 '          <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Nationality <span style="color:#f87171">*</span></label>\n' +
-'          <select id="fNation" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;font-size:14px;font-family:inherit;background:#fff" required>\n' +
+'          <select id="fNation" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:11px 13px;font-size:15px;font-family:inherit;background:#fff" required>\n' +
 '            <option value="">Select</option>\n' +
 '            <option>&#x1F1FA;&#x1F1F8; American</option><option>&#x1F1EC;&#x1F1E7; British</option><option>&#x1F1E6;&#x1F1FA; Australian</option>\n' +
 '            <option>&#x1F1E8;&#x1F1E6; Canadian</option><option>&#x1F1EF;&#x1F1F5; Japanese</option><option>&#x1F1E8;&#x1F1F3; Chinese</option>\n' +
@@ -444,14 +450,14 @@ export function mainPageHTML(campaigns: any[]): string {
 '          </select>\n' +
 '        </div>\n' +
 '      </div>\n' +
-'      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n' +
+'      <div class="form-row-2">\n' +
 '        <div>\n' +
 '          <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Email <span style="color:#f87171">*</span></label>\n' +
-'          <input id="fEmail" type="email" placeholder="your@email.com" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;font-size:14px;font-family:inherit" required>\n' +
+'          <input id="fEmail" type="email" placeholder="your@email.com" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:11px 13px;font-size:15px;font-family:inherit" required>\n' +
 '        </div>\n' +
 '        <div>\n' +
 '          <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">WhatsApp</label>\n' +
-'          <input id="fPhone" type="tel" placeholder="+1-000-0000" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;font-size:14px;font-family:inherit">\n' +
+'          <input id="fPhone" type="tel" placeholder="+1-000-0000" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:11px 13px;font-size:15px;font-family:inherit">\n' +
 '        </div>\n' +
 '      </div>\n' +
 '      <div>\n' +
@@ -724,7 +730,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '  }\n' +
 '\n' +
 '  document.getElementById("detailContent").innerHTML =\n' +
-'    \'<div style="position:relative;width:100%;padding-top:56.25%;background:#ede9e4;overflow:hidden">\' +\n' +
+'    \'<div class="modal-img-wrap">\' +\n' +
 '      imgPart +\n' +
 '      \'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 25%,rgba(0,0,0,.78) 100%);pointer-events:none"></div>\' +\n' +
 '      \'<button onclick="closeDetail()" style="position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.4);backdrop-filter:blur(6px);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">&times;</button>\' +\n' +
