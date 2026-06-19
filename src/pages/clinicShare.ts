@@ -251,15 +251,15 @@ function renderList() {
   var summaryEl = document.getElementById('summaryBox')
   if (summaryEl) {
     summaryEl.innerHTML =
-      '<div onclick="filterApps(\'pending\')" style="cursor:pointer;text-align:center;background:#fefce8;border:1px solid #fcd34d;border-radius:10px;padding:10px 6px;">' +
+      '<div data-filter="pending" style="cursor:pointer;text-align:center;background:#fefce8;border:1px solid #fcd34d;border-radius:10px;padding:10px 6px;">' +
         '<p style="font-size:22px;font-weight:800;color:#92400e;margin:0;">' + pendingCnt + '</p>' +
         '<p style="font-size:10px;color:#a16207;margin:2px 0 0;font-weight:600;">⏳ 대기</p>' +
       '</div>' +
-      '<div onclick="filterApps(\'approved\')" style="cursor:pointer;text-align:center;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 6px;">' +
+      '<div data-filter="approved" style="cursor:pointer;text-align:center;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 6px;">' +
         '<p style="font-size:22px;font-weight:800;color:#166534;margin:0;">' + approvedCnt + '</p>' +
         '<p style="font-size:10px;color:#15803d;margin:2px 0 0;font-weight:600;">✅ 승인</p>' +
       '</div>' +
-      '<div onclick="filterApps(\'rejected\')" style="cursor:pointer;text-align:center;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 6px;">' +
+      '<div data-filter="rejected" style="cursor:pointer;text-align:center;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 6px;">' +
         '<p style="font-size:22px;font-weight:800;color:#991b1b;margin:0;">' + rejectedCnt + '</p>' +
         '<p style="font-size:10px;color:#b91c1c;margin:2px 0 0;font-weight:600;">❌ 거절</p>' +
       '</div>'
@@ -395,8 +395,12 @@ function renderList() {
   }).join('')
 }
 
-// ── 이벤트 위임 (상태변경 + 정산토글) ────────
+// ── 이벤트 위임 (상태변경 + 정산토글 + 요약박스 필터) ────────
 document.addEventListener('click', async function(e) {
+  // ── 요약박스 필터 클릭
+  var filterEl = e.target.closest('[data-filter]')
+  if (filterEl) { filterApps(filterEl.getAttribute('data-filter')); return }
+
   // ── 정산 토글
   var settleBtn = e.target.closest('[data-settle-id]')
   if (settleBtn) {
