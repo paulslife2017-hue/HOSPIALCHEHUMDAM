@@ -29,6 +29,17 @@ export function adminDashboardHTML(): string {
     .row-hover:hover{background:#faf9f7;}
     ::-webkit-scrollbar{width:4px;height:4px;}
     ::-webkit-scrollbar-thumb{background:#d4c4a0;border-radius:4px;}
+    /* ── 혜택 태그 칩 UI ── */
+    .ben-tag-wrap{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;min-height:44px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;cursor:text;transition:border-color .15s;}
+    .ben-tag-wrap:focus-within{border-color:#c9a035;box-shadow:0 0 0 3px rgba(201,160,53,.12);}
+    .ben-tag{display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,#fffbef,#fef3c7);border:1px solid #f0d88a;border-radius:99px;padding:3px 10px 3px 10px;font-size:12px;font-weight:500;color:#78350f;white-space:nowrap;max-width:280px;}
+    .ben-tag span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .ben-tag button{background:none;border:none;cursor:pointer;color:#a16207;font-size:11px;padding:0;line-height:1;flex-shrink:0;width:14px;height:14px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .1s;}
+    .ben-tag button:hover{background:#f59e0b22;}
+    .ben-tag-input{border:none;outline:none;font-size:12px;color:#374151;min-width:140px;flex:1;background:transparent;padding:2px 4px;}
+    .ben-tag-input::placeholder{color:#d1d5db;}
+    .ben-add-btn{display:inline-flex;align-items:center;gap:4px;background:#f9f5ec;border:1px dashed #d4c4a0;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:600;color:#a16207;cursor:pointer;transition:all .15s;white-space:nowrap;}
+    .ben-add-btn:hover{background:#fef3c7;border-color:#f0d88a;}
   </style>
 </head>
 <body class="min-h-screen">
@@ -340,22 +351,26 @@ export function adminDashboardHTML(): string {
           </select>
         </div>
 
-        <!-- Benefits: 한글 입력 → 영어 자동 번역 -->
+        <!-- Benefits: 태그 칩 UI -->
         <div>
           <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-            제공 혜택 <span class="text-gray-300 font-normal normal-case">(한글로 입력하면 자동 번역)</span>
+            제공 혜택 서비스 <span class="text-gray-300 font-normal normal-case">(항목별로 추가, 한글 자동번역)</span>
           </label>
-          <div class="relative">
-            <input id="nc_benefits" type="text" placeholder="예) 무료 상담 + 치아 미백 30% 할인"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm pr-20"
-              oninput="onKoreanInput('nc_benefits', 'nc_benefits_translated')">
-            <button type="button" onclick="translateField('nc_benefits', 'nc_benefits_translated')"
-              class="absolute right-2 top-1/2 -translate-y-1/2 text-xs px-2.5 py-1 rounded-lg btn-gold">번역</button>
+          <div id="nc_ben_tags" class="ben-tag-wrap" onclick="document.getElementById('nc_ben_input').focus()">
+            <!-- 태그들이 여기 동적 추가됨 -->
+            <input id="nc_ben_input" class="ben-tag-input" placeholder="서비스 입력 후 Enter 또는 + 클릭"
+              onkeydown="ncBenKeydown(event)" oninput="ncBenInputChange(this)">
           </div>
-          <div id="nc_benefits_translated" class="hidden mt-1.5 text-xs text-gray-500 bg-stone-50 rounded-lg px-3 py-2 border border-stone-100">
-            <span class="text-amber-500 font-semibold mr-1">EN</span><span id="nc_benefits_en"></span>
+          <div class="flex items-center gap-2 mt-1.5">
+            <button type="button" onclick="ncBenAddCurrent()" class="ben-add-btn">
+              <i class="fas fa-plus" style="font-size:9px;"></i> 항목 추가
+            </button>
+            <span class="text-xs text-gray-400">예: <span class="text-amber-600 cursor-pointer" onclick="ncBenAddSample('무료 침 30분')">무료 침 30분</span> · <span class="text-amber-600 cursor-pointer" onclick="ncBenAddSample('추나치료')">추나치료</span> · <span class="text-amber-600 cursor-pointer" onclick="ncBenAddSample('부항')">부항</span></span>
           </div>
-          <input type="hidden" id="nc_benefits_final">
+          <input type="hidden" id="nc_benefits" value="">
+          <input type="hidden" id="nc_benefits_final" value="">
+          <div id="nc_benefits_translated" class="hidden"></div>
+          <div id="nc_benefits_en" style="display:none"></div>
         </div>
 
         <!-- Requirements: 한글 입력 → 영어 자동 번역 -->
@@ -592,19 +607,26 @@ TELEGRAM_CHAT_ID=123456789</pre>
 
       <div>
         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-          제공 혜택 <span class="text-gray-300 font-normal normal-case">(한글→영어 번역 가능)</span>
+          제공 혜택 서비스 <span class="text-gray-300 font-normal normal-case">(항목별로 추가, 한글 자동번역)</span>
         </label>
-        <div class="relative">
-          <input id="ec_benefits" type="text" placeholder="e.g. Free consultation + whitening session"
-            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm pr-20"
-            oninput="onEcBenInput()">
-          <button type="button" onclick="translateEcBen()"
-            class="absolute right-2 top-1/2 -translate-y-1/2 text-xs px-2.5 py-1 rounded-lg btn-gold">번역</button>
+        <div id="ec_ben_tags" class="ben-tag-wrap" onclick="document.getElementById('ec_ben_input').focus()">
+          <!-- 태그들 동적 추가 -->
+          <input id="ec_ben_input" class="ben-tag-input" placeholder="서비스 입력 후 Enter 또는 + 클릭"
+            onkeydown="ecBenKeydown(event)" oninput="ecBenInputChange(this)">
         </div>
-        <div id="ec_ben_translated" class="hidden mt-1.5 text-xs text-gray-500 bg-stone-50 rounded-lg px-3 py-2 border border-stone-100">
-          <span class="text-amber-500 font-semibold mr-1">EN</span><span id="ec_ben_en"></span>
+        <div class="flex items-center gap-2 mt-1.5">
+          <button type="button" onclick="ecBenAddCurrent()" class="ben-add-btn">
+            <i class="fas fa-plus" style="font-size:9px;"></i> 항목 추가
+          </button>
+          <button type="button" onclick="ecBenTranslateAll()" class="ben-add-btn" style="border-color:#c9a035;color:#92400e;">
+            <i class="fas fa-language" style="font-size:10px;"></i> 전체 번역
+          </button>
+          <span id="ec_ben_translate_status" class="text-xs text-gray-400"></span>
         </div>
-        <input type="hidden" id="ec_ben_final">
+        <input type="hidden" id="ec_benefits" value="">
+        <input type="hidden" id="ec_ben_final" value="">
+        <div id="ec_ben_translated" class="hidden"></div>
+        <div id="ec_ben_en" style="display:none"></div>
       </div>
 
       <div>
@@ -2048,7 +2070,6 @@ function fillPlace(p) {
 
   // ── 기본값 자동세팅 (비어있을 때만 채움) ────────────────
   const reqEl  = document.getElementById('nc_req')
-  const benEl  = document.getElementById('nc_benefits')
   const descEl = document.getElementById('nc_desc')
   const cat    = document.getElementById('nc_category').value
 
@@ -2058,9 +2079,10 @@ function fillPlace(p) {
     reqEl.value = defaultReq
     document.getElementById('nc_req_final').value = defaultReq
   }
-  if (!benEl.value) {
-    benEl.value = 'Complimentary treatment session · Personalized English consultation · Tailored care plan'
-    document.getElementById('nc_benefits_final').value = benEl.value
+  // 혜택 태그 기본값: 태그가 없을 때만 세팅
+  if (!benTagsGet('nc_ben_tags').length) {
+    benTagsLoad('nc_ben_tags', 'nc_benefits', 'nc_benefits_final',
+      'Complimentary treatment session · Personalized English consultation · Tailored care plan')
   }
   if (!descEl.value) {
     const autoDesc = autoDescription(p.name, cat, p.address)
@@ -2080,13 +2102,17 @@ function resetNewForm() {
   clearPlace()
   document.getElementById('newCampErr').classList.add('hidden')
   document.getElementById('newCampOk').classList.add('hidden')
-  document.getElementById('nc_benefits_translated').classList.add('hidden')
+  // 혜택 태그 초기화
+  var ncWrap = document.getElementById('nc_ben_tags')
+  Array.from(ncWrap.querySelectorAll('.ben-tag')).forEach(function(t){ t.remove() })
+  document.getElementById('nc_ben_input').value = ''
+  document.getElementById('nc_benefits').value = ''
+  document.getElementById('nc_benefits_final').value = ''
+  // 기타 초기화
   document.getElementById('nc_req_translated').classList.add('hidden')
   document.getElementById('nc_desc_translated').classList.add('hidden')
-  document.getElementById('nc_benefits_final').value = ''
   document.getElementById('nc_req_final').value = ''
   document.getElementById('nc_desc_final').value = ''
-  document.getElementById('nc_benefits_en').textContent = ''
   document.getElementById('nc_req_en').textContent = ''
   document.getElementById('nc_desc_en').textContent = ''
 }
@@ -2122,12 +2148,17 @@ document.getElementById('newCampForm').addEventListener('submit', async e => {
   btn.textContent = '번역 중…'
 
   // 한글이 있으면 저장 전 자동 번역
-  const rawBen  = document.getElementById('nc_benefits').value.trim()
   const rawReq  = document.getElementById('nc_req').value.trim()
   const rawDesc = document.getElementById('nc_desc').value.trim()
-  const benefitsVal = await gtTranslate(rawBen)
-  const reqVal      = await gtTranslate(rawReq)
-  const descVal     = await gtTranslate(rawDesc)
+  const reqVal  = await gtTranslate(rawReq)
+  const descVal = await gtTranslate(rawDesc)
+  // 혜택: 태그 칩 UI — 한글 태그 개별 번역
+  const ncBenTags = benTagsGet('nc_ben_tags')
+  var translatedBenTags = []
+  for (var bi = 0; bi < ncBenTags.length; bi++) {
+    translatedBenTags.push(/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(ncBenTags[bi]) ? await gtTranslate(ncBenTags[bi]) : ncBenTags[bi])
+  }
+  const benefitsVal = translatedBenTags.join(' \xb7 ')
 
   btn.textContent = 'Creating…'
   const body = {
@@ -2462,11 +2493,10 @@ function openEditCamp(c) {
   document.getElementById('ec_desc_final').value = c.description || ''
   document.getElementById('ec_desc_en').textContent = ''
   document.getElementById('ec_desc_translated').classList.add('hidden')
-  // Benefits
-  document.getElementById('ec_benefits').value  = c.benefits || ''
-  document.getElementById('ec_ben_final').value  = c.benefits || ''
-  document.getElementById('ec_ben_en').textContent = ''
-  document.getElementById('ec_ben_translated').classList.add('hidden')
+  // Benefits — 태그 칩 UI 로드
+  benTagsLoad('ec_ben_tags', 'ec_benefits', 'ec_ben_final', c.benefits || '')
+  document.getElementById('ec_ben_input').value = ''
+  document.getElementById('ec_ben_translate_status').textContent = ''
   // Requirements
   document.getElementById('ec_req').value        = c.requirements || ''
   document.getElementById('ec_req_final').value  = c.requirements || ''
@@ -2498,15 +2528,130 @@ function onEcDescInput() {
   }
 }
 
-// 한글 감지 — Benefits
-function onEcBenInput() {
-  const val = document.getElementById('ec_benefits').value
-  const hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(val)
-  if (!hasKorean) {
-    document.getElementById('ec_ben_translated').classList.add('hidden')
-    document.getElementById('ec_ben_final').value = val
+// ════════════════════════════════════════════
+// 혜택 태그 칩 UI — 공통 헬퍼
+// ════════════════════════════════════════════
+function benTagsGet(wrapId) {
+  var wrap = document.getElementById(wrapId)
+  return Array.from(wrap.querySelectorAll('.ben-tag')).map(function(t) { return t.dataset.val || '' }).filter(Boolean)
+}
+
+function benTagsSync(wrapId, hiddenId, finalId) {
+  var tags = benTagsGet(wrapId)
+  var joined = tags.join(' \xb7 ')
+  document.getElementById(hiddenId).value = joined
+  if (finalId) document.getElementById(finalId).value = joined
+}
+
+function benTagRender(wrapId, hiddenId, finalId, val) {
+  val = (val || '').trim()
+  if (!val) return
+  var wrap = document.getElementById(wrapId)
+  var inputEl = wrap.querySelector('.ben-tag-input')
+  // 중복 체크
+  var existing = benTagsGet(wrapId)
+  if (existing.indexOf(val) >= 0) { if(inputEl) inputEl.value = ''; return }
+  // 태그 요소 — DOM API로 생성 (innerHTML 따옴표 충돌 방지)
+  var tag = document.createElement('span')
+  tag.className = 'ben-tag'
+  tag.dataset.val = val
+  var labelEl = document.createElement('span')
+  labelEl.title = val
+  labelEl.textContent = val
+  var delBtn = document.createElement('button')
+  delBtn.type = 'button'
+  delBtn.title = '삭제'
+  delBtn.textContent = '×'
+  delBtn.addEventListener('click', function() {
+    tag.remove()
+    benTagsSync(wrapId, hiddenId, finalId)
+  })
+  tag.appendChild(labelEl)
+  tag.appendChild(delBtn)
+  // input 앞에 삽입
+  wrap.insertBefore(tag, inputEl)
+  if(inputEl) inputEl.value = ''
+  benTagsSync(wrapId, hiddenId, finalId)
+}
+
+function benTagRemove(btn, wrapId, hiddenId, finalId) {
+  btn.closest('.ben-tag').remove()
+  benTagsSync(wrapId, hiddenId, finalId)
+}
+
+function benTagsLoad(wrapId, hiddenId, finalId, rawVal) {
+  // 기존 태그 모두 제거
+  var wrap = document.getElementById(wrapId)
+  Array.from(wrap.querySelectorAll('.ben-tag')).forEach(function(t){ t.remove() })
+  if (!rawVal) return
+  // 중간점(·) 또는 쉼표+공백 또는 줄바꿈으로 분리
+  var _sep = String.fromCharCode(183); var items = rawVal.split(_sep).join('|').split('|').map(function(s){ return s.trim() }).filter(Boolean)
+  items.forEach(function(item) { benTagRender(wrapId, hiddenId, finalId, item) })
+}
+
+// ── 새 캠페인 폼 혜택 태그 ──
+function ncBenKeydown(e) {
+  if (e.key === 'Enter') { e.preventDefault(); ncBenAddCurrent(); }
+  if (e.key === 'Backspace' && !e.target.value) {
+    var tags = document.querySelectorAll('#nc_ben_tags .ben-tag')
+    if (tags.length) { tags[tags.length-1].remove(); benTagsSync('nc_ben_tags','nc_benefits','nc_benefits_final'); }
   }
 }
+function ncBenInputChange(inp) {
+  if (inp.value.indexOf(String.fromCharCode(183)) >= 0 || inp.value.indexOf(String.fromCharCode(10)) >= 0) {
+    var parts = inp.value.split(String.fromCharCode(183)).join("|").split("|").map(function(s){ return s.trim() }).filter(Boolean)
+    parts.forEach(function(p){ benTagRender('nc_ben_tags','nc_benefits','nc_benefits_final', p) })
+    inp.value = ''
+  }
+}
+function ncBenAddCurrent() {
+  var inp = document.getElementById('nc_ben_input')
+  benTagRender('nc_ben_tags','nc_benefits','nc_benefits_final', inp.value)
+}
+function ncBenAddSample(text) {
+  benTagRender('nc_ben_tags','nc_benefits','nc_benefits_final', text)
+}
+
+// ── 수정 폼 혜택 태그 ──
+function ecBenKeydown(e) {
+  if (e.key === 'Enter') { e.preventDefault(); ecBenAddCurrent(); }
+  if (e.key === 'Backspace' && !e.target.value) {
+    var tags = document.querySelectorAll('#ec_ben_tags .ben-tag')
+    if (tags.length) { tags[tags.length-1].remove(); benTagsSync('ec_ben_tags','ec_benefits','ec_ben_final'); }
+  }
+}
+function ecBenInputChange(inp) {
+  if (inp.value.indexOf(String.fromCharCode(183)) >= 0 || inp.value.indexOf(String.fromCharCode(10)) >= 0) {
+    var parts = inp.value.split(String.fromCharCode(183)).join("|").split("|").map(function(s){ return s.trim() }).filter(Boolean)
+    parts.forEach(function(p){ benTagRender('ec_ben_tags','ec_benefits','ec_ben_final', p) })
+    inp.value = ''
+  }
+}
+function ecBenAddCurrent() {
+  var inp = document.getElementById('ec_ben_input')
+  benTagRender('ec_ben_tags','ec_benefits','ec_ben_final', inp.value)
+}
+async function ecBenTranslateAll() {
+  var tags = benTagsGet('ec_ben_tags')
+  if (!tags.length) return
+  var statusEl = document.getElementById('ec_ben_translate_status')
+  statusEl.textContent = '번역 중…'
+  var translated = []
+  for (var i = 0; i < tags.length; i++) {
+    var t = tags[i]
+    var hasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(t)
+    translated.push(hasKorean ? await gtTranslate(t) : t)
+  }
+  // 기존 태그 교체
+  var wrap = document.getElementById('ec_ben_tags')
+  Array.from(wrap.querySelectorAll('.ben-tag')).forEach(function(el){ el.remove() })
+  translated.forEach(function(item){ benTagRender('ec_ben_tags','ec_benefits','ec_ben_final', item) })
+  statusEl.textContent = '✅ 번역완료'
+  setTimeout(function(){ statusEl.textContent = '' }, 2000)
+}
+
+// 구버전 호환 (더 이상 직접 호출 안 됨)
+function onEcBenInput() {}
 
 // 한글 감지 — Requirements
 function onEcReqInput() {
@@ -2566,11 +2711,21 @@ document.getElementById('editCampForm').addEventListener('submit', async e => {
 
   // 한글이 있으면 저장 전 자동 번역
   const rawDesc = (document.getElementById('ec_desc').value).trim()
-  const rawBen  = (document.getElementById('ec_benefits').value).trim()
   const rawReq  = (document.getElementById('ec_req').value).trim()
   const descVal = await gtTranslate(rawDesc)
-  const benVal  = await gtTranslate(rawBen)
   const reqVal  = await gtTranslate(rawReq)
+  // 혜택은 태그 칩 UI에서 이미 개별 처리됨 — 현재 태그 목록을 ' · '로 합쳐서 저장
+  const benTags = benTagsGet('ec_ben_tags')
+  const rawBen  = document.getElementById('ec_benefits').value.trim()
+  // 한글 태그가 있으면 각각 번역
+  var benVal = rawBen
+  if (/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(rawBen)) {
+    var translatedTags = []
+    for (var i = 0; i < benTags.length; i++) {
+      translatedTags.push(/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(benTags[i]) ? await gtTranslate(benTags[i]) : benTags[i])
+    }
+    benVal = translatedTags.join(' \xb7 ')
+  }
 
   btn.textContent = '저장 중…'
   const newPw = document.getElementById('ec_clinic_pw').value.trim()

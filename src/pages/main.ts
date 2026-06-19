@@ -191,13 +191,15 @@ export function mainPageHTML(campaigns: any[]): string {
 '    /* map btn */\n' +
 '    .map-btn{flex-shrink:0;display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#3b82f6;font-weight:600;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:4px 8px;text-decoration:none;white-space:nowrap;}\n' +
 '    /* detail modal용 */\n' +
-'    .benefit-box{background:linear-gradient(135deg,#fffbef,#fef3c7);border:1px solid #f0d88a;border-radius:14px;padding:13px 15px;display:flex;align-items:flex-start;gap:10px;}\n' +
+'    .benefit-box{background:linear-gradient(135deg,#fffbef,#fef3c7);border:1px solid #f0d88a;border-radius:14px;padding:14px 15px;}\n' +
+'    .benefit-box-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#b45309;margin-bottom:9px;display:flex;align-items:center;gap:5px;}\n' +
+'    .ben-chips{display:flex;flex-wrap:wrap;gap:6px;}\n' +
+'    .ben-chip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #f0d88a;border-radius:99px;padding:4px 11px;font-size:11px;font-weight:500;color:#78350f;}\n' +
+'    .ben-chip i{color:#f59e0b;font-size:9px;}\n' +
 '    .req-box{background:#f8f7f5;border:1px solid #ede9e2;border-radius:14px;padding:13px 15px;display:flex;align-items:flex-start;gap:10px;}\n' +
 '    .box-icon{font-size:13px;margin-top:2px;flex-shrink:0;}\n' +
 '    .box-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}\n' +
 '    .box-text{font-size:12px;line-height:1.6;}\n' +
-'    .benefit-box .box-label{color:#b45309;}\n' +
-'    .benefit-box .box-text{color:#78350f;}\n' +
 '    .req-box .box-label{color:#6b7280;}\n' +
 '    .req-box .box-text{color:#4b5563;}\n' +
 '\n' +
@@ -601,9 +603,14 @@ export function mainPageHTML(campaigns: any[]): string {
 '      ? \'<div style="position:absolute;inset:0;background:rgba(0,0,0,.48);display:flex;align-items:center;justify-content:center"><span style="border:1px solid rgba(255,255,255,.35);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;padding:5px 14px;border-radius:99px;backdrop-filter:blur(6px)">FULL</span></div>\'\n' +
 '      : "";\n' +
 '\n' +
-'    var benefitMini = c.benefits\n' +
-'      ? \'<div class="card-benefits-mini">&#x1F381; \' + c.benefits + \'</div>\'\n' +
-'      : "";\n' +
+'    var benefitMini = c.benefits ? (function(){\n' +
+'      var benItems = c.benefits.split(/\\s*·\\s*/).map(function(s){ return s.trim(); }).filter(Boolean);\n' +
+'      var show = benItems.slice(0, 2);\n' +
+'      var rest = benItems.length - 2;\n' +
+'      var chips = show.map(function(s){ return \'<span style="display:inline-flex;align-items:center;gap:3px;background:#fffbef;border:1px solid #f0d88a;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:500;color:#78350f;white-space:nowrap;"><i class="fas fa-star" style="font-size:8px;color:#f59e0b;"></i>\' + s + \'</span>\'; }).join("");\n' +
+'      var moreChip = rest > 0 ? \'<span style="background:#f3f4f6;border-radius:99px;padding:2px 7px;font-size:10px;color:#9ca3af;font-weight:500;">+\' + rest + \' more</span>\' : "";\n' +
+'      return \'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;">\' + chips + moreChip + \'</div>\';\n' +
+'    })() : "";\n' +
 '\n' +
 '    var applyBtn = \'<button onclick="event.stopPropagation();openApply(\' + c.id + \')" \' + (full ? "disabled" : "") +\n' +
 '      \' style="font-size:11px;padding:5px 14px;border-radius:99px;flex-shrink:0" class="btn-gold btn-apply">\' + (full ? "Full" : "Apply") + \'</button>\';\n' +
@@ -682,8 +689,18 @@ export function mainPageHTML(campaigns: any[]): string {
 '    : \'<div style="width:100%;text-align:center;padding:16px;border-radius:16px;font-size:14px;font-weight:500;color:#9ca3af;background:#f3f4f6">This program is fully booked</div>\';\n' +
 '\n' +
 '  var ratingPill = c.place_rating\n' +
-'    ? \'<span class="pill" style="background:#fef9ee;color:#92620a">&#9733; \' + c.place_rating + \' \xb7 Verified</span>\'\n' +
+'    ? \'<span class="pill" style="background:#fef9ee;color:#92620a">&#9733; \' + c.place_rating + \' · Verified</span>\'\n' +
 '    : "";\n' +
+'\n' +
+'  var benefitHtml = "";\n' +
+'  if (c.benefits) {\n' +
+'    var benItems = c.benefits.split(/\\s*·\\s*/).map(function(s){ return s.trim(); }).filter(Boolean);\n' +
+'    var benIcons = ["fa-star","fa-gift","fa-sparkles","fa-heart","fa-gem","fa-crown","fa-check","fa-plus","fa-wand-magic-sparkles"];\n' +
+'    var benChips = benItems.map(function(it, idx){\n' +
+'      return \'<span class="ben-chip"><i class="fas \' + benIcons[idx % benIcons.length] + \'"></i>\' + it + \'</span>\';\n' +
+'    }).join("");\n' +
+'    benefitHtml = \'<div class="benefit-box"><div class="benefit-box-label"><i class="fas fa-gift" style="color:#f59e0b;"></i>What You Receive</div><div class="ben-chips">\' + benChips + \'</div></div>\';\n' +
+'  }\n' +
 '\n' +
 '  document.getElementById("detailContent").innerHTML =\n' +
 '    \'<div style="position:relative;width:100%;padding-top:56.25%;background:#ede9e4;overflow:hidden">\' +\n' +
@@ -702,7 +719,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '      \'</div>\' +\n' +
 '      addrPart +\n' +
 '      (c.description ? \'<p style="font-size:14px;color:#4b5563;line-height:1.8;margin:0">\' + c.description + \'</p>\' : "") +\n' +
-'      (c.benefits ? \'<div class="benefit-box"><span class="box-icon" style="color:#f59e0b">&#x1F381;</span><div><div class="box-label">What You Receive</div><div class="box-text">\' + c.benefits + \'</div></div></div>\' : "") +\n' +
+'      benefitHtml +\n' +
 '      (c.requirements ? \'<div class="req-box"><span class="box-icon" style="color:#9ca3af">&#x2713;</span><div><div class="box-label">Requirements</div><div class="box-text">\' + c.requirements + \'</div></div></div>\' : "") +\n' +
 '      \'<p style="font-size:12px;color:#9ca3af;display:flex;align-items:center;gap:6px;margin:0">&#x1F4C5; Deadline: <span style="font-weight:500;color:#374151">\' + dlText + \'</span></p>\' +\n' +
 '      ctaHtml +\n' +
