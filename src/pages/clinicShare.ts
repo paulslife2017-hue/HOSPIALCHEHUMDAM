@@ -75,11 +75,10 @@ export function clinicShareHTML(): string {
     </div>
   </div>
 
-  <!-- 로딩 -->
-  <div id="loadingEl" class="text-center py-20 text-gray-400" style="">
+  <!-- 로딩 (확인 버튼 누른 후만 표시) -->
+  <div id="loadingEl" class="hidden text-center py-20 text-gray-400">
     <i class="fas fa-spinner fa-spin text-2xl mb-3 block" style="color:#c9a035;"></i>
-    <p style="font-size:14px;font-weight:600;color:#6b7280;margin:0;">불러오는 중…</p>
-    <p style="font-size:11px;color:#d1d5db;margin:6px 0 0;">처음 접속 시 잠시 걸릴 수 있습니다</p>
+    <p style="font-size:14px;font-weight:600;color:#6b7280;margin:0;">확인 중…</p>
   </div>
   <!-- 에러 -->
   <div id="errorEl" class="hidden text-center py-20">
@@ -141,13 +140,14 @@ function showLogin() {
 
 async function init() {
   if (!_slug) { showError('Invalid link.'); return }
+  // 저장된 비번 있으면 백그라운드 자동로그인 시도 (로딩 안 보여줌)
   var saved = sessionStorage.getItem(SESSION_KEY)
+  showLogin() // 바로 비밀번호 입력창 표시
   if (saved) {
+    // 백그라운드에서 자동 로그인 시도
     var ok = await tryLoad(saved)
-    if (ok) return
-    sessionStorage.removeItem(SESSION_KEY)
+    if (!ok) sessionStorage.removeItem(SESSION_KEY)
   }
-  showLogin()
 }
 
 async function tryLoad(password) {
