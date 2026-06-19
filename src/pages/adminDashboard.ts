@@ -53,7 +53,8 @@ export function adminDashboardHTML(): string {
 <!-- Tabs -->
 <div class="bg-white border-b border-stone-200 sticky top-14 z-40">
   <div class="max-w-7xl mx-auto px-5 flex overflow-x-auto" style="scrollbar-width:none;">
-    <button id="tab-apps"     onclick="showTab('apps')"     class="tab-btn on">Applicants</button>
+    <button id="tab-overview" onclick="showTab('overview')" class="tab-btn on"><i class="fas fa-chart-pie mr-1"></i>한눈에 보기</button>
+    <button id="tab-apps"     onclick="showTab('apps')"     class="tab-btn">Applicants</button>
     <button id="tab-cal"      onclick="showTab('cal')"      class="tab-btn"><i class="fas fa-calendar-alt mr-1"></i>Calendar</button>
     <button id="tab-approved" onclick="showTab('approved')" class="tab-btn"><i class="fas fa-layer-group mr-1"></i>업체별 현황</button>
     <button id="tab-camps"    onclick="showTab('camps')"    class="tab-btn">Campaigns</button>
@@ -84,8 +85,119 @@ export function adminDashboardHTML(): string {
     </div>
   </div>
 
+  <!-- ── Overview panel ── -->
+  <div id="panel-overview">
+
+    <!-- 오늘 요약 카드 -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+      <div class="card p-4 cursor-pointer hover:shadow-md transition" onclick="showTab('apps')">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">오늘 신규 지원</span>
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:#fef3c7;">
+            <i class="fas fa-user-plus text-amber-500 text-sm"></i>
+          </div>
+        </div>
+        <div class="text-3xl font-black text-gray-900" id="ov-today">—</div>
+        <div class="text-xs text-gray-400 mt-1">오늘 접수된 지원서</div>
+      </div>
+      <div class="card p-4 cursor-pointer hover:shadow-md transition" onclick="ovGoFilter('pending')">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">업체 검토 대기</span>
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:#fef9c3;">
+            <i class="fas fa-hourglass-half text-yellow-500 text-sm"></i>
+          </div>
+        </div>
+        <div class="text-3xl font-black text-amber-500" id="ov-pending">—</div>
+        <div class="text-xs text-gray-400 mt-1">업체 승인 대기 중</div>
+      </div>
+      <div class="card p-4 cursor-pointer hover:shadow-md transition" onclick="ovGoFilter('approved')">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">총 승인</span>
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:#dcfce7;">
+            <i class="fas fa-check-circle text-green-500 text-sm"></i>
+          </div>
+        </div>
+        <div class="text-3xl font-black text-green-600" id="ov-approved">—</div>
+        <div class="text-xs text-gray-400 mt-1">정산미완료 <span id="ov-unsettled" class="text-orange-500 font-bold"></span></div>
+      </div>
+      <div class="card p-4 cursor-pointer hover:shadow-md transition" onclick="showTab('camps')">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">활성 업체</span>
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:#ede9e2;">
+            <i class="fas fa-hospital text-stone-500 text-sm"></i>
+          </div>
+        </div>
+        <div class="text-3xl font-black" style="color:#c9a035" id="ov-active-camps">—</div>
+        <div class="text-xs text-gray-400 mt-1">모집 중인 캠페인</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <!-- 왼쪽: 오늘 신규 지원자 -->
+      <div class="card overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-stone-100 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-gray-900 text-sm">
+              <i class="fas fa-star text-amber-400 mr-1.5"></i>오늘 지원자
+            </h3>
+            <p class="text-xs text-gray-400 mt-0.5">오늘 접수된 신규 지원서</p>
+          </div>
+          <span id="ov-today-date" class="text-xs text-gray-400 font-medium"></span>
+        </div>
+        <div id="ov-today-list" class="divide-y divide-stone-50">
+          <div class="text-center py-10 text-gray-300 text-xs">
+            <i class="fas fa-spinner fa-spin text-xl mb-2 block"></i>불러오는 중…
+          </div>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 업체 검토 대기 중인 신청 -->
+      <div class="card overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-stone-100 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-gray-900 text-sm">
+              <i class="fas fa-exclamation-circle text-amber-500 mr-1.5"></i>업체 승인 대기 중
+            </h3>
+            <p class="text-xs text-gray-400 mt-0.5">업체가 아직 승인/거절 안 한 신청자</p>
+          </div>
+          <button onclick="loadOverview()" class="text-xs text-gray-400 hover:text-gray-600">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+        <div id="ov-pending-list" class="divide-y divide-stone-50">
+          <div class="text-center py-10 text-gray-300 text-xs">
+            <i class="fas fa-spinner fa-spin text-xl mb-2 block"></i>불러오는 중…
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 업체별 한줄 요약 -->
+    <div class="card overflow-hidden mt-4">
+      <div class="px-5 py-3.5 border-b border-stone-100 flex items-center justify-between">
+        <div>
+          <h3 class="font-bold text-gray-900 text-sm">
+            <i class="fas fa-layer-group text-stone-400 mr-1.5"></i>업체별 현황 요약
+          </h3>
+          <p class="text-xs text-gray-400 mt-0.5">업체별 대기 · 승인 · 거절 총계</p>
+        </div>
+        <button onclick="showTab('approved')" class="text-xs text-blue-500 hover:text-blue-700 font-semibold">
+          전체 보기 →
+        </button>
+      </div>
+      <div id="ov-clinic-summary" class="divide-y divide-stone-50">
+        <div class="text-center py-10 text-gray-300 text-xs">
+          <i class="fas fa-spinner fa-spin text-xl mb-2 block"></i>불러오는 중…
+        </div>
+      </div>
+    </div>
+
+  </div>
+
   <!-- ── Applicants panel ── -->
-  <div id="panel-apps">
+  <div id="panel-apps" class="hidden">
     <div class="card overflow-hidden">
       <div class="px-5 py-3.5 border-b border-stone-100 flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
         <h2 class="font-semibold text-gray-900 text-sm">Applicants</h2>
@@ -566,14 +678,24 @@ function logout() {
 }
 
 function showTab(t) {
-  ['apps','cal','approved','camps','new','tg'].forEach(id => {
+  ['overview','apps','cal','approved','camps','new','tg'].forEach(id => {
     document.getElementById('panel-' + id).classList.toggle('hidden', id !== t)
     document.getElementById('tab-' + id).classList.toggle('on', id === t)
   })
+  if (t === 'overview') loadOverview()
   if (t === 'apps')     loadApps()
   if (t === 'camps')    loadCamps()
   if (t === 'cal')      loadCalData()
   if (t === 'approved') loadApproved()
+}
+
+// 한눈에보기에서 Applicants 탭으로 이동하며 필터 적용
+function ovGoFilter(status) {
+  showTab('apps')
+  setTimeout(function() {
+    var sel = document.getElementById('fStatus')
+    if (sel) { sel.value = status; loadApps() }
+  }, 100)
 }
 
 // ════════════════════════════════════════════
@@ -608,6 +730,183 @@ async function loadStats() {
       }
     }
   } catch(e) { console.error('loadStats error', e) }
+}
+
+// ════════════════════════════════════════════
+// Overview (한눈에 보기)
+// ════════════════════════════════════════════
+async function loadOverview() {
+  try {
+    var [appRes, campRes] = await Promise.all([
+      fetch('/api/admin/applications', { headers: H }),
+      fetch('/api/admin/campaigns',    { headers: H })
+    ])
+    var appJson  = await appRes.json()
+    var campJson = await campRes.json()
+    if (!appJson.success && appJson.error === 'Unauthorized') { window.location.href = '/admin'; return }
+
+    var allApps  = appJson.data  || []
+    var campData = campJson.data || []
+
+    var todayStr   = new Date().toISOString().slice(0,10)
+    var todayApps  = allApps.filter(function(a){ return (a.created_at||'').slice(0,10) === todayStr })
+    var pendingAll = allApps.filter(function(a){ return a.status === 'pending' })
+    var approvedAll= allApps.filter(function(a){ return a.status === 'approved' })
+    var unsettled  = approvedAll.filter(function(a){ return !a.settlement }).length
+    var activeCamps= campData.filter(function(c){ return c.status === 'active' }).length
+
+    // ── 상단 숫자 카드
+    document.getElementById('ov-today').textContent        = String(todayApps.length)
+    document.getElementById('ov-pending').textContent      = String(pendingAll.length)
+    document.getElementById('ov-approved').textContent     = String(approvedAll.length)
+    document.getElementById('ov-unsettled').textContent    = unsettled ? unsettled + '명 미정산' : '모두 정산완료'
+    document.getElementById('ov-active-camps').textContent = String(activeCamps)
+    document.getElementById('ov-today-date').textContent   = todayStr
+
+    // ── 오늘 지원자 목록
+    var todayEl = document.getElementById('ov-today-list')
+    if (!todayApps.length) {
+      todayEl.innerHTML = '<div style="text-align:center;padding:32px;color:#d1d5db;font-size:12px;"><i class="fas fa-inbox" style="font-size:28px;display:block;margin-bottom:8px;"></i>오늘 접수된 지원서가 없습니다</div>'
+    } else {
+      // 최신순 정렬
+      var sorted = todayApps.slice().sort(function(a,b){ return (b.created_at||'').localeCompare(a.created_at||'') })
+      todayEl.innerHTML = sorted.map(function(a) {
+        var campName = (function(){
+          var c = campData.find(function(c){ return String(c.id) === String(a.campaign_id) })
+          return c ? (c.place_name_ko || c.place_name || c.title || '') : (a.campaign_title || '')
+        })()
+        var timeStr   = (a.created_at || '').replace('T',' ').slice(11,16)
+        var statusBadge =
+          a.status === 'approved' ? '<span style="background:#dcfce7;color:#166534;border-radius:99px;padding:1px 8px;font-size:10px;font-weight:700;">✅ 승인</span>'
+        : a.status === 'rejected' ? '<span style="background:#fee2e2;color:#991b1b;border-radius:99px;padding:1px 8px;font-size:10px;font-weight:700;">❌ 거절</span>'
+        : '<span style="background:#fef9c3;color:#92400e;border-radius:99px;padding:1px 8px;font-size:10px;font-weight:700;">⏳ 대기</span>'
+        var instaLink = a.instagram
+          ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="margin-right:2px;"></i>@' + a.instagram + '</a>'
+          : ''
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;transition:background .1s;" onmouseover="this.style.background=\'#faf9f7\'" onmouseout="this.style.background=\'transparent\'">' +
+          '<div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#c9a035,#e8c16a);font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">' +
+            (a.applicant_name||'?').slice(0,1) +
+          '</div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+              '<span style="font-weight:700;font-size:13px;color:#111827;">' + (a.applicant_name||'') + '</span>' +
+              statusBadge +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-top:2px;flex-wrap:wrap;">' +
+              '<span style="font-size:11px;color:#9ca3af;">' + campName + '</span>' +
+              instaLink +
+            '</div>' +
+          '</div>' +
+          '<div style="text-align:right;flex-shrink:0;">' +
+            '<div style="font-size:12px;font-weight:700;color:#6b7280;">' + timeStr + '</div>' +
+            '<div style="font-size:10px;color:#d1d5db;">' + (a.nationality||'') + '</div>' +
+          '</div>' +
+        '</div>'
+      }).join('')
+    }
+
+    // ── 업체 승인 대기 목록 (pending 전체, 업체명 기준 그룹)
+    var pendingEl = document.getElementById('ov-pending-list')
+    if (!pendingAll.length) {
+      pendingEl.innerHTML = '<div style="text-align:center;padding:32px;color:#d1d5db;font-size:12px;"><i class="fas fa-check-circle" style="font-size:28px;display:block;margin-bottom:8px;color:#bbf7d0;"></i>대기 중인 신청이 없습니다 🎉</div>'
+    } else {
+      // 업체별로 그룹
+      var pendingByCamp = {}
+      pendingAll.forEach(function(a) {
+        var cid = String(a.campaign_id)
+        if (!pendingByCamp[cid]) pendingByCamp[cid] = []
+        pendingByCamp[cid].push(a)
+      })
+      var pendingHtml = ''
+      Object.keys(pendingByCamp).forEach(function(cid) {
+        var group = pendingByCamp[cid]
+        var c = campData.find(function(c){ return String(c.id) === cid })
+        var campName = c ? (c.place_name_ko || c.place_name || c.title || '') : (group[0].campaign_title || '알 수 없음')
+        var clinicSlug = c ? (makeSlug(c.place_name_ko || c.place_name || '') || cid) : cid
+        // 업체 헤더
+        pendingHtml += '<div style="padding:8px 16px;background:#fefce8;border-bottom:1px solid #fef08a;display:flex;align-items:center;justify-content:space-between;">' +
+          '<span style="font-size:12px;font-weight:700;color:#92400e;"><i class="fas fa-hospital" style="font-size:10px;margin-right:5px;color:#a16207;"></i>' + campName + '</span>' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="background:#f59e0b;color:#fff;border-radius:99px;padding:1px 8px;font-size:10px;font-weight:700;">' + group.length + '명 대기</span>' +
+            '<a href="/clinic/' + clinicSlug + '" target="_blank" style="color:#2563eb;font-size:10px;font-weight:600;text-decoration:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;padding:2px 6px;">링크↗</a>' +
+          '</div>' +
+        '</div>'
+        // 해당 업체 신청자들
+        group.sort(function(a,b){ return (b.created_at||'').localeCompare(a.created_at||'') }).forEach(function(a) {
+          var timeStr = (a.created_at||'').replace('T',' ').slice(0,16)
+          var isNew   = (Date.now() - new Date((a.created_at||'').replace(' ','T')).getTime()) < 86400000
+          var newBadge= isNew ? '<span style="background:#ef4444;color:#fff;border-radius:99px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:3px;">NEW</span>' : ''
+          var instaLink = a.instagram
+            ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="font-size:10px;margin-right:2px;"></i>@' + a.instagram + '</a>'
+            : ''
+          pendingHtml += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px 9px 28px;border-bottom:1px solid #f9fafb;transition:background .1s;" onmouseover="this.style.background=\'#fffbeb\'" onmouseout="this.style.background=\'transparent\'">' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">' +
+                '<span style="font-weight:700;font-size:12px;color:#111827;">' + (a.applicant_name||'') + '</span>' +
+                '<span style="font-size:10px;color:#9ca3af;">' + (a.nationality||'') + '</span>' +
+                newBadge +
+              '</div>' +
+              '<div style="margin-top:2px;">' + instaLink + '</div>' +
+            '</div>' +
+            '<div style="text-align:right;flex-shrink:0;">' +
+              '<div style="font-size:10px;color:#9ca3af;">' + timeStr + '</div>' +
+            '</div>' +
+          '</div>'
+        })
+      })
+      pendingEl.innerHTML = pendingHtml
+    }
+
+    // ── 업체별 한줄 요약
+    var summaryEl = document.getElementById('ov-clinic-summary')
+    if (!campData.length) {
+      summaryEl.innerHTML = '<div style="text-align:center;padding:24px;color:#d1d5db;font-size:12px;">캠페인 없음</div>'
+    } else {
+      summaryEl.innerHTML = campData.map(function(camp) {
+        var cid    = String(camp.id)
+        var apps   = allApps.filter(function(a){ return String(a.campaign_id) === cid })
+        var pCnt   = apps.filter(function(a){ return a.status === 'pending'  }).length
+        var aCnt   = apps.filter(function(a){ return a.status === 'approved' }).length
+        var rCnt   = apps.filter(function(a){ return a.status === 'rejected' }).length
+        var cName  = camp.place_name_ko || camp.place_name || camp.title || ('캠페인 ' + cid)
+        var isInactive = camp.status === 'inactive'
+        var todayCnt = apps.filter(function(a){ return (a.created_at||'').slice(0,10) === todayStr }).length
+
+        var urgentBg = pCnt > 0 ? 'background:#fffbeb;' : ''
+        return '<div style="display:flex;align-items:center;gap:8px;padding:11px 16px;' + urgentBg + 'transition:background .1s;cursor:pointer;" onclick="showTab(\'approved\')" onmouseover="this.style.background=\'#faf9f7\'" onmouseout="this.style.background=\'' + (pCnt>0?'#fffbeb':'transparent') + '\'">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+              '<span style="font-weight:700;font-size:13px;color:' + (isInactive?'#9ca3af':'#111827') + ';">' + cName + '</span>' +
+              (isInactive ? '<span style="background:#f3f4f6;color:#9ca3af;border-radius:99px;padding:1px 6px;font-size:9px;font-weight:600;">모집중단</span>' : '') +
+              (todayCnt > 0 ? '<span style="background:#eff6ff;color:#2563eb;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;">오늘 +' + todayCnt + '</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">' +
+            '<div style="text-align:center;">' +
+              '<div style="font-size:16px;font-weight:800;color:#92400e;">' + pCnt + '</div>' +
+              '<div style="font-size:9px;color:#a16207;font-weight:600;">⏳ 대기</div>' +
+            '</div>' +
+            '<div style="text-align:center;">' +
+              '<div style="font-size:16px;font-weight:800;color:#166534;">' + aCnt + '</div>' +
+              '<div style="font-size:9px;color:#15803d;font-weight:600;">✅ 승인</div>' +
+            '</div>' +
+            '<div style="text-align:center;">' +
+              '<div style="font-size:16px;font-weight:800;color:#991b1b;">' + rCnt + '</div>' +
+              '<div style="font-size:9px;color:#b91c1c;font-weight:600;">❌ 거절</div>' +
+            '</div>' +
+            '<div style="width:1px;height:28px;background:#f0ece4;margin:0 2px;"></div>' +
+            '<div style="text-align:center;min-width:32px;">' +
+              '<div style="font-size:16px;font-weight:800;color:#374151;">' + apps.length + '</div>' +
+              '<div style="font-size:9px;color:#9ca3af;font-weight:600;">총</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      }).join('')
+    }
+
+  } catch(e) {
+    console.error('loadOverview error', e)
+  }
 }
 
 async function loadApps() {
@@ -2330,9 +2629,9 @@ if (_dpModal) {
   })
 }
 
-// 초기 로딩
+// 초기 로딩 - 한눈에 보기 탭이 기본
 loadStats()
-loadApps()
+loadOverview()
 
 // dp-action-btn event delegation handler
 // Uses data-act / data-aid / data-pd / data-sd instead of onclick
