@@ -159,7 +159,10 @@ export function mainPageHTML(campaigns: any[]): string {
 '    .card-venue-row{display:flex;align-items:center;gap:5px;overflow:hidden;}\n' +
 '    .venue-name{font-size:11px;font-weight:700;color:#8a6d3b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n' +
 '    .venue-addr{font-size:10px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
-'    .card-benefits-mini{font-size:10px;color:#78350f;background:#fffbef;border:1px solid #f0d88a;border-radius:7px;padding:4px 8px;white-space:normal;line-height:1.5;}\n' +
+'    .card-benefits-mini{font-size:10px;color:#6b7280;line-height:1.55;overflow:hidden;}\n' +
+'    .card-ben-item{display:flex;align-items:baseline;gap:4px;overflow:hidden;}\n' +
+'    .card-ben-dot{color:#f59e0b;font-size:8px;flex-shrink:0;line-height:1.6;}\n' +
+'    .card-ben-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#78350f;font-size:10px;font-weight:500;}\n' +
 '    .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px;border-top:1px solid #f5f2ee;gap:6px;}\n' +
 '\n' +
 '    /* ══ PC: 세로형 + 완전 고정 높이 ══ */\n' +
@@ -194,7 +197,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '    .benefit-box{background:linear-gradient(135deg,#fffbef,#fef3c7);border:1px solid #f0d88a;border-radius:14px;padding:14px 15px;}\n' +
 '    .benefit-box-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#b45309;margin-bottom:9px;display:flex;align-items:center;gap:5px;}\n' +
 '    .ben-chips{display:flex;flex-wrap:wrap;gap:6px;}\n' +
-'    .ben-chip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #f0d88a;border-radius:99px;padding:4px 11px;font-size:11px;font-weight:500;color:#78350f;}\n' +
+'    .ben-chip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #f0d88a;border-radius:99px;padding:4px 11px;font-size:11px;font-weight:500;color:#78350f;word-break:break-word;max-width:100%;}\n' +
 '    .ben-chip i{color:#f59e0b;font-size:9px;}\n' +
 '    .req-box{background:#f8f7f5;border:1px solid #ede9e2;border-radius:14px;padding:13px 15px;display:flex;align-items:flex-start;gap:10px;}\n' +
 '    .box-icon{font-size:13px;margin-top:2px;flex-shrink:0;}\n' +
@@ -607,9 +610,11 @@ export function mainPageHTML(campaigns: any[]): string {
 '      var benItems = c.benefits.split(/\\s*·\\s*/).map(function(s){ return s.trim(); }).filter(Boolean);\n' +
 '      var show = benItems.slice(0, 2);\n' +
 '      var rest = benItems.length - 2;\n' +
-'      var chips = show.map(function(s){ return \'<span style="display:inline-flex;align-items:center;gap:3px;background:#fffbef;border:1px solid #f0d88a;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:500;color:#78350f;white-space:nowrap;"><i class="fas fa-star" style="font-size:8px;color:#f59e0b;"></i>\' + s + \'</span>\'; }).join("");\n' +
-'      var moreChip = rest > 0 ? \'<span style="background:#f3f4f6;border-radius:99px;padding:2px 7px;font-size:10px;color:#9ca3af;font-weight:500;">+\' + rest + \' more</span>\' : "";\n' +
-'      return \'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;">\' + chips + moreChip + \'</div>\';\n' +
+'      var rows = show.map(function(s){\n' +
+'        return \'<div class="card-ben-item"><span class="card-ben-dot">&#9733;</span><span class="card-ben-txt">\' + s + \'</span></div>\';\n' +
+'      }).join("");\n' +
+'      var moreRow = rest > 0 ? \'<div style="font-size:9px;color:#a78bfa;font-weight:600;margin-top:1px;">+\' + rest + \' more</div>\' : "";\n' +
+'      return \'<div class="card-benefits-mini">\' + rows + moreRow + \'</div>\';\n' +
 '    })() : "";\n' +
 '\n' +
 '    var applyBtn = \'<button onclick="event.stopPropagation();openApply(\' + c.id + \')" \' + (full ? "disabled" : "") +\n' +
