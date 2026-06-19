@@ -748,7 +748,9 @@ async function loadOverview() {
     var allApps  = appJson.data  || []
     var campData = campJson.data || []
 
-    var todayStr   = new Date().toISOString().slice(0,10)
+    // KST(UTC+9) 기준 오늘 날짜
+    var kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
+    var todayStr   = kstNow.toISOString().slice(0,10)
     var todayApps  = allApps.filter(function(a){ return (a.created_at||'').slice(0,10) === todayStr })
     var pendingAll = allApps.filter(function(a){ return a.status === 'pending' })
     var approvedAll= allApps.filter(function(a){ return a.status === 'approved' })
@@ -1471,7 +1473,7 @@ async function loadApproved() {
         // 신청일 + NEW 배지 (24시간 이내)
         var createdRaw = a.created_at || ''
         var createdStr = createdRaw.replace('T',' ').slice(0,16)
-        var isToday    = createdRaw.slice(0,10) === new Date().toISOString().slice(0,10)
+        var isToday    = createdRaw.slice(0,10) === new Date(Date.now() + 9*60*60*1000).toISOString().slice(0,10)
         var isNew      = (Date.now() - new Date(createdRaw.replace(' ','T')).getTime()) < 86400000
         var newBadge   = isNew ? '<span style="background:#ef4444;color:#fff;border-radius:99px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px;">NEW</span>' : ''
         var todayMark  = isToday ? '<span style="color:#f59e0b;font-size:9px;font-weight:700;margin-left:3px;">오늘</span>' : ''
