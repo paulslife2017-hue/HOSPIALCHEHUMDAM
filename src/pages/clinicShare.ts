@@ -148,7 +148,11 @@ async function tryLoad(password) {
   try {
     var body = { slug: _slug, password: password }
     if (_token) body.token = _token
-    var res  = await fetch('/api/clinic/verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+    // 10초 타임아웃
+    var controller = new AbortController()
+    var timer = setTimeout(function(){ controller.abort() }, 10000)
+    var res  = await fetch('/api/clinic/verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body), signal: controller.signal })
+    clearTimeout(timer)
     var data = await res.json()
     if (!data.success) return false
     _campaignId = data.campaign_id
@@ -166,7 +170,11 @@ async function tryLoad(password) {
     document.getElementById('mainEl').classList.remove('hidden')
     renderList()
     return true
-  } catch(e) { return false }
+  } catch(e) {
+    document.getElementById('loadingEl').classList.add('hidden')
+    document.getElementById('loginEl').classList.remove('hidden')
+    return false
+  }
 }
 
 async function doLogin() {
