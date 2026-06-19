@@ -55,7 +55,7 @@ export function adminDashboardHTML(): string {
   <div class="max-w-7xl mx-auto px-5 flex overflow-x-auto" style="scrollbar-width:none;">
     <button id="tab-apps"     onclick="showTab('apps')"     class="tab-btn on">Applicants</button>
     <button id="tab-cal"      onclick="showTab('cal')"      class="tab-btn"><i class="fas fa-calendar-alt mr-1"></i>Calendar</button>
-    <button id="tab-approved" onclick="showTab('approved')" class="tab-btn"><i class="fas fa-check-circle mr-1"></i>업체 승인 내역</button>
+    <button id="tab-approved" onclick="showTab('approved')" class="tab-btn"><i class="fas fa-layer-group mr-1"></i>업체별 현황</button>
     <button id="tab-camps"    onclick="showTab('camps')"    class="tab-btn">Campaigns</button>
     <button id="tab-new"      onclick="showTab('new')"      class="tab-btn">+ New</button>
     <button id="tab-tg"       onclick="showTab('tg')"       class="tab-btn">Telegram</button>
@@ -352,8 +352,8 @@ TELEGRAM_CHAT_ID=123456789</pre>
 
     <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
       <div>
-        <h2 class="font-bold text-gray-900 text-base"><i class="fas fa-check-circle text-green-500 mr-2"></i>업체 승인 내역</h2>
-        <p class="text-xs text-gray-400 mt-0.5">승인된 인플루언서를 업체별로 확인합니다</p>
+        <h2 class="font-bold text-gray-900 text-base"><i class="fas fa-layer-group text-amber-500 mr-2"></i>업체별 신청 현황</h2>
+        <p class="text-xs text-gray-400 mt-0.5">업체별로 대기·승인·거절 신청자를 한눈에 확인합니다</p>
       </div>
       <div class="flex items-center gap-2">
         <button onclick="loadApproved()" class="text-xs btn-gold px-3 py-2 rounded-xl flex items-center gap-1.5"><i class="fas fa-sync-alt"></i>새로고침</button>
@@ -1128,79 +1128,106 @@ async function loadApproved() {
   listEl.classList.add('hidden')
   emptyEl.classList.add('hidden')
   try {
-    var res  = await fetch('/api/admin/applications?status=approved', { headers: H })
-    var json = await res.json()
-    if (!json.success && json.error === 'Unauthorized') { window.location.href = '/admin'; return }
-    var data = json.data || []
-    _approvedData = data
+    // 전체 신청자 + 캠페인 목록 동시 로드
+    var [appRes, campRes] = await Promise.all([
+      fetch('/api/admin/applications', { headers: H }),
+      fetch('/api/admin/campaigns',    { headers: H })
+    ])
+    var appJson  = await appRes.json()
+    var campJson = await campRes.json()
+    if (!appJson.success && appJson.error === 'Unauthorized') { window.location.href = '/admin'; return }
+
+    var allData  = appJson.data  || []
+    var campData = campJson.data || []
+    _approvedData = allData.filter(function(a){ return a.status === 'approved' })
     loadEl.classList.add('hidden')
-    if (!data.length) { emptyEl.classList.remove('hidden'); return }
+    if (!campData.length) { emptyEl.classList.remove('hidden'); return }
 
-    // 업체별 그룹
-    var groups = {}
-    data.forEach(function(a) {
-      var k = String(a.campaign_id)
-      if (!groups[k]) groups[k] = []
-      groups[k].push(a)
-    })
+    // 캠페인 기준으로 그룹 (신청자 없는 업체도 표시)
+    listEl.innerHTML = campData.map(function(camp) {
+      var cid  = String(camp.id)
+      var apps = allData.filter(function(a){ return String(a.campaign_id) === cid })
+      var pendingApps  = apps.filter(function(a){ return a.status === 'pending'  })
+      var approvedApps = apps.filter(function(a){ return a.status === 'approved' })
+      var rejectedApps = apps.filter(function(a){ return a.status === 'rejected' })
+      var settledCnt   = approvedApps.filter(function(a){ return !!a.settlement }).length
 
-    listEl.innerHTML = Object.keys(groups).map(function(cid) {
-      var apps = groups[cid]
-      var first = apps[0]
-      var clinicName = first.place_name_ko || first.place_name || first.campaign_title || ('업체 ' + cid)
-      var clinicSlug = makeSlug(first.place_name_ko || first.place_name || '') || cid
+      var clinicName = camp.place_name_ko || camp.place_name || camp.title || ('업체 ' + cid)
+      var clinicSlug = makeSlug(camp.place_name_ko || camp.place_name || '') || cid
       var shareUrl   = location.origin + '/clinic/' + clinicSlug
+      var isInactive = camp.status === 'inactive'
 
-      var rows = apps.map(function(a) {
-        // 확정날짜 or 희망날짜 한 줄
-        var dateChip = a.scheduled_date
-          ? '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:6px;padding:1px 8px;font-size:11px;font-weight:600;white-space:nowrap;"><i class="fas fa-calendar-check" style="font-size:9px;margin-right:3px;"></i>' + a.scheduled_date + '</span>'
-          : '<span style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:6px;padding:1px 8px;font-size:11px;font-weight:500;white-space:nowrap;"><i class="far fa-calendar" style="font-size:9px;margin-right:3px;"></i>날짜 미정</span>'
+      // 신청자 행 렌더링 함수
+      function makeRow(a) {
+        var statusBadge =
+          a.status === 'approved' ? '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:99px;padding:2px 9px;font-size:10px;font-weight:700;">✅ 승인</span>'
+        : a.status === 'rejected' ? '<span style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:99px;padding:2px 9px;font-size:10px;font-weight:700;">❌ 거절</span>'
+        : '<span style="background:#fef9c3;color:#92400e;border:1px solid #fcd34d;border-radius:99px;padding:2px 9px;font-size:10px;font-weight:700;">⏳ 대기</span>'
         var instaLink = a.instagram
           ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="margin-right:2px;"></i>@' + a.instagram + '</a>'
           : '<span style="color:#d1d5db;font-size:11px;">—</span>'
-        var isSettled = !!a.settlement
-        var settleBg  = isSettled ? '#dcfce7' : '#f3f4f6'
-        var settleBdr = isSettled ? '#bbf7d0' : '#e5e7eb'
-        var settleClr = isSettled ? '#166534' : '#6b7280'
-        var settleIco = isSettled ? '&#x2705;' : '&#x25a1;'
-        var settleTxt = isSettled ? '정산완료' : '미정산'
-        var settleBtn = '<button type="button" data-appid="' + a.id + '" data-settled="' + (isSettled ? '1' : '0') + '" onclick="toggleSettlement(this)" style="background:' + settleBg + ';border:1px solid ' + settleBdr + ';color:' + settleClr + ';border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">' + settleIco + ' ' + settleTxt + '</button>'
-        var cancelBtn = '<button type="button" onclick="approvedCancel(' + a.id + ',this)" style="flex-shrink:0;background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;"><i class="fas fa-times" style="margin-right:2px;"></i>취소</button>'
-        return '<tr style="border-bottom:1px solid #f3f4f6;">' +
-          '<td style="padding:10px 8px;">' +
-            '<p style="font-weight:600;font-size:13px;color:#111827;margin:0;">' + (a.applicant_name || '') + '</p>' +
-            '<p style="font-size:11px;color:#9ca3af;margin:2px 0 0;">' + (a.nationality || '') + '</p>' +
+        var dateChip = a.scheduled_date
+          ? '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:6px;padding:1px 7px;font-size:10px;font-weight:600;"><i class="fas fa-calendar-check" style="font-size:9px;margin-right:2px;"></i>' + a.scheduled_date + '</span>'
+          : '<span style="color:#d1d5db;font-size:10px;">—</span>'
+        var createdStr = (a.created_at || '').replace('T',' ').slice(0,16)
+        // 승인된 경우만 정산·취소 버튼
+        var actionBtns = ''
+        if (a.status === 'approved') {
+          var isSettled = !!a.settlement
+          var settleBtn = '<button type="button" data-appid="' + a.id + '" data-settled="' + (isSettled?'1':'0') + '" onclick="toggleSettlement(this)" style="background:' + (isSettled?'#dcfce7':'#f3f4f6') + ';border:1px solid ' + (isSettled?'#bbf7d0':'#e5e7eb') + ';color:' + (isSettled?'#166534':'#6b7280') + ';border-radius:7px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;">' + (isSettled?'✅ 정산완료':'□ 미정산') + '</button>'
+          var cancelBtn = '<button type="button" onclick="approvedCancel(' + a.id + ',this)" style="background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:7px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer;">취소</button>'
+          actionBtns = settleBtn + ' ' + cancelBtn
+        }
+        var rowBg = a.status === 'approved' ? '#f8fffe' : a.status === 'rejected' ? '#fffafa' : '#fffdf4'
+        return '<tr style="border-bottom:1px solid #f3f4f6;background:' + rowBg + ';">' +
+          '<td style="padding:9px 10px;">' + statusBadge + '</td>' +
+          '<td style="padding:9px 10px;">' +
+            '<p style="font-weight:600;font-size:12px;color:#111827;margin:0;">' + (a.applicant_name||'') + '</p>' +
+            '<p style="font-size:10px;color:#9ca3af;margin:1px 0 0;">' + createdStr + '</p>' +
           '</td>' +
-          '<td style="padding:10px 8px;">' + instaLink + '</td>' +
-          '<td style="padding:10px 8px;">' + dateChip + '</td>' +
-          '<td style="padding:10px 8px;text-align:center;">' + settleBtn + '</td>' +
-          '<td style="padding:10px 8px;text-align:right;">' + cancelBtn + '</td>' +
+          '<td style="padding:9px 10px;">' + instaLink + '</td>' +
+          '<td style="padding:9px 10px;">' + dateChip + '</td>' +
+          '<td style="padding:9px 10px;text-align:right;white-space:nowrap;">' + actionBtns + '</td>' +
         '</tr>'
-      }).join('')
+      }
 
-      var settledCnt = apps.filter(function(a){ return !!a.settlement }).length
-      return '<div class="card p-0 overflow-hidden">' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#fafaf9;border-bottom:1px solid #f0ece4;">' +
-          '<div style="min-width:0;">' +
-            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
-              '<p style="font-weight:700;font-size:14px;color:#111827;margin:0;">' + clinicName + '</p>' +
-              '<a href="' + shareUrl + '" target="_blank" style="display:inline-flex;align-items:center;gap:3px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:600;text-decoration:none;white-space:nowrap;" title="업체 공유 링크 열기"><i class="fas fa-external-link-alt" style="font-size:8px;"></i>업체 링크</a>' +
+      // 대기→승인→거절 순으로 정렬해서 표시
+      var sortedApps = pendingApps.concat(approvedApps).concat(rejectedApps)
+      var rows = sortedApps.map(makeRow).join('')
+      var noApps = apps.length === 0
+
+      return '<div class="card p-0 overflow-hidden mb-4">' +
+        // ── 업체 헤더
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;background:' + (isInactive?'#f9fafb':'#fafaf9') + ';border-bottom:1px solid #f0ece4;">' +
+          '<div style="min-width:0;flex:1;">' +
+            '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+              '<p style="font-weight:700;font-size:14px;color:' + (isInactive?'#9ca3af':'#111827') + ';margin:0;">' + clinicName + '</p>' +
+              (isInactive ? '<span style="background:#f3f4f6;color:#9ca3af;border:1px solid #e5e7eb;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:600;">모집중단</span>' : '') +
+              '<a href="' + shareUrl + '" target="_blank" style="display:inline-flex;align-items:center;gap:3px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:600;text-decoration:none;" title="업체 공유링크"><i class="fas fa-external-link-alt" style="font-size:8px;"></i>링크</a>' +
             '</div>' +
-            '<p style="font-size:11px;color:#9ca3af;margin:3px 0 0;">승인 ' + apps.length + '명 &nbsp;·&nbsp; 정산완료 ' + settledCnt + '명 &nbsp;·&nbsp; 미정산 ' + (apps.length - settledCnt) + '명</p>' +
+            '<div style="display:flex;gap:10px;margin-top:5px;flex-wrap:wrap;">' +
+              '<span style="font-size:11px;color:#92400e;font-weight:600;">⏳ 대기 ' + pendingApps.length + '명</span>' +
+              '<span style="font-size:11px;color:#166534;font-weight:600;">✅ 승인 ' + approvedApps.length + '명</span>' +
+              '<span style="font-size:11px;color:#991b1b;font-weight:600;">❌ 거절 ' + rejectedApps.length + '명</span>' +
+              (approvedApps.length ? '<span style="font-size:11px;color:#6b7280;">· 정산완료 ' + settledCnt + '/' + approvedApps.length + '</span>' : '') +
+            '</div>' +
           '</div>' +
-          '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:99px;padding:3px 12px;font-size:11px;font-weight:600;white-space:nowrap;">✅ ' + apps.length + '명</span>' +
+          '<span style="background:' + (noApps?'#f3f4f6':'#fef3c7') + ';color:' + (noApps?'#9ca3af':'#92400e') + ';border:1px solid ' + (noApps?'#e5e7eb':'#fcd34d') + ';border-radius:99px;padding:3px 11px;font-size:11px;font-weight:700;white-space:nowrap;">총 ' + apps.length + '명</span>' +
         '</div>' +
-        '<table style="width:100%;border-collapse:collapse;">' +
-          '<thead><tr style="border-bottom:1px solid #f0ece4;">' +
-            '<th style="padding:7px 8px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">신청자</th>' +
-            '<th style="padding:7px 8px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">인스타그램</th>' +
-            '<th style="padding:7px 8px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">날짜</th>' +
-            '<th style="padding:7px 8px;font-size:10px;color:#9ca3af;font-weight:500;text-align:center;">정산</th>' +
-            '<th style="padding:7px 8px;"></th>' +
-          '</tr></thead>' +
-          '<tbody style="background:#fff;">' + rows + '</tbody>' +
-        '</table>' +
+        // ── 신청자 테이블
+        (noApps
+          ? '<p style="text-align:center;color:#d1d5db;font-size:12px;padding:20px;">신청자 없음</p>'
+          : '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;min-width:480px;">' +
+              '<thead><tr style="border-bottom:1px solid #f0ece4;background:#fafaf9;">' +
+                '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;white-space:nowrap;">상태</th>' +
+                '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">신청자 / 신청일</th>' +
+                '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">인스타그램</th>' +
+                '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">확정날짜</th>' +
+                '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:right;">액션</th>' +
+              '</tr></thead>' +
+              '<tbody>' + rows + '</tbody>' +
+            '</table></div>'
+        ) +
       '</div>'
     }).join('')
 
