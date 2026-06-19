@@ -28,6 +28,7 @@ export function clinicShareHTML(): string {
     .btn-approve:hover{background:#166534;color:#fff;}
     .btn-reject{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer;transition:all .15s;}
     .btn-reject:hover{background:#991b1b;color:#fff;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
     .btn-reset{background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer;transition:all .15s;}
     .btn-reset:hover{background:#6b7280;color:#fff;}
     ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#d4c4a0;border-radius:4px;}
@@ -96,6 +97,10 @@ export function clinicShareHTML(): string {
           <p id="clinicTitle" class="text-xs text-gray-400 mt-0.5 truncate"></p>
         </div>
       </div>
+    </div>
+
+    <!-- 대기중 알림 배너 -->
+    <div id="pendingBanner" style="display:none;align-items:center;gap:8px;background:#fef3c7;border:1px solid #fcd34d;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;color:#92400e;">
     </div>
 
     <!-- 필터 탭 -->
@@ -208,9 +213,30 @@ function filterApps(f) {
 function renderList() {
   var list
   if (currentFilter === 'all') {
-    list = allApps
+    list = allApps.slice()
   } else {
     list = allApps.filter(function(a){ return a.status === currentFilter })
+  }
+
+  // 대기 → 승인 → 거절 순, 같은 상태 내에서는 최신순
+  var statusOrder = { pending: 0, approved: 1, rejected: 2 }
+  list.sort(function(a, b) {
+    var sa = statusOrder[a.status] ?? 3
+    var sb = statusOrder[b.status] ?? 3
+    if (sa !== sb) return sa - sb
+    return (b.created_at || '').localeCompare(a.created_at || '')
+  })
+
+  // 대기중 카운트 배너 업데이트
+  var pendingCnt = allApps.filter(function(a){ return a.status === 'pending' }).length
+  var bannerEl = document.getElementById('pendingBanner')
+  if (bannerEl) {
+    if (pendingCnt > 0) {
+      bannerEl.innerHTML = '<i class="fas fa-bell" style="margin-right:6px;"></i>검토 대기중인 신청자가 <b>' + pendingCnt + '명</b> 있습니다'
+      bannerEl.style.display = 'flex'
+    } else {
+      bannerEl.style.display = 'none'
+    }
   }
 
   var el    = document.getElementById('appList')
@@ -218,9 +244,18 @@ function renderList() {
   if (!list.length) { el.innerHTML = ''; empty.classList.remove('hidden'); return }
   empty.classList.add('hidden')
 
+  var now = new Date()
+
   el.innerHTML = list.map(function(a, i) {
     var isApproved = a.status === 'approved'
     var isSettled  = isApproved && !!a.settlement
+
+    // 24시간 이내 신규 여부
+    var createdMs = a.created_at ? new Date(a.created_at.replace(' ','T')).getTime() : 0
+    var isNew = (now.getTime() - createdMs) < 86400000
+
+    // 신청일시 포맷
+    var createdStr = (a.created_at || '').replace('T',' ').slice(0,16)
 
     // ── 상태 배지
     var statusBadge = isApproved
@@ -228,6 +263,11 @@ function renderList() {
       : a.status === 'rejected'
       ? '<span class="badge badge-rejected">❌ 거절</span>'
       : '<span class="badge badge-pending">⏳ 대기</span>'
+
+    // 🆕 NEW 배지
+    var newBadge = (isNew && a.status === 'pending')
+      ? '<span style="background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;letter-spacing:.5px;animation:pulse 1.5s infinite;">🆕 NEW</span>'
+      : ''
 
     // ── 인스타그램
     var instaLink = a.instagram
@@ -276,20 +316,30 @@ function renderList() {
       '</div>'
     }
 
-    // ── 카드 배경: 승인+정산완료=초록 tint / 승인+미완료=주황 tint
-    var cardBg = isApproved ? (isSettled ? 'background:#f8fdf9;border-color:#d1fae5;' : 'background:#fff9f5;border-color:#fed7aa;') : ''
+    // ── 카드 배경
+    var cardBg = a.status === 'pending' && isNew
+      ? 'background:#fffbeb;border-color:#fcd34d;'
+      : isApproved ? (isSettled ? 'background:#f8fdf9;border-color:#d1fae5;' : 'background:#fff9f5;border-color:#fed7aa;') : ''
 
     return '<div style="background:#fff;border-radius:14px;border:1px solid #ede9e2;' + cardBg + 'box-shadow:0 1px 3px rgba(0,0,0,.04);padding:14px 16px;">' +
-      // 헤더 행: 번호 + 이름 + 상태배지
+      // 헤더 행: 번호 + 이름 + NEW배지 + 상태배지
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">' +
           '<div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;background:linear-gradient(135deg,#c9a035,#e8c16a);">' + (i+1) + '</div>' +
-          '<div>' +
-            '<p style="font-weight:700;font-size:13px;color:#111827;margin:0;">' + (a.applicant_name || '') + '</p>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">' +
+              '<p style="font-weight:700;font-size:13px;color:#111827;margin:0;">' + (a.applicant_name || '') + '</p>' +
+              newBadge +
+            '</div>' +
             '<p style="font-size:11px;color:#9ca3af;margin:1px 0 0;">' + (a.nationality || '') + '</p>' +
           '</div>' +
         '</div>' +
         statusBadge +
+      '</div>' +
+      // 신청일시 (눈에 잘 보이게)
+      '<div style="display:flex;align-items:center;gap:4px;margin-top:6px;background:#f9fafb;border-radius:7px;padding:4px 8px;width:fit-content;">' +
+        '<i class="far fa-clock" style="font-size:10px;color:#9ca3af;"></i>' +
+        '<span style="font-size:11px;color:#6b7280;font-weight:500;">신청일시: ' + createdStr + '</span>' +
       '</div>' +
       // 연락처 행
       '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:8px;">' +
@@ -304,8 +354,6 @@ function renderList() {
       (a.message ? '<div style="margin-top:8px;background:#f9fafb;border-radius:8px;padding:7px 10px;"><p style="font-size:11px;color:#6b7280;margin:0;">' + a.message + '</p></div>' : '') +
       // 액션 버튼
       actionBtns +
-      // 신청일
-      '<p style="font-size:10px;color:#d1d5db;margin:8px 0 0;">' + (a.created_at || '').replace('T',' ').slice(0,16) + '</p>' +
     '</div>'
   }).join('')
 }
