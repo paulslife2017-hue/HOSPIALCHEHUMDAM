@@ -258,7 +258,7 @@ app.post('/api/clinic/verify', async (c) => {
     }
     if (!campaign) {
       // 슬러그: place_name_ko 또는 place_name 변환으로 매칭
-      const rows = await dbAll("SELECT * FROM campaigns WHERE status = 'active'")
+      const rows = await dbAll("SELECT * FROM campaigns")
       campaign = rows.find((r: any) => makeSlug(r.place_name_ko || r.place_name) === slug) || null
     }
     if (!campaign) return c.json({ success: false, error: '업체를 찾을 수 없습니다.' }, 404)
@@ -363,7 +363,7 @@ app.patch('/api/clinic/share/applications/:id', async (c) => {
       campaign = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [slug])
     }
     if (!campaign) {
-      const rows = await dbAll("SELECT * FROM campaigns WHERE status = 'active'")
+      const rows = await dbAll("SELECT * FROM campaigns")
       campaign = rows.find((r: any) => makeSlug(r.place_name_ko || r.place_name) === slug) || null
     }
     if (!campaign) return c.json({ success: false, error: '업체를 찾을 수 없습니다.' }, 404)

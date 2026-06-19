@@ -260,7 +260,7 @@ app.post('/api/clinic/verify', async (c) => {
     const { slug, password, token } = await c.req.json()
     if (!slug) return c.json({ success: false, error: 'slug required.' }, 400)
 
-    // 슬러그 또는 숫자 ID 또는 share_token으로 캠페인 검색
+    // 슬러그 또는 숫자 ID 또는 share_token으로 캠페인 검색 (active/inactive 모두)
     let campaign: any = null
     if (/^\d+$/.test(slug)) {
       campaign = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [slug])
@@ -269,8 +269,8 @@ app.post('/api/clinic/verify', async (c) => {
       campaign = await dbFirst('SELECT * FROM campaigns WHERE share_token = ?', [token])
     }
     if (!campaign) {
-      // 슬러그: place_name_ko 또는 place_name 변환으로 매칭
-      const rows = await dbAll("SELECT * FROM campaigns WHERE status = 'active'")
+      // 슬러그: place_name_ko 또는 place_name 변환으로 매칭 (상태 무관)
+      const rows = await dbAll('SELECT * FROM campaigns')
       campaign = rows.find((r: any) => makeSlug(r.place_name_ko || r.place_name) === slug) || null
     }
     if (!campaign) return c.json({ success: false, error: '업체를 찾을 수 없습니다.' }, 404)
