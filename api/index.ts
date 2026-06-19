@@ -350,7 +350,7 @@ app.patch('/api/clinic/applications/:id', async (c) => {
 app.patch('/api/clinic/share/applications/:id', async (c) => {
   try {
     const appId = c.req.param('id')
-    const { slug, password, status, settlement } = await c.req.json()
+    const { slug, password, status, settlement, scheduled_date } = await c.req.json()
     if (!slug || !password) return c.json({ success: false, error: 'slug and password required.' }, 400)
     if (status === undefined && settlement === undefined)
       return c.json({ success: false, error: 'status or settlement required.' }, 400)
@@ -380,6 +380,12 @@ app.patch('/api/clinic/share/applications/:id', async (c) => {
 
     if (settlement !== undefined) {
       await dbRun('UPDATE applications SET settlement = ? WHERE id = ?', [settlement ? 1 : 0, appId])
+    } else if (scheduled_date !== undefined) {
+      // 날짜와 함께 승인 처리 (scheduled_date = null 이면 날짜미정 승인)
+      await dbRun(
+        'UPDATE applications SET status = ?, scheduled_date = ? WHERE id = ?',
+        [status || 'approved', scheduled_date, appId]
+      )
     } else {
       await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, appId])
     }

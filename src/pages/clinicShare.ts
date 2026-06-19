@@ -34,6 +34,14 @@ export function clinicShareHTML(): string {
     .btn-reset{background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer;transition:all .15s;}
     .btn-reset:hover{background:#6b7280;color:#fff;}
     ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#d4c4a0;border-radius:4px;}
+    /* 승인 모달 */
+    #approveModal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;}
+    #approveModal.hidden{display:none;}
+    #approveModal .modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);}
+    #approveModal .modal-box{position:relative;background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+    .time-btn{border:1.5px solid #e5e7eb;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;background:#fff;transition:all .15s;white-space:nowrap;}
+    .time-btn:hover{border-color:#c9a035;color:#c9a035;}
+    .time-btn.selected{border-color:#c9a035;background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;}
   </style>
 </head>
 <body class="min-h-screen">
@@ -49,6 +57,63 @@ export function clinicShareHTML(): string {
     <span id="headerBadge" class="text-xs text-gray-400 font-medium"></span>
   </div>
 </header>
+
+<!-- ── 승인 날짜/시간 모달 ── -->
+<div id="approveModal" class="hidden">
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <h3 style="font-size:16px;font-weight:800;color:#111827;margin:0;">📅 시술 날짜 / 시간 설정</h3>
+        <p style="font-size:12px;color:#9ca3af;margin:4px 0 0;">승인과 동시에 확정 일정을 지정합니다</p>
+      </div>
+      <button id="modalClose" style="width:32px;height:32px;border-radius:50%;border:none;background:#f3f4f6;cursor:pointer;font-size:16px;color:#6b7280;">✕</button>
+    </div>
+
+    <!-- 신청자명 표시 -->
+    <div id="modalApplicantName" style="background:#f9fafb;border-radius:10px;padding:10px 14px;margin-bottom:18px;font-size:13px;font-weight:700;color:#374151;"></div>
+
+    <!-- 날짜 선택 -->
+    <div style="margin-bottom:16px;">
+      <label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:8px;">📆 날짜</label>
+      <input type="date" id="modalDate"
+        style="width:100%;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600;color:#111827;outline:none;box-sizing:border-box;"
+        onfocus="this.style.borderColor='#c9a035'" onblur="this.style.borderColor='#e5e7eb'">
+    </div>
+
+    <!-- 시간 빠른선택 -->
+    <div style="margin-bottom:16px;">
+      <label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:8px;">⏰ 시간 <span style="font-weight:400;color:#9ca3af;">(빠른 선택 또는 직접 입력)</span></label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+        <button class="time-btn" data-time="09:00">09:00</button>
+        <button class="time-btn" data-time="10:00">10:00</button>
+        <button class="time-btn" data-time="11:00">11:00</button>
+        <button class="time-btn" data-time="13:00">13:00</button>
+        <button class="time-btn" data-time="14:00">14:00</button>
+        <button class="time-btn" data-time="15:00">15:00</button>
+        <button class="time-btn" data-time="16:00">16:00</button>
+        <button class="time-btn" data-time="17:00">17:00</button>
+      </div>
+      <input type="time" id="modalTime"
+        style="width:100%;border:1.5px solid #e5e7eb;border-radius:10px;padding:9px 14px;font-size:14px;font-weight:600;color:#111827;outline:none;box-sizing:border-box;"
+        onfocus="this.style.borderColor='#c9a035'" onblur="this.style.borderColor='#e5e7eb'">
+    </div>
+
+    <!-- 날짜 미정 체크 -->
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:20px;cursor:pointer;">
+      <input type="checkbox" id="modalUndated" onchange="toggleUndated(this)" style="width:16px;height:16px;accent-color:#c9a035;">
+      <span style="font-size:12px;color:#6b7280;font-weight:600;">날짜 미정으로 승인 (나중에 수정 가능)</span>
+    </label>
+
+    <!-- 버튼 -->
+    <div style="display:flex;gap:8px;">
+      <button id="modalCancelBtn" style="flex:1;padding:12px;border-radius:12px;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-size:14px;font-weight:700;cursor:pointer;">취소</button>
+      <button id="modalConfirmBtn" style="flex:2;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;font-size:14px;font-weight:700;cursor:pointer;">
+        <i class="fas fa-check" style="margin-right:6px;"></i>승인 확정
+      </button>
+    </div>
+  </div>
+</div>
 
 <main class="max-w-3xl mx-auto px-5 py-6 space-y-4">
 
@@ -338,17 +403,18 @@ function renderList() {
     var actionBtns = ''
     if (a.status === 'pending') {
       actionBtns = '<div style="display:flex;gap:6px;margin-top:10px;">' +
-        '<button class="btn-approve" data-id="' + a.id + '" data-action="approved"><i class="fas fa-check" style="margin-right:3px;"></i>승인</button>' +
+        '<button class="btn-approve" data-id="' + a.id + '" data-name="' + (a.applicant_name||'').replace(/"/g,'&quot;') + '" data-action="open-approve"><i class="fas fa-check" style="margin-right:3px;"></i>승인</button>' +
         '<button class="btn-reject"  data-id="' + a.id + '" data-action="rejected"><i class="fas fa-times" style="margin-right:3px;"></i>거절</button>' +
       '</div>'
     } else if (a.status === 'approved') {
       actionBtns = '<div style="display:flex;gap:6px;margin-top:10px;">' +
+        '<button class="btn-approve" data-id="' + a.id + '" data-name="' + (a.applicant_name||'').replace(/"/g,'&quot;') + '" data-action="open-approve" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;"><i class="fas fa-calendar-edit" style="margin-right:3px;"></i>날짜 수정</button>' +
         '<button class="btn-reject" data-id="' + a.id + '" data-action="rejected"><i class="fas fa-times" style="margin-right:3px;"></i>거절로 변경</button>' +
         '<button class="btn-reset"  data-id="' + a.id + '" data-action="pending"><i class="fas fa-undo" style="margin-right:3px;"></i>대기로 변경</button>' +
       '</div>'
     } else if (a.status === 'rejected') {
       actionBtns = '<div style="display:flex;gap:6px;margin-top:10px;">' +
-        '<button class="btn-approve" data-id="' + a.id + '" data-action="approved"><i class="fas fa-check" style="margin-right:3px;"></i>승인으로 변경</button>' +
+        '<button class="btn-approve" data-id="' + a.id + '" data-name="' + (a.applicant_name||'').replace(/"/g,'&quot;') + '" data-action="open-approve"><i class="fas fa-check" style="margin-right:3px;"></i>승인으로 변경</button>' +
         '<button class="btn-reset"   data-id="' + a.id + '" data-action="pending"><i class="fas fa-undo" style="margin-right:3px;"></i>대기로 변경</button>' +
       '</div>'
     }
@@ -395,6 +461,134 @@ function renderList() {
   }).join('')
 }
 
+// ── 승인 모달 ─────────────────────────────────
+var _pendingAppId = null
+
+function openApproveModal(appId, applicantName) {
+  _pendingAppId = appId
+  // 기존 신청자 날짜 불러오기
+  var app = allApps.find(function(a){ return String(a.id) === String(appId) })
+  var existDate = (app && app.scheduled_date) ? app.scheduled_date : ''
+  // 이름 표시
+  document.getElementById('modalApplicantName').textContent = '👤 ' + (applicantName || '') + ' 님'
+  // 날짜/시간 초기화
+  if (existDate) {
+    // 기존 날짜 파싱: "2025-03-15 14:00" or "2025-03-15"
+    var parts = existDate.split(' ')
+    document.getElementById('modalDate').value  = parts[0] || ''
+    document.getElementById('modalTime').value  = parts[1] || ''
+  } else {
+    // 오늘 날짜 기본값
+    var today = new Date()
+    var yyyy = today.getFullYear()
+    var mm   = String(today.getMonth()+1).padStart(2,'0')
+    var dd   = String(today.getDate()).padStart(2,'0')
+    document.getElementById('modalDate').value  = yyyy+'-'+mm+'-'+dd
+    document.getElementById('modalTime').value  = '10:00'
+  }
+  document.getElementById('modalUndated').checked = false
+  document.getElementById('modalDate').disabled   = false
+  document.getElementById('modalTime').disabled   = false
+  // 빠른선택 버튼 초기화
+  document.querySelectorAll('.time-btn').forEach(function(b){
+    b.classList.toggle('selected', b.getAttribute('data-time') === document.getElementById('modalTime').value)
+  })
+  document.getElementById('approveModal').classList.remove('hidden')
+}
+
+function closeApproveModal() {
+  document.getElementById('approveModal').classList.add('hidden')
+  _pendingAppId = null
+}
+
+function toggleUndated(cb) {
+  var dateEl = document.getElementById('modalDate')
+  var timeEl = document.getElementById('modalTime')
+  dateEl.disabled = cb.checked
+  timeEl.disabled = cb.checked
+  if (cb.checked) {
+    dateEl.style.opacity = '0.4'
+    timeEl.style.opacity = '0.4'
+  } else {
+    dateEl.style.opacity = '1'
+    timeEl.style.opacity = '1'
+  }
+}
+
+// 빠른선택 버튼 + 날짜 확정 버튼 이벤트
+document.addEventListener('click', function(e) {
+  // 빠른 시간 선택
+  var timeBtn = e.target.closest('.time-btn')
+  if (timeBtn) {
+    document.querySelectorAll('.time-btn').forEach(function(b){ b.classList.remove('selected') })
+    timeBtn.classList.add('selected')
+    document.getElementById('modalTime').value = timeBtn.getAttribute('data-time')
+    return
+  }
+  // 모달 외부 배경 클릭 → 닫기
+  if (e.target.id === 'modalBackdrop') { closeApproveModal(); return }
+  // 닫기 버튼
+  if (e.target.id === 'modalClose' || e.target.id === 'modalCancelBtn') { closeApproveModal(); return }
+  // 확정 버튼
+  if (e.target.id === 'modalConfirmBtn') { confirmApprove(); return }
+})
+
+// time input 직접 입력 시 빠른선택 버튼 동기화
+document.getElementById('modalTime').addEventListener('input', function() {
+  var val = this.value
+  document.querySelectorAll('.time-btn').forEach(function(b){
+    b.classList.toggle('selected', b.getAttribute('data-time') === val)
+  })
+})
+
+async function confirmApprove() {
+  if (!_pendingAppId) return
+  var undated = document.getElementById('modalUndated').checked
+  var dateVal = document.getElementById('modalDate').value   // "2025-03-15"
+  var timeVal = document.getElementById('modalTime').value   // "14:00"
+
+  // 날짜 미정이 아닌데 날짜 미입력 시 경고
+  if (!undated && !dateVal) {
+    document.getElementById('modalDate').style.borderColor = '#ef4444'
+    document.getElementById('modalDate').focus()
+    return
+  }
+
+  var scheduledDate = undated ? null : (timeVal ? dateVal + ' ' + timeVal : dateVal)
+
+  var pw = sessionStorage.getItem(SESSION_KEY)
+  if (!pw) { alert('세션이 만료되었습니다. 페이지를 새로고침해주세요.'); closeApproveModal(); return }
+
+  var confirmBtn = document.getElementById('modalConfirmBtn')
+  var origHtml   = confirmBtn.innerHTML
+  confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i>처리 중…'
+  confirmBtn.disabled  = true
+
+  try {
+    var res = await fetch('/api/clinic/share/applications/' + _pendingAppId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: _slug, password: pw, status: 'approved', scheduled_date: scheduledDate })
+    })
+    var data = await res.json()
+    if (data.success) {
+      var idx = allApps.findIndex(function(a){ return String(a.id) === String(_pendingAppId) })
+      if (idx !== -1) {
+        allApps[idx].status = 'approved'
+        allApps[idx].scheduled_date = scheduledDate
+      }
+      closeApproveModal()
+      renderList()
+    } else {
+      confirmBtn.innerHTML = origHtml; confirmBtn.disabled = false
+      alert(data.error || '오류가 발생했습니다.')
+    }
+  } catch(err) {
+    confirmBtn.innerHTML = origHtml; confirmBtn.disabled = false
+    alert('네트워크 오류가 발생했습니다.')
+  }
+}
+
 // ── 이벤트 위임 (상태변경 + 정산토글 + 요약박스 필터) ────────
 document.addEventListener('click', async function(e) {
   // ── 요약박스 필터 클릭
@@ -434,12 +628,19 @@ document.addEventListener('click', async function(e) {
     return
   }
 
-  // ── 상태 변경 (승인/거절/대기)
+  // ── 상태 변경 (승인모달 오픈 / 거절 / 대기)
   var btn = e.target.closest('[data-action]')
   if (!btn) return
   var appId  = btn.getAttribute('data-id')
   var action = btn.getAttribute('data-action')
   if (!appId || !action) return
+
+  // 승인 → 모달 열기
+  if (action === 'open-approve') {
+    var name = btn.getAttribute('data-name') || ''
+    openApproveModal(appId, name)
+    return
+  }
 
   var pw = sessionStorage.getItem(SESSION_KEY)
   if (!pw) { alert('세션이 만료되었습니다. 페이지를 새로고침해주세요.'); return }
