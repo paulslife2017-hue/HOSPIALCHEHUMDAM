@@ -29,6 +29,8 @@ export function clinicShareHTML(): string {
     .btn-reject{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer;transition:all .15s;}
     .btn-reject:hover{background:#991b1b;color:#fff;}
     @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+    @keyframes bell-shake{0%,100%{transform:rotate(0);}25%{transform:rotate(-10deg);}75%{transform:rotate(10deg);}}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
     .btn-reset{background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer;transition:all .15s;}
     .btn-reset:hover{background:#6b7280;color:#fff;}
     ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#d4c4a0;border-radius:4px;}
@@ -97,10 +99,12 @@ export function clinicShareHTML(): string {
           <p id="clinicTitle" class="text-xs text-gray-400 mt-0.5 truncate"></p>
         </div>
       </div>
+      <!-- 요약 카운트 박스 -->
+      <div id="summaryBox" class="grid grid-cols-3 gap-2 mt-4"></div>
     </div>
 
     <!-- 대기중 알림 배너 -->
-    <div id="pendingBanner" style="display:none;align-items:center;gap:8px;background:#fef3c7;border:1px solid #fcd34d;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;color:#92400e;">
+    <div id="pendingBanner" style="display:none;align-items:center;gap:8px;background:#fef3c7;border:1px solid #fcd34d;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:600;color:#92400e;">
     </div>
 
     <!-- 필터 탭 -->
@@ -227,12 +231,32 @@ function renderList() {
     return (b.created_at || '').localeCompare(a.created_at || '')
   })
 
-  // 대기중 카운트 배너 업데이트
-  var pendingCnt = allApps.filter(function(a){ return a.status === 'pending' }).length
+  // 요약 카운트 박스 업데이트
+  var pendingCnt  = allApps.filter(function(a){ return a.status === 'pending'  }).length
+  var approvedCnt = allApps.filter(function(a){ return a.status === 'approved' }).length
+  var rejectedCnt = allApps.filter(function(a){ return a.status === 'rejected' }).length
+  var summaryEl = document.getElementById('summaryBox')
+  if (summaryEl) {
+    summaryEl.innerHTML =
+      '<div onclick="filterApps(\'pending\')" style="cursor:pointer;text-align:center;background:#fefce8;border:1px solid #fcd34d;border-radius:10px;padding:10px 6px;">' +
+        '<p style="font-size:22px;font-weight:800;color:#92400e;margin:0;">' + pendingCnt + '</p>' +
+        '<p style="font-size:10px;color:#a16207;margin:2px 0 0;font-weight:600;">⏳ 대기</p>' +
+      '</div>' +
+      '<div onclick="filterApps(\'approved\')" style="cursor:pointer;text-align:center;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 6px;">' +
+        '<p style="font-size:22px;font-weight:800;color:#166534;margin:0;">' + approvedCnt + '</p>' +
+        '<p style="font-size:10px;color:#15803d;margin:2px 0 0;font-weight:600;">✅ 승인</p>' +
+      '</div>' +
+      '<div onclick="filterApps(\'rejected\')" style="cursor:pointer;text-align:center;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 6px;">' +
+        '<p style="font-size:22px;font-weight:800;color:#991b1b;margin:0;">' + rejectedCnt + '</p>' +
+        '<p style="font-size:10px;color:#b91c1c;margin:2px 0 0;font-weight:600;">❌ 거절</p>' +
+      '</div>'
+  }
+
+  // 대기중 알림 배너
   var bannerEl = document.getElementById('pendingBanner')
   if (bannerEl) {
     if (pendingCnt > 0) {
-      bannerEl.innerHTML = '<i class="fas fa-bell" style="margin-right:6px;"></i>검토 대기중인 신청자가 <b>' + pendingCnt + '명</b> 있습니다'
+      bannerEl.innerHTML = '<i class="fas fa-bell" style="margin-right:6px;animation:bell-shake .5s infinite;"></i>검토 대기 중인 신청자가 <b style="margin:0 2px;">' + pendingCnt + '명</b> 있습니다 — 아래에서 승인/거절해 주세요'
       bannerEl.style.display = 'flex'
     } else {
       bannerEl.style.display = 'none'
