@@ -450,6 +450,11 @@ function renderList() {
         (a.email ? '<a href="mailto:' + a.email + '" style="color:#3b82f6;font-size:11px;text-decoration:none;">' + a.email + '</a>' : '') +
         (a.phone ? '<span style="font-size:11px;color:#6b7280;"><i class="fab fa-whatsapp" style="color:#22c55e;margin-right:2px;"></i>' + a.phone + '</span>' : '') +
       '</div>' +
+      // 선택 시술
+      (a.selected_benefit ? '<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;background:#fffbef;border:1px solid #f0d88a;border-radius:8px;padding:5px 10px;">' +
+        '<i class="fas fa-star" style="font-size:10px;color:#f59e0b;"></i>' +
+        '<span style="font-size:12px;font-weight:600;color:#92400e;">' + a.selected_benefit + '</span>' +
+      '</div>' : '') +
       // 승인 정보 (날짜 + 정산) or 희망날짜
       approvedRow +
       datesHtml +

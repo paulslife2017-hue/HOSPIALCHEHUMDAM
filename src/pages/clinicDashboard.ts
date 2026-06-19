@@ -224,6 +224,9 @@ function renderList() {
         '<a href="mailto:' + (a.email||'') + '" class="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition"><i class="fas fa-envelope"></i>' + (a.email||'') + '</a>' +
       '</div>' +
 
+      // 선택 시술
+      (a.selected_benefit ? '<div class="mb-3"><p class="text-[11px] text-gray-400 mb-1"><i class="fas fa-star mr-1 text-amber-400"></i>신청 시술</p><div class="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 inline-block">' + a.selected_benefit + '</div></div>' : '') +
+
       // 희망 날짜
       (dates.length ? '<div class="mb-3"><p class="text-[11px] text-gray-400 mb-1"><i class="fas fa-calendar-alt mr-1 text-amber-400"></i>희망 날짜</p><div class="flex flex-wrap gap-1">' + datesHtml + '</div></div>' : '') +
 

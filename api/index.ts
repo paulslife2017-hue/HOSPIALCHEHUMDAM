@@ -205,7 +205,7 @@ app.get('/api/places/photo', async (c) => {
 app.post('/api/apply', async (c) => {
   try {
     const body = await c.req.json()
-    const { campaign_id, applicant_name, nationality, email, phone, instagram, preferred_dates, message } = body
+    const { campaign_id, applicant_name, nationality, email, phone, instagram, preferred_dates, message, selected_benefit } = body
     if (!campaign_id || !applicant_name || !nationality || !email || !instagram || !preferred_dates)
       return c.json({ success: false, error: 'Please fill in all required fields.' }, 400)
 
@@ -221,8 +221,8 @@ app.post('/api/apply', async (c) => {
       return c.json({ success: false, error: 'This campaign is now full.' }, 400)
 
     await dbRun(
-      `INSERT INTO applications (campaign_id,campaign_title,place_name,applicant_name,nationality,email,phone,instagram,preferred_dates,message) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-      [campaign_id, campaign.title, campaign.place_name, applicant_name, nationality, email, phone||'', instagram, preferred_dates, message||'']
+      `INSERT INTO applications (campaign_id,campaign_title,place_name,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      [campaign_id, campaign.title, campaign.place_name, applicant_name, nationality, email, phone||'', instagram, preferred_dates, message||'', selected_benefit||'']
     )
     const updResult = await dbRun(
       'UPDATE campaigns SET current_participants = current_participants + 1 WHERE id = ? AND current_participants < max_participants',

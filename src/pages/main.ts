@@ -467,6 +467,11 @@ export function mainPageHTML(campaigns: any[]): string {
 '          <input id="fInsta" type="text" placeholder="your_handle" style="flex:1;padding:10px 12px;font-size:14px;border:none;outline:none;font-family:inherit" required>\n' +
 '        </div>\n' +
 '      </div>\n' +
+'      <!-- 시술 선택 (혜택 2개 이상일 때만 표시) -->\n' +
+'      <div id="benefitPicker" style="display:none">\n' +
+'        <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Select Treatment <span style="color:#f87171">*</span></label>\n' +
+'        <div id="benefitRadios" style="display:flex;flex-direction:column;gap:7px;"></div>\n' +
+'      </div>\n' +
 '      <div>\n' +
 '        <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Available Dates &amp; Times <span style="color:#f87171">*</span></label>\n' +
 '        <p style="font-size:12px;color:#9ca3af;margin-bottom:8px">Add up to 5 slots \u2014 the clinic will confirm one.</p>\n' +
@@ -771,6 +776,28 @@ export function mainPageHTML(campaigns: any[]): string {
 '  selectedDates = [];\n' +
 '  renderDateChips();\n' +
 
+'  // 시술 선택 라디오 렌더링\n' +
+'  var benItems = c.benefits ? parseBenefits(c.benefits) : [];\n' +
+'  var picker = document.getElementById("benefitPicker");\n' +
+'  var radios = document.getElementById("benefitRadios");\n' +
+'  if (benItems.length > 1) {\n' +
+'    radios.innerHTML = benItems.map(function(b, i) {\n' +
+'      return \'<label style="display:flex;align-items:center;gap:10px;padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:11px;cursor:pointer;font-size:13px;color:#374151;">\' +\n' +
+'        \'<input type="radio" name="selectedBenefit" value="\' + b.replace(/"/g,"&quot;") + \'" style="accent-color:#c9a035;width:16px;height:16px;flex-shrink:0;" \' + (i===0?"checked":"") + \'>\' +\n' +
+'        \'<span>\' + b + \'</span>\' +\n' +
+'      \'</label>\';\n' +
+'    }).join("");\n' +
+'    Array.from(radios.querySelectorAll("input[type=radio]")).forEach(function(r) {\n' +
+'      r.addEventListener("change", function() {\n' +
+'        Array.from(radios.querySelectorAll("label")).forEach(function(l){ l.style.borderColor="#e5e7eb"; l.style.background=""; });\n' +
+'        r.parentElement.style.borderColor="#c9a035"; r.parentElement.style.background="#fffbef";\n' +
+'      });\n' +
+'    });\n' +
+'    var firstLabel = radios.querySelector("label");\n' +
+'    if (firstLabel) { firstLabel.style.borderColor="#c9a035"; firstLabel.style.background="#fffbef"; }\n' +
+'    picker.style.display = "block";\n' +
+'  } else { picker.style.display = "none"; radios.innerHTML = ""; }\n' +
+
 '  document.getElementById("timeInput").value = "10:00";\n' +
 '  var todayStr = new Date().toISOString().slice(0,10);\n' +
 '  document.getElementById("dateInput").min = todayStr;\n' +
@@ -835,6 +862,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '    instagram:       document.getElementById("fInsta").value.trim().replace(/^@/,""),\n' +
 '    preferred_dates: document.getElementById("fDates").value,\n' +
 '    message:         document.getElementById("fMsg").value.trim(),\n' +
+'    selected_benefit: (function(){ var r = document.querySelector("input[name=selectedBenefit]:checked"); return r ? r.value : ""; })(),\n' +
 '  };\n' +
 '  var btn = e.target.querySelector("button[type=submit]");\n' +
 '  btn.disabled = true; btn.textContent = "Submitting\u2026";\n' +
