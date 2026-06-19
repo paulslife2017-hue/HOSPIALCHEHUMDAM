@@ -785,7 +785,7 @@ async function loadOverview() {
         var instaLink = a.instagram
           ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="margin-right:2px;"></i>@' + a.instagram + '</a>'
           : ''
-        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;transition:background .1s;" onmouseover="this.style.background=\'#faf9f7\'" onmouseout="this.style.background=\'transparent\'">' +
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;transition:background .1s;" onmouseover="this.style.background=&quot;#faf9f7&quot;" onmouseout="this.style.background=&quot;transparent&quot;">' +
           '<div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#c9a035,#e8c16a);font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">' +
             (a.applicant_name||'?').slice(0,1) +
           '</div>' +
@@ -841,7 +841,7 @@ async function loadOverview() {
           var instaLink = a.instagram
             ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="font-size:10px;margin-right:2px;"></i>@' + a.instagram + '</a>'
             : ''
-          pendingHtml += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px 9px 28px;border-bottom:1px solid #f9fafb;transition:background .1s;" onmouseover="this.style.background=\'#fffbeb\'" onmouseout="this.style.background=\'transparent\'">' +
+          pendingHtml += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px 9px 28px;border-bottom:1px solid #f9fafb;transition:background .1s;" onmouseover="this.style.background=&quot;#fffbeb&quot;" onmouseout="this.style.background=&quot;transparent&quot;">' +
             '<div style="flex:1;min-width:0;">' +
               '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">' +
                 '<span style="font-weight:700;font-size:12px;color:#111827;">' + (a.applicant_name||'') + '</span>' +
@@ -875,7 +875,8 @@ async function loadOverview() {
         var todayCnt = apps.filter(function(a){ return (a.created_at||'').slice(0,10) === todayStr }).length
 
         var urgentBg = pCnt > 0 ? 'background:#fffbeb;' : ''
-        return '<div style="display:flex;align-items:center;gap:8px;padding:11px 16px;' + urgentBg + 'transition:background .1s;cursor:pointer;" onclick="showTab(\'approved\')" onmouseover="this.style.background=\'#faf9f7\'" onmouseout="this.style.background=\'' + (pCnt>0?'#fffbeb':'transparent') + '\'">' +
+        var mouseoutBg = pCnt > 0 ? '#fffbeb' : 'transparent'
+        return '<div style="display:flex;align-items:center;gap:8px;padding:11px 16px;' + urgentBg + 'transition:background .1s;cursor:pointer;" onclick="showTab(&quot;approved&quot;)" onmouseover="this.style.background=&quot;#faf9f7&quot;" onmouseout="this.style.background=&quot;' + mouseoutBg + '&quot;">' +
           '<div style="flex:1;min-width:0;">' +
             '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
               '<span style="font-weight:700;font-size:13px;color:' + (isInactive?'#9ca3af':'#111827') + ';">' + cName + '</span>' +
