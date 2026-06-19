@@ -431,19 +431,11 @@ app.get('/api/clinic/:id', async (c) => {
 app.post('/api/admin/login', async (c) => {
   try {
     const { username, password } = await c.req.json()
-    const hashed = sha256(password)
-    let admin = await dbFirst(
-      'SELECT * FROM admins WHERE username = ? AND password_hash = ?',
-      [username, hashed]
-    )
-    if (!admin) {
-      admin = await dbFirst(
-        'SELECT * FROM admins WHERE username = ? AND password_hash = ?',
-        [username, password]
-      )
-      if (admin) await dbRun('UPDATE admins SET password_hash = ? WHERE id = ?', [hashed, admin.id])
-    }
-    if (!admin) return c.json({ success: false, error: 'Invalid username or password.' }, 401)
+    // 하드코딩된 관리자 인증
+    if (username !== 'admin' || password !== '0907')
+      return c.json({ success: false, error: 'Invalid username or password.' }, 401)
+    let admin = await dbFirst('SELECT * FROM admins WHERE username = ?', ['admin'])
+    if (!admin) return c.json({ success: false, error: 'Admin not found.' }, 404)
     const token = 'admin-token-' + randomUUID()
     await dbRun('UPDATE admins SET current_token = ? WHERE id = ?', [token, admin.id])
     return c.json({ success: true, token })
