@@ -76,8 +76,10 @@ export function clinicShareHTML(): string {
   </div>
 
   <!-- 로딩 -->
-  <div id="loadingEl" class="text-center py-20 text-gray-400">
-    <i class="fas fa-spinner fa-spin text-2xl mb-3 block"></i>Loading…
+  <div id="loadingEl" class="text-center py-20 text-gray-400" style="">
+    <i class="fas fa-spinner fa-spin text-2xl mb-3 block" style="color:#c9a035;"></i>
+    <p style="font-size:14px;font-weight:600;color:#6b7280;margin:0;">불러오는 중…</p>
+    <p style="font-size:11px;color:#d1d5db;margin:6px 0 0;">처음 접속 시 잠시 걸릴 수 있습니다</p>
   </div>
   <!-- 에러 -->
   <div id="errorEl" class="hidden text-center py-20">
@@ -132,6 +134,11 @@ var currentFilter = 'all'
 var SESSION_KEY = 'clinic_share_pw_' + _slug
 
 // ── 초기화 ──────────────────────────────────
+function showLogin() {
+  document.getElementById('loadingEl').classList.add('hidden')
+  document.getElementById('loginEl').classList.remove('hidden')
+}
+
 async function init() {
   if (!_slug) { showError('Invalid link.'); return }
   var saved = sessionStorage.getItem(SESSION_KEY)
@@ -140,8 +147,7 @@ async function init() {
     if (ok) return
     sessionStorage.removeItem(SESSION_KEY)
   }
-  document.getElementById('loadingEl').classList.add('hidden')
-  document.getElementById('loginEl').classList.remove('hidden')
+  showLogin()
 }
 
 async function tryLoad(password) {
@@ -150,7 +156,7 @@ async function tryLoad(password) {
     if (_token) body.token = _token
     // 10초 타임아웃
     var controller = new AbortController()
-    var timer = setTimeout(function(){ controller.abort() }, 10000)
+    var timer = setTimeout(function(){ controller.abort() }, 20000)
     var res  = await fetch('/api/clinic/verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body), signal: controller.signal })
     clearTimeout(timer)
     var data = await res.json()
@@ -171,8 +177,7 @@ async function tryLoad(password) {
     renderList()
     return true
   } catch(e) {
-    document.getElementById('loadingEl').classList.add('hidden')
-    document.getElementById('loginEl').classList.remove('hidden')
+    showLogin()
     return false
   }
 }
