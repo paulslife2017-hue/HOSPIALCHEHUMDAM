@@ -526,6 +526,22 @@ export function mainPageHTML(campaigns: any[]): string {
 '  wrap.appendChild(fb);\n' +
 '}\n' +
 '\n' +
+'// 혜택 문자열 파싱: ·(중간점) / ,(쉼표) / 1. 2. 번호목록 모두 처리\n' +
+'function parseBenefits(raw) {\n' +
+'  if (!raw) return [];\n' +
+'  var s = raw.trim();\n' +
+'  if (/\\d+\\.\\s/.test(s)) {\n' +
+'    return s.split(/\\d+\\.\\s+/).map(function(x){ return x.trim(); }).filter(Boolean);\n' +
+'  }\n' +
+'  if (s.indexOf(\'\\u00b7\') >= 0) {\n' +
+'    return s.split(\'\\u00b7\').map(function(x){ return x.trim(); }).filter(Boolean);\n' +
+'  }\n' +
+'  if (s.indexOf(\',\') >= 0) {\n' +
+'    return s.split(\',\').map(function(x){ return x.trim(); }).filter(Boolean);\n' +
+'  }\n' +
+'  return [s];\n' +
+'}\n' +
+'\n' +
 '// 업체명 정리: 한글+영어 혼합 긴 이름 → 짧은 표시명 (전역 함수)\n' +
 'function cleanPlaceName(name) {\n' +
 '  if (!name) return "";\n' +
@@ -607,7 +623,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '      : "";\n' +
 '\n' +
 '    var benefitMini = c.benefits ? (function(){\n' +
-'      var benItems = c.benefits.split(/\\s*·\\s*/).map(function(s){ return s.trim(); }).filter(Boolean);\n' +
+'      var benItems = parseBenefits(c.benefits);\n' +
 '      var show = benItems.slice(0, 2);\n' +
 '      var rest = benItems.length - 2;\n' +
 '      var rows = show.map(function(s){\n' +
@@ -699,7 +715,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '\n' +
 '  var benefitHtml = "";\n' +
 '  if (c.benefits) {\n' +
-'    var benItems = c.benefits.split(/\\s*·\\s*/).map(function(s){ return s.trim(); }).filter(Boolean);\n' +
+'    var benItems = parseBenefits(c.benefits);\n' +
 '    var benIcons = ["fa-star","fa-gift","fa-sparkles","fa-heart","fa-gem","fa-crown","fa-check","fa-plus","fa-wand-magic-sparkles"];\n' +
 '    var benChips = benItems.map(function(it, idx){\n' +
 '      return \'<span class="ben-chip"><i class="fas \' + benIcons[idx % benIcons.length] + \'"></i>\' + it + \'</span>\';\n' +

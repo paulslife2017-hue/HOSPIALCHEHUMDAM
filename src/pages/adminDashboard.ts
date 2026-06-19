@@ -2584,8 +2584,17 @@ function benTagsLoad(wrapId, hiddenId, finalId, rawVal) {
   var wrap = document.getElementById(wrapId)
   Array.from(wrap.querySelectorAll('.ben-tag')).forEach(function(t){ t.remove() })
   if (!rawVal) return
-  // 중간점(·) 또는 쉼표+공백 또는 줄바꿈으로 분리
-  var _sep = String.fromCharCode(183); var items = rawVal.split(_sep).join('|').split('|').map(function(s){ return s.trim() }).filter(Boolean)
+  // 번호목록(1. 2.) / 중간점(·) / 쉼표(,) 순서로 파싱
+  var s = rawVal.trim(); var items;
+  if (/\d+\.\s/.test(s)) {
+    items = s.split(/\d+\.\s+/).map(function(x){ return x.trim() }).filter(Boolean)
+  } else if (s.indexOf(String.fromCharCode(183)) >= 0) {
+    items = s.split(String.fromCharCode(183)).map(function(x){ return x.trim() }).filter(Boolean)
+  } else if (s.indexOf(',') >= 0) {
+    items = s.split(',').map(function(x){ return x.trim() }).filter(Boolean)
+  } else {
+    items = s ? [s] : []
+  }
   items.forEach(function(item) { benTagRender(wrapId, hiddenId, finalId, item) })
 }
 
