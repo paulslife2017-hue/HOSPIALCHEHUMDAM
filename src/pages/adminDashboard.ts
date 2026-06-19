@@ -1169,7 +1169,14 @@ async function loadApproved() {
         var dateChip = a.scheduled_date
           ? '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:6px;padding:1px 7px;font-size:10px;font-weight:600;"><i class="fas fa-calendar-check" style="font-size:9px;margin-right:2px;"></i>' + a.scheduled_date + '</span>'
           : '<span style="color:#d1d5db;font-size:10px;">—</span>'
-        var createdStr = (a.created_at || '').replace('T',' ').slice(0,16)
+        // 신청일 + NEW 배지 (24시간 이내)
+        var createdRaw = a.created_at || ''
+        var createdStr = createdRaw.replace('T',' ').slice(0,16)
+        var isToday    = createdRaw.slice(0,10) === new Date().toISOString().slice(0,10)
+        var isNew      = (Date.now() - new Date(createdRaw.replace(' ','T')).getTime()) < 86400000
+        var newBadge   = isNew ? '<span style="background:#ef4444;color:#fff;border-radius:99px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px;">NEW</span>' : ''
+        var todayMark  = isToday ? '<span style="color:#f59e0b;font-size:9px;font-weight:700;margin-left:3px;">오늘</span>' : ''
+        var createdChip = '<span style="display:inline-flex;align-items:center;gap:3px;background:#f3f4f6;border-radius:6px;padding:2px 7px;font-size:10px;color:#6b7280;white-space:nowrap;"><i class="far fa-clock" style="font-size:9px;"></i>' + createdStr + todayMark + '</span>' + newBadge
         // 승인된 경우만 정산·취소 버튼
         var actionBtns = ''
         if (a.status === 'approved') {
@@ -1181,10 +1188,11 @@ async function loadApproved() {
         var rowBg = a.status === 'approved' ? '#f8fffe' : a.status === 'rejected' ? '#fffafa' : '#fffdf4'
         return '<tr style="border-bottom:1px solid #f3f4f6;background:' + rowBg + ';">' +
           '<td style="padding:9px 10px;">' + statusBadge + '</td>' +
-          '<td style="padding:9px 10px;">' +
+          '<td style="padding:9px 10px;white-space:nowrap;">' +
             '<p style="font-weight:600;font-size:12px;color:#111827;margin:0;">' + (a.applicant_name||'') + '</p>' +
-            '<p style="font-size:10px;color:#9ca3af;margin:1px 0 0;">' + createdStr + '</p>' +
+            '<p style="font-size:10px;color:#9ca3af;margin:2px 0 0;">' + (a.nationality||'') + '</p>' +
           '</td>' +
+          '<td style="padding:9px 10px;">' + createdChip + '</td>' +
           '<td style="padding:9px 10px;">' + instaLink + '</td>' +
           '<td style="padding:9px 10px;">' + dateChip + '</td>' +
           '<td style="padding:9px 10px;text-align:right;white-space:nowrap;">' + actionBtns + '</td>' +
@@ -1220,9 +1228,10 @@ async function loadApproved() {
           : '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;min-width:480px;">' +
               '<thead><tr style="border-bottom:1px solid #f0ece4;background:#fafaf9;">' +
                 '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;white-space:nowrap;">상태</th>' +
-                '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">신청자 / 신청일</th>' +
+                '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">신청자</th>' +
+                '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;white-space:nowrap;">신청일시</th>' +
                 '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">인스타그램</th>' +
-                '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;">확정날짜</th>' +
+                '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:left;white-space:nowrap;">확정날짜</th>' +
                 '<th style="padding:6px 10px;font-size:10px;color:#9ca3af;font-weight:500;text-align:right;">액션</th>' +
               '</tr></thead>' +
               '<tbody>' + rows + '</tbody>' +
