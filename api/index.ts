@@ -206,7 +206,7 @@ app.post('/api/apply', async (c) => {
   try {
     const body = await c.req.json()
     const { campaign_id, applicant_name, nationality, email, phone, instagram, preferred_dates, message, selected_benefit } = body
-    if (!campaign_id || !applicant_name || !nationality || !email || !instagram || !preferred_dates)
+    if (!campaign_id || !applicant_name || !nationality || !instagram)
       return c.json({ success: false, error: 'Please fill in all required fields.' }, 400)
 
     const existing = await dbFirst(

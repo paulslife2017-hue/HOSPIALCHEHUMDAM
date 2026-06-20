@@ -452,11 +452,11 @@ export function mainPageHTML(campaigns: any[]): string {
 '      </div>\n' +
 '      <div class="form-row-2">\n' +
 '        <div>\n' +
-'          <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Email <span style="color:#f87171">*</span></label>\n' +
-'          <input id="fEmail" type="email" placeholder="your@email.com" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:11px 13px;font-size:15px;font-family:inherit" required>\n' +
+'          <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Email <span style="color:#d1d5db;font-weight:400;text-transform:none">(optional)</span></label>\n' +
+'          <input id="fEmail" type="email" placeholder="your@email.com" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:11px 13px;font-size:15px;font-family:inherit">\n' +
 '        </div>\n' +
 '        <div>\n' +
-'          <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">WhatsApp</label>\n' +
+'          <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">WhatsApp <span style="color:#d1d5db;font-weight:400;text-transform:none">(optional)</span></label>\n' +
 '          <input id="fPhone" type="tel" placeholder="+1-000-0000" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:11px 13px;font-size:15px;font-family:inherit">\n' +
 '        </div>\n' +
 '      </div>\n' +
@@ -473,26 +473,9 @@ export function mainPageHTML(campaigns: any[]): string {
 '        <div id="benefitRadios" style="display:flex;flex-direction:column;gap:7px;"></div>\n' +
 '      </div>\n' +
 '      <div>\n' +
-'        <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Available Dates &amp; Times <span style="color:#f87171">*</span></label>\n' +
-'        <p style="font-size:12px;color:#9ca3af;margin-bottom:8px">Add up to 5 slots \u2014 the clinic will confirm one.</p>\n' +
-'        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">\n' +
-'          <input id="dateInput" type="date" style="border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;font-size:14px;flex:1;min-width:140px;font-family:inherit;cursor:pointer">\n' +
-'          <select id="timeInput" style="border:1px solid #e5e7eb;border-radius:12px;padding:10px 10px;font-size:14px;background:#fff;font-family:inherit">\n' +
-'            <option value="09:00">9:00 AM</option><option value="09:30">9:30 AM</option>\n' +
-'            <option value="10:00">10:00 AM</option><option value="10:30">10:30 AM</option>\n' +
-'            <option value="11:00">11:00 AM</option><option value="11:30">11:30 AM</option>\n' +
-'            <option value="12:00">12:00 PM</option><option value="12:30">12:30 PM</option>\n' +
-'            <option value="13:00">1:00 PM</option><option value="13:30">1:30 PM</option>\n' +
-'            <option value="14:00">2:00 PM</option><option value="14:30">2:30 PM</option>\n' +
-'            <option value="15:00">3:00 PM</option><option value="15:30">3:30 PM</option>\n' +
-'            <option value="16:00">4:00 PM</option><option value="16:30">4:30 PM</option>\n' +
-'            <option value="17:00">5:00 PM</option><option value="17:30">5:30 PM</option>\n' +
-'            <option value="18:00">6:00 PM</option>\n' +
-'          </select>\n' +
-'          <button type="button" onclick="addDate()" class="btn-gold" style="padding:10px 16px;border-radius:12px;font-size:13px;white-space:nowrap">+ Add</button>\n' +
-'        </div>\n' +
-'        <div id="dateChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;min-height:28px"></div>\n' +
-'        <input type="hidden" id="fDates">\n' +
+'        <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Available Dates <span style="color:#d1d5db;font-weight:400;text-transform:none">(optional)</span></label>\n' +
+'        <input id="fDates" type="text" placeholder="e.g. July 10, anytime weekdays, Aug 5 afternoon\u2026" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:11px 13px;font-size:14px;font-family:inherit">\n' +
+'        <p style="font-size:11px;color:#b0b8c1;margin-top:5px">Just type freely \u2014 the clinic will coordinate with you directly.</p>\n' +
 '      </div>\n' +
 '      <div>\n' +
 '        <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Message <span style="color:#d1d5db;font-weight:400;text-transform:none">(optional)</span></label>\n' +
@@ -848,16 +831,11 @@ export function mainPageHTML(campaigns: any[]): string {
 '  var errEl = document.getElementById("applyErr");\n' +
 '  var okEl  = document.getElementById("applyOk");\n' +
 '  errEl.style.display = "none"; okEl.style.display = "none";\n' +
-'  if (!selectedDates.length) {\n' +
-'    errEl.textContent = "Please add at least one available date & time.";\n' +
-'    errEl.style.display = "block"; return;\n' +
-'  }\n' +
-
 '  var body = {\n' +
 '    campaign_id:     parseInt(document.getElementById("applyCapId").value),\n' +
 '    applicant_name:  document.getElementById("fName").value.trim(),\n' +
 '    nationality:     document.getElementById("fNation").value,\n' +
-'    email:           document.getElementById("fEmail").value.trim(),\n' +
+'    email:           (document.getElementById("fEmail").value.trim() || ("noemail+" + Date.now() + "@seoulbeautytrip.com")),\n' +
 '    phone:           document.getElementById("fPhone").value.trim(),\n' +
 '    instagram:       document.getElementById("fInsta").value.trim().replace(/^@/,""),\n' +
 '    preferred_dates: document.getElementById("fDates").value,\n' +
