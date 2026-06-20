@@ -356,8 +356,8 @@ function renderList() {
     var createdMs = a.created_at ? new Date(a.created_at.replace(' ','T')).getTime() : 0
     var isNew = (now.getTime() - createdMs) < 86400000
 
-    // 신청일시 포맷
-    var createdStr = (a.created_at || '').replace('T',' ').slice(0,16)
+    // 신청일시 포맷 (UTC→KST 변환)
+    var createdStr = (function(u){ if(!u) return ''; return new Date(new Date(u.replace(' ','T')+'Z').getTime()+9*60*60*1000).toISOString().slice(0,16).replace('T',' ')+' (KST)'; })(a.created_at)
 
     // ── 상태 배지
     var statusBadge = isApproved
