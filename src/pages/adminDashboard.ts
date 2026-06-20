@@ -773,10 +773,19 @@ async function loadOverview() {
     // KST(UTC+9) 기준 오늘 날짜
     var kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
     var todayStr   = kstNow.toISOString().slice(0,10)
-    // created_at은 UTC로 저장되므로 +9시간 변환 후 날짜 비교
+    // created_at은 UTC로 저장되므로 +9시간 변환 후 날짜/시간 비교
     function toKstDate(utcStr) {
       if (!utcStr) return ''
       return new Date(new Date(utcStr.replace(' ','T')+'Z').getTime() + 9*60*60*1000).toISOString().slice(0,10)
+    }
+    function toKstTime(utcStr) {
+      if (!utcStr) return ''
+      return new Date(new Date(utcStr.replace(' ','T')+'Z').getTime() + 9*60*60*1000).toISOString().slice(11,16)
+    }
+    function toKstDateTime(utcStr) {
+      if (!utcStr) return ''
+      var kst = new Date(new Date(utcStr.replace(' ','T')+'Z').getTime() + 9*60*60*1000)
+      return kst.toISOString().slice(0,16).replace('T',' ')
     }
     var todayApps  = allApps.filter(function(a){ return toKstDate(a.created_at) === todayStr })
     var pendingAll = allApps.filter(function(a){ return a.status === 'pending' })
@@ -804,7 +813,7 @@ async function loadOverview() {
           var c = campData.find(function(c){ return String(c.id) === String(a.campaign_id) })
           return c ? (c.place_name_ko || c.place_name || c.title || '') : (a.campaign_title || '')
         })()
-        var timeStr   = (a.created_at || '').replace('T',' ').slice(11,16)
+        var timeStr   = toKstTime(a.created_at)
         var statusBadge =
           a.status === 'approved' ? '<span style="background:#dcfce7;color:#166534;border-radius:99px;padding:1px 8px;font-size:10px;font-weight:700;">✅ 승인</span>'
         : a.status === 'rejected' ? '<span style="background:#fee2e2;color:#991b1b;border-radius:99px;padding:1px 8px;font-size:10px;font-weight:700;">❌ 거절</span>'
@@ -862,7 +871,7 @@ async function loadOverview() {
         '</div>'
         // 해당 업체 신청자들
         group.sort(function(a,b){ return (b.created_at||'').localeCompare(a.created_at||'') }).forEach(function(a) {
-          var timeStr = (a.created_at||'').replace('T',' ').slice(0,16)
+          var timeStr = toKstDateTime(a.created_at)
           var isNew   = (Date.now() - new Date((a.created_at||'').replace(' ','T')).getTime()) < 86400000
           var newBadge= isNew ? '<span style="background:#ef4444;color:#fff;border-radius:99px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:3px;">NEW</span>' : ''
           var instaLink = a.instagram
@@ -1500,7 +1509,7 @@ async function loadApproved() {
           : '<span style="color:#d1d5db;font-size:10px;">—</span>'
         // 신청일 + NEW 배지 (24시간 이내)
         var createdRaw = a.created_at || ''
-        var createdStr = createdRaw.replace('T',' ').slice(0,16)
+        var createdStr = toKstDateTime(createdRaw)
         var isToday    = new Date(new Date(createdRaw.replace(' ','T')+'Z').getTime() + 9*60*60*1000).toISOString().slice(0,10) === new Date(Date.now() + 9*60*60*1000).toISOString().slice(0,10)
         var isNew      = (Date.now() - new Date(createdRaw.replace(' ','T')).getTime()) < 86400000
         var newBadge   = isNew ? '<span style="background:#ef4444;color:#fff;border-radius:99px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px;">NEW</span>' : ''
@@ -1631,7 +1640,7 @@ function exportApproved() {
       a.scheduled_date || '',
       (a.preferred_dates || '').split('/').join(' / '),
       a.settlement ? '완료' : '미완료',
-      (a.created_at || '').replace('T',' ').slice(0,16)
+      toKstDateTime(a.created_at || '')
     ])
   })
   var NL = String.fromCharCode(10)
