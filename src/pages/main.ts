@@ -500,7 +500,6 @@ export function mainPageHTML(campaigns: any[]): string {
 '<script>\n' +
 '// ── SSR 데이터 직접 임베드 ──\n' +
 'var allCampaigns = ' + ssrData + ';\n' +
-'var selectedDates = [];\n' +
 '\n' +
 '// 로고 3회 클릭 → /admin\n' +
 'var _lc = 0, _lt = null;\n' +
@@ -756,9 +755,6 @@ export function mainPageHTML(campaigns: any[]): string {
 '  document.getElementById("applyCapId").value = id;\n' +
 '  var submitBtn = document.querySelector("#applyForm button[type=submit]");\n' +
 '  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Submit Application"; }\n' +
-'  selectedDates = [];\n' +
-'  renderDateChips();\n' +
-
 '  // 시술 선택 라디오 렌더링\n' +
 '  var benItems = c.benefits ? parseBenefits(c.benefits) : [];\n' +
 '  var picker = document.getElementById("benefitPicker");\n' +
@@ -781,50 +777,9 @@ export function mainPageHTML(campaigns: any[]): string {
 '    picker.style.display = "block";\n' +
 '  } else { picker.style.display = "none"; radios.innerHTML = ""; }\n' +
 
-'  document.getElementById("timeInput").value = "10:00";\n' +
-'  var todayStr = new Date().toISOString().slice(0,10);\n' +
-'  document.getElementById("dateInput").min = todayStr;\n' +
-'  document.getElementById("dateInput").value = "";\n' +
 '  document.getElementById("applyModal").classList.add("open");\n' +
 '}\n' +
 'function closeApply(){ document.getElementById("applyModal").classList.remove("open"); }\n' +
-'\n' +
-'function fmtDateInput(el) {\n' +
-'  var v = el.value.replace(/[^0-9]/g,"");\n' +
-'  if (v.length > 4) v = v.slice(0,4) + "-" + v.slice(4);\n' +
-'  if (v.length > 7) v = v.slice(0,7) + "-" + v.slice(7);\n' +
-'  el.value = v.slice(0,10);\n' +
-'}\n' +
-'function addDate() {\n' +
-'  var dateVal = document.getElementById("dateInput").value;\n' +
-'  var timeVal = document.getElementById("timeInput").value;\n' +
-'  if (!dateVal) { alert("Please pick a date from the calendar."); return; }\n' +
-'  var picked = new Date(dateVal + "T00:00:00"); var today = new Date(); today.setHours(0,0,0,0);\n' +
-'  if (picked < today) { alert("Please select today or a future date."); return; }\n' +
-'  var key = dateVal + "|" + timeVal;\n' +
-'  if (selectedDates.find(function(x){ return x.key === key; })) return;\n' +
-'  if (selectedDates.length >= 5) { alert("You can add up to 5 slots."); return; }\n' +
-'  selectedDates.push({ key:key, date:dateVal, time:timeVal });\n' +
-'  selectedDates.sort(function(a,b){ return a.key.localeCompare(b.key); });\n' +
-'  renderDateChips();\n' +
-'  document.getElementById("dateInput").value = "";\n' +
-'}\n' +
-'function removeDate(key){ selectedDates = selectedDates.filter(function(x){ return x.key !== key; }); renderDateChips(); }\n' +
-'function fmtTime(t) {\n' +
-'  var parts = t.split(":"); var h = parseInt(parts[0]); var m = parseInt(parts[1]);\n' +
-'  return (h > 12 ? h-12 : h || 12) + ":" + (m < 10 ? "0"+m : m) + " " + (h >= 12 ? "PM" : "AM");\n' +
-'}\n' +
-'function renderDateChips() {\n' +
-'  var el = document.getElementById("dateChips");\n' +
-'  el.innerHTML = selectedDates.map(function(s) {\n' +
-'    var fmt = new Date(s.date + "T00:00:00").toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"});\n' +
-'    var ek  = s.key.replace(/\'/g, "\\\'");\n' +
-'    return \'<span class="chip">&#x23F0; \' + fmt + " " + fmtTime(s.time) + \'<button type="button" onclick="removeDate(\\\'\' + ek + \'\\\')">&times;</button></span>\';\n' +
-'  }).join("");\n' +
-'  document.getElementById("fDates").value = selectedDates.map(function(x){\n' +
-'    return new Date(x.date+"T00:00:00").toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"}) + " " + fmtTime(x.time);\n' +
-'  }).join(" / ");\n' +
-'}\n' +
 '\n' +
 'document.getElementById("applyForm").addEventListener("submit", async function(e) {\n' +
 '  e.preventDefault();\n' +
