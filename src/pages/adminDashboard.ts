@@ -834,6 +834,7 @@ async function loadOverview() {
               '<span style="font-size:11px;color:#9ca3af;">' + campName + '</span>' +
               instaLink +
             '</div>' +
+            (a.selected_benefit ? '<div style="margin-top:4px;"><span style="display:inline-block;background:#fffbef;border:1px solid #f0d88a;border-radius:6px;padding:1px 8px;font-size:10px;font-weight:600;color:#92400e;">💉 ' + a.selected_benefit + '</span></div>' : '') +
           '</div>' +
           '<div style="text-align:right;flex-shrink:0;">' +
             '<div style="font-size:12px;font-weight:700;color:#6b7280;">' + timeStr + '</div>' +
@@ -999,6 +1000,7 @@ async function loadApps() {
         + (a.phone ? '💬 WhatsApp: ' + a.phone + '\\n' : '')
         + (a.instagram ? '📸 인스타: @' + a.instagram + '\\n    → instagram.com/' + a.instagram + '\\n' : '')
         + scheduledLine
+        + (a.selected_benefit ? '\\n💉 선택 시술: ' + a.selected_benefit + '\\n' : '')
         + (a.message ? '\\n💬 메모: ' + a.message + '\\n' : '')
         + '\\n' + statusKo
         + '\\n━━━━━━━━━━━━━━━━━━━━━━━━'
@@ -1009,6 +1011,7 @@ async function loadApps() {
           <p class="text-xs text-gray-400">\${a.nationality}</p>
           <p class="text-xs text-gray-400">\${a.email}</p>
           \${a.phone ? \`<p class="text-xs text-gray-400"><i class="fab fa-whatsapp text-green-500 mr-0.5"></i>\${a.phone}</p>\` : ''}
+          \${a.selected_benefit ? \`<p class="text-xs mt-1"><span style="display:inline-block;background:#fffbef;border:1px solid #f0d88a;border-radius:6px;padding:1px 7px;font-size:10px;font-weight:600;color:#92400e;">💉 \${a.selected_benefit}</span></p>\` : ''}
         </td>
         <td class="px-4 py-3.5 hidden sm:table-cell">
           <p class="text-xs font-semibold text-gray-800">\${a.place_name_ko || a.place_name || ''}</p>
