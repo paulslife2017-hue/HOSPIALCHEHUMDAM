@@ -234,7 +234,7 @@ function renderList() {
       (a.message ? '<div class="mb-3 bg-stone-50 rounded-xl px-3 py-2"><p class="text-xs text-gray-500 leading-relaxed">' + a.message + '</p></div>' : '') +
 
       // 신청일
-      '<p class="text-[11px] text-gray-300 text-right mb-3">신청일: ' + (a.created_at||'').replace('T',' ').split('.')[0] + '</p>' +
+      '<p class="text-[11px] text-gray-300 text-right mb-3">신청일: ' + (function(u){ if(!u) return ''; return new Date(new Date(u.replace(' ','T')+'Z').getTime()+9*60*60*1000).toISOString().slice(0,16).replace('T',' ')+' (KST)'; })(a.created_at) + '</p>' +
 
       // 승인/거절 버튼
       '<div class="flex gap-2 pt-2 border-t border-stone-100">' + approveBtn + rejectBtn + '</div>' +
