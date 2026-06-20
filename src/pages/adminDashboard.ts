@@ -773,7 +773,12 @@ async function loadOverview() {
     // KST(UTC+9) 기준 오늘 날짜
     var kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
     var todayStr   = kstNow.toISOString().slice(0,10)
-    var todayApps  = allApps.filter(function(a){ return (a.created_at||'').slice(0,10) === todayStr })
+    // created_at은 UTC로 저장되므로 +9시간 변환 후 날짜 비교
+    function toKstDate(utcStr) {
+      if (!utcStr) return ''
+      return new Date(new Date(utcStr.replace(' ','T')+'Z').getTime() + 9*60*60*1000).toISOString().slice(0,10)
+    }
+    var todayApps  = allApps.filter(function(a){ return toKstDate(a.created_at) === todayStr })
     var pendingAll = allApps.filter(function(a){ return a.status === 'pending' })
     var approvedAll= allApps.filter(function(a){ return a.status === 'approved' })
     var unsettled  = approvedAll.filter(function(a){ return !a.settlement }).length
@@ -894,7 +899,7 @@ async function loadOverview() {
         var rCnt   = apps.filter(function(a){ return a.status === 'rejected' }).length
         var cName  = camp.place_name_ko || camp.place_name || camp.title || ('캠페인 ' + cid)
         var isInactive = camp.status === 'inactive'
-        var todayCnt = apps.filter(function(a){ return (a.created_at||'').slice(0,10) === todayStr }).length
+        var todayCnt = apps.filter(function(a){ return toKstDate(a.created_at) === todayStr }).length
 
         var urgentBg = pCnt > 0 ? 'background:#fffbeb;' : ''
         var mouseoutBg = pCnt > 0 ? '#fffbeb' : 'transparent'
@@ -1496,7 +1501,7 @@ async function loadApproved() {
         // 신청일 + NEW 배지 (24시간 이내)
         var createdRaw = a.created_at || ''
         var createdStr = createdRaw.replace('T',' ').slice(0,16)
-        var isToday    = createdRaw.slice(0,10) === new Date(Date.now() + 9*60*60*1000).toISOString().slice(0,10)
+        var isToday    = new Date(new Date(createdRaw.replace(' ','T')+'Z').getTime() + 9*60*60*1000).toISOString().slice(0,10) === new Date(Date.now() + 9*60*60*1000).toISOString().slice(0,10)
         var isNew      = (Date.now() - new Date(createdRaw.replace(' ','T')).getTime()) < 86400000
         var newBadge   = isNew ? '<span style="background:#ef4444;color:#fff;border-radius:99px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px;">NEW</span>' : ''
         var todayMark  = isToday ? '<span style="color:#f59e0b;font-size:9px;font-weight:700;margin-left:3px;">오늘</span>' : ''
