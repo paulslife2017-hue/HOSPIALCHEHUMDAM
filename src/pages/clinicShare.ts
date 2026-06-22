@@ -467,12 +467,10 @@ function renderList() {
           '<span style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;">업체 메모</span>' +
         '</div>' +
         '<textarea id="memo-' + a.id + '" rows="2" placeholder="신청자에 대한 메모를 입력하세요..." ' +
-          'style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit;color:#374151;resize:none;outline:none;box-sizing:border-box;background:#fffbef;" ' +
-          'onfocus="this.style.borderColor=\'#f59e0b\'" ' +
-          'onblur="this.style.borderColor=\'#e5e7eb\'">' + (a.clinic_memo || '') + '</textarea>' +
-        '<button onclick="saveMemo(' + a.id + ')" ' +
-          'style="margin-top:5px;background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;float:right;" ' +
-          'onmouseover="this.style.background=\'#d97706\'" onmouseout="this.style.background=\'#f59e0b\'">' +
+          'style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit;color:#374151;resize:none;outline:none;box-sizing:border-box;background:#fffbef;">' +
+          (a.clinic_memo || '') + '</textarea>' +
+        '<button id="memo-btn-' + a.id + '" onclick="saveMemo(' + a.id + ')" ' +
+          'style="margin-top:5px;background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;float:right;">' +
           '<i class="fas fa-save" style="margin-right:3px;"></i>저장' +
         '</button>' +
         '<div style="clear:both;"></div>' +
@@ -486,7 +484,7 @@ function renderList() {
 // ── 업체 메모 저장 ─────────────────────────────────
 async function saveMemo(appId) {
   var pw  = sessionStorage.getItem(SESSION_KEY)
-  var btn = document.querySelector('button[onclick="saveMemo(' + appId + ')"]')
+  var btn = document.getElementById('memo-btn-' + appId)
   var ta  = document.getElementById('memo-' + appId)
   if (!pw || !ta) return
   var memo = ta.value.trim()
