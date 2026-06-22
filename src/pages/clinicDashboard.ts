@@ -227,6 +227,20 @@ function renderList() {
       // 선택 시술
       (a.selected_benefit ? '<div class="mb-3"><p class="text-[11px] text-gray-400 mb-1"><i class="fas fa-star mr-1 text-amber-400"></i>신청 시술</p><div class="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 inline-block">' + a.selected_benefit + '</div></div>' : '') +
 
+      // 업체 메모
+      '<div class="mb-3 border border-dashed border-stone-200 rounded-xl p-3 bg-stone-50">' +
+        '<p class="text-[11px] text-gray-400 mb-1.5"><i class="fas fa-pen-to-square mr-1 text-stone-400"></i>업체 메모</p>' +
+        '<textarea id="dmemo-' + a.id + '" rows="2" placeholder="신청자에 대한 메모를 입력하세요..." ' +
+          'class="w-full text-xs text-gray-700 bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 resize-none focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-100 transition">' +
+          (a.clinic_memo || '') +
+        '</textarea>' +
+        '<div class="flex justify-end mt-1.5">' +
+          '<button id="dmemo-btn-' + a.id + '" onclick="saveMemoFromDashboard(' + a.id + ')" ' +
+            'class="text-[11px] font-semibold px-3 py-1 rounded-lg text-white transition" ' +
+            'style="background:linear-gradient(135deg,#c9a035,#e8c16a)">💾 저장</button>' +
+        '</div>' +
+      '</div>' +
+
       // 희망 날짜
       (dates.length ? '<div class="mb-3"><p class="text-[11px] text-gray-400 mb-1"><i class="fas fa-calendar-alt mr-1 text-amber-400"></i>희망 날짜</p><div class="flex flex-wrap gap-1">' + datesHtml + '</div></div>' : '') +
 
@@ -279,6 +293,49 @@ async function changeStatus(appId, status) {
   } catch(e) {
     btns.forEach(function(b){ b.disabled = false; b.style.opacity = '' })
     alert('네트워크 오류')
+  }
+}
+
+// ── 업체 메모 저장 (대시보드) ────────────────
+async function saveMemoFromDashboard(appId) {
+  var ta  = document.getElementById('dmemo-' + appId)
+  var btn = document.getElementById('dmemo-btn-' + appId)
+  if (!ta || !btn) return
+  var memo = ta.value.trim()
+
+  btn.textContent = '저장 중…'
+  btn.setAttribute('disabled', 'true')
+  btn.style.opacity = '0.6'
+
+  try {
+    var res = await fetch('/api/clinic/applications/' + appId + '/memo', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-Clinic-Token': clinicToken },
+      body: JSON.stringify({ clinic_memo: memo, campaign_id: Number(clinicCampaignId) })
+    })
+    var data = await res.json()
+    if (data.success) {
+      var app = allApps.find(function(a){ return a.id === appId })
+      if (app) app.clinic_memo = memo || null
+      btn.textContent = '✅ 저장됨'
+      btn.style.background = '#22c55e'
+      setTimeout(function() {
+        btn.textContent = '💾 저장'
+        btn.style.background = 'linear-gradient(135deg,#c9a035,#e8c16a)'
+        btn.removeAttribute('disabled')
+        btn.style.opacity = ''
+      }, 2000)
+    } else {
+      alert(data.error || '저장 실패')
+      btn.textContent = '💾 저장'
+      btn.removeAttribute('disabled')
+      btn.style.opacity = ''
+    }
+  } catch(e) {
+    alert('네트워크 오류')
+    btn.textContent = '💾 저장'
+    btn.removeAttribute('disabled')
+    btn.style.opacity = ''
   }
 }
 

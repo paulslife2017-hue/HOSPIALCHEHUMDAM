@@ -270,7 +270,7 @@ app.post('/api/clinic/verify', async (c) => {
       return c.json({ success: false, error: '비밀번호가 올바르지 않습니다.' }, 401)
 
     const apps = await dbAll(
-      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,status,scheduled_date,settlement,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
+      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,status,scheduled_date,settlement,clinic_memo,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
       [campaign.id]
     )
     return c.json({ success: true, campaign_id: campaign.id, campaign: sanitize(campaign), applications: sanitize(apps) })
@@ -321,7 +321,7 @@ app.get('/api/clinic/dashboard', async (c) => {
     const campaign = await isClinic(c)
     if (!campaign) return c.json({ success: false, error: '세션이 만료되었습니다. 다시 로그인해주세요.' }, 401)
     const apps = await dbAll(
-      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,status,scheduled_date,settlement,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
+      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,status,scheduled_date,settlement,clinic_memo,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
       [campaign.id]
     )
     return c.json({ success: true, campaign: sanitize(campaign), applications: sanitize(apps) })
@@ -389,6 +389,52 @@ app.patch('/api/clinic/share/applications/:id', async (c) => {
     } else {
       await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, appId])
     }
+    return c.json({ success: true })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
+// ── 클리닉 메모 저장 (공유 페이지용) ──────────────────────────────
+app.patch('/api/clinic/share/applications/:id/memo', async (c) => {
+  try {
+    const appId = c.req.param('id')
+    const { slug, password, clinic_memo } = await c.req.json()
+    if (!slug || !password) return c.json({ success: false, error: 'slug and password required.' }, 400)
+    if (clinic_memo === undefined) return c.json({ success: false, error: 'clinic_memo required.' }, 400)
+
+    // slug → campaign
+    let campaign: any = null
+    if (/^\d+$/.test(slug)) campaign = await dbFirst('SELECT * FROM campaigns WHERE id = ?', [slug])
+    if (!campaign) {
+      const rows = await dbAll("SELECT * FROM campaigns")
+      campaign = rows.find((r: any) => makeSlug(r.place_name_ko || r.place_name) === slug) || null
+    }
+    if (!campaign) return c.json({ success: false, error: '업체를 찾을 수 없습니다.' }, 404)
+
+    // 비밀번호 확인
+    const hashed = sha256(password)
+    if (campaign.clinic_password !== hashed && campaign.clinic_password_plain !== password)
+      return c.json({ success: false, error: '비밀번호가 올바르지 않습니다.' }, 401)
+
+    // 신청자가 이 캠페인 소속인지 확인
+    const appRow = await dbFirst('SELECT id FROM applications WHERE id = ? AND campaign_id = ?', [appId, campaign.id])
+    if (!appRow) return c.json({ success: false, error: 'Application not found.' }, 404)
+
+    await dbRun('UPDATE applications SET clinic_memo = ? WHERE id = ?', [clinic_memo.trim() || null, appId])
+    return c.json({ success: true })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
+// ── 클리닉 메모 저장 (대시보드용) ──────────────────────────────
+app.patch('/api/clinic/applications/:id/memo', async (c) => {
+  try {
+    const appId = c.req.param('id')
+    const { clinic_memo } = await c.req.json()
+    if (clinic_memo === undefined) return c.json({ success: false, error: 'clinic_memo required.' }, 400)
+    const campaign = await isClinic(c)
+    if (!campaign) return c.json({ success: false, error: '세션이 만료되었습니다.' }, 401)
+    const appRow = await dbFirst('SELECT id FROM applications WHERE id = ? AND campaign_id = ?', [appId, campaign.id])
+    if (!appRow) return c.json({ success: false, error: 'Application not found.' }, 404)
+    await dbRun('UPDATE applications SET clinic_memo = ? WHERE id = ?', [clinic_memo.trim() || null, appId])
     return c.json({ success: true })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })

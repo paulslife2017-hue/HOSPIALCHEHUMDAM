@@ -460,10 +460,60 @@ function renderList() {
       datesHtml +
       // 메시지
       (a.message ? '<div style="margin-top:8px;background:#f9fafb;border-radius:8px;padding:7px 10px;"><p style="font-size:11px;color:#6b7280;margin:0;">' + a.message + '</p></div>' : '') +
+      // 업체 메모
+      '<div style="margin-top:10px;border-top:1px solid #f3f4f6;padding-top:10px;">' +
+        '<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;">' +
+          '<i class="fas fa-note-sticky" style="font-size:10px;color:#f59e0b;"></i>' +
+          '<span style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;">업체 메모</span>' +
+        '</div>' +
+        '<textarea id="memo-' + a.id + '" rows="2" placeholder="신청자에 대한 메모를 입력하세요..." ' +
+          'style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:12px;font-family:inherit;color:#374151;resize:none;outline:none;box-sizing:border-box;background:#fffbef;" ' +
+          'onfocus="this.style.borderColor=\'#f59e0b\'" ' +
+          'onblur="this.style.borderColor=\'#e5e7eb\'">' + (a.clinic_memo || '') + '</textarea>' +
+        '<button onclick="saveMemo(' + a.id + ')" ' +
+          'style="margin-top:5px;background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;float:right;" ' +
+          'onmouseover="this.style.background=\'#d97706\'" onmouseout="this.style.background=\'#f59e0b\'">' +
+          '<i class="fas fa-save" style="margin-right:3px;"></i>저장' +
+        '</button>' +
+        '<div style="clear:both;"></div>' +
+      '</div>' +
       // 액션 버튼
       actionBtns +
     '</div>'
   }).join('')
+}
+
+// ── 업체 메모 저장 ─────────────────────────────────
+async function saveMemo(appId) {
+  var pw  = sessionStorage.getItem(SESSION_KEY)
+  var btn = document.querySelector('button[onclick="saveMemo(' + appId + ')"]') as HTMLButtonElement
+  var ta  = document.getElementById('memo-' + appId) as HTMLTextAreaElement
+  if (!pw || !ta) return
+  var memo = ta.value.trim()
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중…' }
+  try {
+    var res  = await fetch('/api/clinic/share/applications/' + appId + '/memo', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: _slug, password: pw, clinic_memo: memo })
+    })
+    var data = await res.json()
+    if (data.success) {
+      if (btn) { btn.textContent = '✅ 저장됨'; btn.style.background = '#22c55e' }
+      // allApps 업데이트
+      var idx = allApps.findIndex(function(a){ return String(a.id) === String(appId) })
+      if (idx >= 0) allApps[idx].clinic_memo = memo
+      setTimeout(function(){
+        if (btn) { btn.disabled = false; btn.textContent = '저장'; btn.style.background = '#f59e0b' }
+      }, 2000)
+    } else {
+      alert('저장 실패: ' + (data.error || ''))
+      if (btn) { btn.disabled = false; btn.textContent = '저장'; btn.style.background = '#f59e0b' }
+    }
+  } catch(e) {
+    alert('네트워크 오류')
+    if (btn) { btn.disabled = false; btn.textContent = '저장'; btn.style.background = '#f59e0b' }
+  }
 }
 
 // ── 승인 모달 ─────────────────────────────────
