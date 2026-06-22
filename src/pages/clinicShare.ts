@@ -486,8 +486,8 @@ function renderList() {
 // ── 업체 메모 저장 ─────────────────────────────────
 async function saveMemo(appId) {
   var pw  = sessionStorage.getItem(SESSION_KEY)
-  var btn = document.querySelector('button[onclick="saveMemo(' + appId + ')"]') as HTMLButtonElement
-  var ta  = document.getElementById('memo-' + appId) as HTMLTextAreaElement
+  var btn = document.querySelector('button[onclick="saveMemo(' + appId + ')"]')
+  var ta  = document.getElementById('memo-' + appId)
   if (!pw || !ta) return
   var memo = ta.value.trim()
   if (btn) { btn.disabled = true; btn.textContent = '저장 중…' }
