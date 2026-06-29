@@ -1531,12 +1531,12 @@ async function loadApproved() {
           var isSettled = !!a.settlement
           var settleBtn = '<button type="button" data-appid="' + a.id + '" data-settled="' + (isSettled?'1':'0') + '" onclick="toggleSettlement(this)" style="background:' + (isSettled?'#dcfce7':'#f3f4f6') + ';border:1px solid ' + (isSettled?'#bbf7d0':'#e5e7eb') + ';color:' + (isSettled?'#166534':'#6b7280') + ';border-radius:7px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;">' + (isSettled?'✅ 정산완료':'□ 미정산') + '</button>'
           var cancelBtn = '<button type="button" onclick="approvedCancel(' + a.id + ',this)" style="background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:7px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer;">취소</button>'
-          // 노쇼 버튼
+          // 노쇼 버튼 (onclick 인자에 문자열 넣지 않고 data-* 속성 사용)
           var isNoshow = a.visit_status === 'noshow'
-          var noshowBtn = '<button type="button" onclick="toggleVisitStatus(' + a.id + ',\'noshow\',this)" style="background:' + (isNoshow?'#fef3c7':'#f3f4f6') + ';border:1px solid ' + (isNoshow?'#fcd34d':'#e5e7eb') + ';color:' + (isNoshow?'#92400e':'#6b7280') + ';border-radius:7px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;">' + (isNoshow?'🚫 노쇼':'노쇼') + '</button>'
+          var noshowBtn = '<button type="button" data-appid="' + a.id + '" data-vstatus="noshow" data-active="' + (isNoshow?'1':'0') + '" onclick="toggleVisitStatus(this)" style="background:' + (isNoshow?'#fef3c7':'#f3f4f6') + ';border:1px solid ' + (isNoshow?'#fcd34d':'#e5e7eb') + ';color:' + (isNoshow?'#92400e':'#6b7280') + ';border-radius:7px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;">' + (isNoshow?'🚫 노쇼':'노쇼') + '</button>'
           // 영상미업로드 버튼
           var isNoUpload = a.visit_status === 'no_upload'
-          var noUploadBtn = '<button type="button" onclick="toggleVisitStatus(' + a.id + ',\'no_upload\',this)" style="background:' + (isNoUpload?'#fce7f3':'#f3f4f6') + ';border:1px solid ' + (isNoUpload?'#fbcfe8':'#e5e7eb') + ';color:' + (isNoUpload?'#9d174d':'#6b7280') + ';border-radius:7px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;">' + (isNoUpload?'📵 영상미업로드':'영상미업로드') + '</button>'
+          var noUploadBtn = '<button type="button" data-appid="' + a.id + '" data-vstatus="no_upload" data-active="' + (isNoUpload?'1':'0') + '" onclick="toggleVisitStatus(this)" style="background:' + (isNoUpload?'#fce7f3':'#f3f4f6') + ';border:1px solid ' + (isNoUpload?'#fbcfe8':'#e5e7eb') + ';color:' + (isNoUpload?'#9d174d':'#6b7280') + ';border-radius:7px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;">' + (isNoUpload?'📵 영상미업로드':'영상미업로드') + '</button>'
           actionBtns = '<div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;">' + settleBtn + cancelBtn + noshowBtn + noUploadBtn + '</div>'
         }
         var rowBg = a.status === 'approved' ? '#f8fffe' : a.status === 'rejected' ? '#fffafa' : '#fffdf4'
@@ -1602,22 +1602,20 @@ async function loadApproved() {
   }
 }
 
-async function toggleVisitStatus(appId, newStatus, btn) {
-  // 같은 값이면 null로 토글 (해제)
-  var currentStatus = btn.getAttribute('data-current') || btn.textContent.includes('🚫') ? 'noshow' : btn.textContent.includes('📵') ? 'no_upload' : null
-  // 버튼의 현재 활성화 여부: 배경색으로 판단
-  var isActive = btn.style.background !== '' && btn.style.background !== 'rgb(243, 244, 246)' && btn.style.background !== '#f3f4f6'
-  var sendStatus = isActive ? null : newStatus
-  var origHTML = btn.innerHTML
+async function toggleVisitStatus(btn) {
+  var appId     = btn.getAttribute('data-appid')
+  var vstatus   = btn.getAttribute('data-vstatus')   // 'noshow' or 'no_upload'
+  var isActive  = btn.getAttribute('data-active') === '1'
+  var sendStatus = isActive ? null : vstatus          // 이미 켜져 있으면 해제(null)
+  var origHTML  = btn.innerHTML
   btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:9px;"></i>'
-  btn.disabled = true
+  btn.disabled  = true
   try {
     var res = await fetch('/api/admin/applications/' + appId + '/visit-status', {
       method: 'PATCH', headers: H, body: JSON.stringify({ visit_status: sendStatus })
     })
     var json = await res.json()
     if (!json.success) throw new Error(json.error || 'failed')
-    // 전체 목록 재로드
     loadApproved()
   } catch(e) { btn.innerHTML = origHTML; btn.disabled = false; alert('상태 변경 중 오류가 발생했습니다.') }
 }
