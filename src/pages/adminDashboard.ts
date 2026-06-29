@@ -1504,6 +1504,13 @@ async function loadApproved() {
           a.status === 'approved' ? '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:99px;padding:2px 9px;font-size:10px;font-weight:700;">✅ 승인</span>'
         : a.status === 'rejected' ? '<span style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:99px;padding:2px 9px;font-size:10px;font-weight:700;">❌ 거절</span>'
         : '<span style="background:#fef9c3;color:#92400e;border:1px solid #fcd34d;border-radius:99px;padding:2px 9px;font-size:10px;font-weight:700;">⏳ 대기</span>'
+        // visit_status 뱃지
+        var visitBadge = ''
+        if (a.visit_status === 'noshow') {
+          visitBadge = '<br><span style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:99px;padding:1px 7px;font-size:9px;font-weight:700;margin-top:3px;display:inline-block;">🚫 노쇼</span>'
+        } else if (a.visit_status === 'no_upload') {
+          visitBadge = '<br><span style="background:#fce7f3;color:#9d174d;border:1px solid #fbcfe8;border-radius:99px;padding:1px 7px;font-size:9px;font-weight:700;margin-top:3px;display:inline-block;">📵 영상미업로드</span>'
+        }
         var instaLink = a.instagram
           ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="margin-right:2px;"></i>@' + a.instagram + '</a>'
           : '<span style="color:#d1d5db;font-size:11px;">—</span>'
@@ -1518,17 +1525,23 @@ async function loadApproved() {
         var newBadge   = isNew ? '<span style="background:#ef4444;color:#fff;border-radius:99px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px;">NEW</span>' : ''
         var todayMark  = isToday ? '<span style="color:#f59e0b;font-size:9px;font-weight:700;margin-left:3px;">오늘</span>' : ''
         var createdChip = '<span style="display:inline-flex;align-items:center;gap:3px;background:#f3f4f6;border-radius:6px;padding:2px 7px;font-size:10px;color:#6b7280;white-space:nowrap;"><i class="far fa-clock" style="font-size:9px;"></i>' + createdStr + todayMark + '</span>' + newBadge
-        // 승인된 경우만 정산·취소 버튼
+        // 승인된 경우만 정산·취소 버튼 + visit_status 버튼
         var actionBtns = ''
         if (a.status === 'approved') {
           var isSettled = !!a.settlement
           var settleBtn = '<button type="button" data-appid="' + a.id + '" data-settled="' + (isSettled?'1':'0') + '" onclick="toggleSettlement(this)" style="background:' + (isSettled?'#dcfce7':'#f3f4f6') + ';border:1px solid ' + (isSettled?'#bbf7d0':'#e5e7eb') + ';color:' + (isSettled?'#166534':'#6b7280') + ';border-radius:7px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;">' + (isSettled?'✅ 정산완료':'□ 미정산') + '</button>'
           var cancelBtn = '<button type="button" onclick="approvedCancel(' + a.id + ',this)" style="background:#fee2e2;border:1px solid #fecaca;color:#991b1b;border-radius:7px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer;">취소</button>'
-          actionBtns = settleBtn + ' ' + cancelBtn
+          // 노쇼 버튼
+          var isNoshow = a.visit_status === 'noshow'
+          var noshowBtn = '<button type="button" onclick="toggleVisitStatus(' + a.id + ',\'noshow\',this)" style="background:' + (isNoshow?'#fef3c7':'#f3f4f6') + ';border:1px solid ' + (isNoshow?'#fcd34d':'#e5e7eb') + ';color:' + (isNoshow?'#92400e':'#6b7280') + ';border-radius:7px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;">' + (isNoshow?'🚫 노쇼':'노쇼') + '</button>'
+          // 영상미업로드 버튼
+          var isNoUpload = a.visit_status === 'no_upload'
+          var noUploadBtn = '<button type="button" onclick="toggleVisitStatus(' + a.id + ',\'no_upload\',this)" style="background:' + (isNoUpload?'#fce7f3':'#f3f4f6') + ';border:1px solid ' + (isNoUpload?'#fbcfe8':'#e5e7eb') + ';color:' + (isNoUpload?'#9d174d':'#6b7280') + ';border-radius:7px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;">' + (isNoUpload?'📵 영상미업로드':'영상미업로드') + '</button>'
+          actionBtns = '<div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;">' + settleBtn + cancelBtn + noshowBtn + noUploadBtn + '</div>'
         }
         var rowBg = a.status === 'approved' ? '#f8fffe' : a.status === 'rejected' ? '#fffafa' : '#fffdf4'
         return '<tr style="border-bottom:1px solid #f3f4f6;background:' + rowBg + ';">' +
-          '<td style="padding:9px 10px;">' + statusBadge + '</td>' +
+          '<td style="padding:9px 10px;">' + statusBadge + visitBadge + '</td>' +
           '<td style="padding:9px 10px;white-space:nowrap;">' +
             '<p style="font-weight:600;font-size:12px;color:#111827;margin:0;">' + (a.applicant_name||'') + '</p>' +
             '<p style="font-size:10px;color:#9ca3af;margin:2px 0 0;">' + (a.nationality||'') + '</p>' +
@@ -1587,6 +1600,26 @@ async function loadApproved() {
     emptyEl.textContent = '데이터를 불러오지 못했습니다.'
     emptyEl.classList.remove('hidden')
   }
+}
+
+async function toggleVisitStatus(appId, newStatus, btn) {
+  // 같은 값이면 null로 토글 (해제)
+  var currentStatus = btn.getAttribute('data-current') || btn.textContent.includes('🚫') ? 'noshow' : btn.textContent.includes('📵') ? 'no_upload' : null
+  // 버튼의 현재 활성화 여부: 배경색으로 판단
+  var isActive = btn.style.background !== '' && btn.style.background !== 'rgb(243, 244, 246)' && btn.style.background !== '#f3f4f6'
+  var sendStatus = isActive ? null : newStatus
+  var origHTML = btn.innerHTML
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:9px;"></i>'
+  btn.disabled = true
+  try {
+    var res = await fetch('/api/admin/applications/' + appId + '/visit-status', {
+      method: 'PATCH', headers: H, body: JSON.stringify({ visit_status: sendStatus })
+    })
+    var json = await res.json()
+    if (!json.success) throw new Error(json.error || 'failed')
+    // 전체 목록 재로드
+    loadApproved()
+  } catch(e) { btn.innerHTML = origHTML; btn.disabled = false; alert('상태 변경 중 오류가 발생했습니다.') }
 }
 
 async function toggleSettlement(btn) {

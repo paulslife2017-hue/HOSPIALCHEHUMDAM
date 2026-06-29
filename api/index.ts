@@ -270,7 +270,7 @@ app.post('/api/clinic/verify', async (c) => {
       return c.json({ success: false, error: '비밀번호가 올바르지 않습니다.' }, 401)
 
     const apps = await dbAll(
-      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,status,scheduled_date,settlement,clinic_memo,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
+      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,status,scheduled_date,settlement,clinic_memo,visit_status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
       [campaign.id]
     )
     return c.json({ success: true, campaign_id: campaign.id, campaign: sanitize(campaign), applications: sanitize(apps) })
@@ -321,7 +321,7 @@ app.get('/api/clinic/dashboard', async (c) => {
     const campaign = await isClinic(c)
     if (!campaign) return c.json({ success: false, error: '세션이 만료되었습니다. 다시 로그인해주세요.' }, 401)
     const apps = await dbAll(
-      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,status,scheduled_date,settlement,clinic_memo,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
+      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,status,scheduled_date,settlement,clinic_memo,visit_status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
       [campaign.id]
     )
     return c.json({ success: true, campaign: sanitize(campaign), applications: sanitize(apps) })
@@ -449,7 +449,7 @@ app.get('/api/clinic/:id', async (c) => {
     if (!campaign) return c.json({ success: false, error: 'Campaign not found.' }, 404)
     if (campaign.share_token !== token) return c.json({ success: false, error: 'Invalid token.' }, 401)
     const apps = await dbAll(
-      'SELECT a.id,a.applicant_name,a.nationality,a.email,a.phone,a.instagram,a.preferred_dates,a.scheduled_date,a.message,a.status,a.created_at,a.campaign_title,a.place_name,c.place_name_ko FROM applications a LEFT JOIN campaigns c ON a.campaign_id = c.id WHERE a.campaign_id = ? ORDER BY a.created_at DESC',
+      'SELECT a.id,a.applicant_name,a.nationality,a.email,a.phone,a.instagram,a.preferred_dates,a.scheduled_date,a.message,a.status,a.visit_status,a.created_at,a.campaign_title,a.place_name,c.place_name_ko FROM applications a LEFT JOIN campaigns c ON a.campaign_id = c.id WHERE a.campaign_id = ? ORDER BY a.created_at DESC',
       [id]
     )
     return c.json({ success: true, campaign: sanitize(campaign), applications: sanitize(apps) })
@@ -503,6 +503,20 @@ app.patch('/api/admin/applications/:id', async (c) => {
     } else {
       await dbRun('UPDATE applications SET status = ? WHERE id = ?', [status, id])
     }
+    return c.json({ success: true })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
+// ── Admin visit_status 업데이트 ──────────────────
+app.patch('/api/admin/applications/:id/visit-status', async (c) => {
+  if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
+  try {
+    const id = c.req.param('id')
+    const { visit_status } = await c.req.json()
+    // null / 'noshow' / 'no_upload' 만 허용
+    if (visit_status !== null && visit_status !== 'noshow' && visit_status !== 'no_upload')
+      return c.json({ success: false, error: 'Invalid visit_status.' }, 400)
+    await dbRun('UPDATE applications SET visit_status = ? WHERE id = ?', [visit_status, id])
     return c.json({ success: true })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
 })

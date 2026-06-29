@@ -366,6 +366,14 @@ function renderList() {
       ? '<span class="badge badge-rejected">❌ 거절</span>'
       : '<span class="badge badge-pending">⏳ 대기</span>'
 
+    // visit_status 뱃지 (읽기 전용)
+    var visitBadge = ''
+    if (a.visit_status === 'noshow') {
+      visitBadge = '<span style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;">🚫 노쇼</span>'
+    } else if (a.visit_status === 'no_upload') {
+      visitBadge = '<span style="background:#fce7f3;color:#9d174d;border:1px solid #fbcfe8;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;">📵 영상미업로드</span>'
+    }
+
     // 🆕 NEW 배지
     var newBadge = (isNew && a.status === 'pending')
       ? '<span style="background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;letter-spacing:.5px;animation:pulse 1.5s infinite;">🆕 NEW</span>'
@@ -438,6 +446,7 @@ function renderList() {
           '</div>' +
         '</div>' +
         statusBadge +
+        (visitBadge ? ' ' + visitBadge : '') +
       '</div>' +
       // 신청일시 (눈에 잘 보이게)
       '<div style="display:flex;align-items:center;gap:4px;margin-top:6px;background:#f9fafb;border-radius:7px;padding:4px 8px;width:fit-content;">' +

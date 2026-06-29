@@ -184,6 +184,14 @@ function renderList() {
       a.status === 'rejected' ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-600">❌ 거절</span>' :
                                 '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">⏳ 대기</span>'
 
+    // visit_status 뱃지 (읽기 전용)
+    var visitBadge = ''
+    if (a.visit_status === 'noshow') {
+      visitBadge = '<span style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;">🚫 노쇼</span>'
+    } else if (a.visit_status === 'no_upload') {
+      visitBadge = '<span style="background:#fce7f3;color:#9d174d;border:1px solid #fbcfe8;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;">📵 영상미업로드</span>'
+    }
+
     // 희망 날짜
     var dates    = (a.preferred_dates || '').split('/').map(function(d){ return d.trim() }).filter(Boolean)
     var datesHtml = dates.map(function(d){
@@ -215,6 +223,7 @@ function renderList() {
           '</div>' +
         '</div>' +
         badge +
+        (visitBadge ? ' ' + visitBadge : '') +
       '</div>' +
 
       // 연락처 행
