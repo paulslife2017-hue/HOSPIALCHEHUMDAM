@@ -1492,6 +1492,12 @@ async function loadApproved() {
       var approvedApps = apps.filter(function(a){ return a.status === 'approved' })
       var rejectedApps = apps.filter(function(a){ return a.status === 'rejected' })
       var settledCnt   = approvedApps.filter(function(a){ return !!a.settlement }).length
+      // 노쇼 / 영상미업로드 카운트
+      var noshowCnt    = approvedApps.filter(function(a){ return a.visit_status === 'noshow'    }).length
+      var noUploadCnt  = approvedApps.filter(function(a){ return a.visit_status === 'no_upload' }).length
+      var excludedCnt  = noshowCnt + noUploadCnt
+      // 유효 승인 = 승인 - 노쇼 - 영상미업로드
+      var validCnt     = approvedApps.length - excludedCnt
 
       var clinicName = camp.place_name_ko || camp.place_name || camp.title || ('업체 ' + cid)
       var clinicSlug = makeSlug(camp.place_name_ko || camp.place_name || '') || cid
@@ -1567,14 +1573,26 @@ async function loadApproved() {
               (isInactive ? '<span style="background:#f3f4f6;color:#9ca3af;border:1px solid #e5e7eb;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:600;">모집중단</span>' : '') +
               '<a href="' + shareUrl + '" target="_blank" style="display:inline-flex;align-items:center;gap:3px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:600;text-decoration:none;" title="업체 공유링크"><i class="fas fa-external-link-alt" style="font-size:8px;"></i>링크</a>' +
             '</div>' +
-            '<div style="display:flex;gap:10px;margin-top:5px;flex-wrap:wrap;">' +
+            '<div style="display:flex;gap:10px;margin-top:5px;flex-wrap:wrap;align-items:center;">' +
               '<span style="font-size:11px;color:#92400e;font-weight:600;">⏳ 대기 ' + pendingApps.length + '명</span>' +
               '<span style="font-size:11px;color:#166534;font-weight:600;">✅ 승인 ' + approvedApps.length + '명</span>' +
               '<span style="font-size:11px;color:#991b1b;font-weight:600;">❌ 거절 ' + rejectedApps.length + '명</span>' +
               (approvedApps.length ? '<span style="font-size:11px;color:#6b7280;">· 정산완료 ' + settledCnt + '/' + approvedApps.length + '</span>' : '') +
             '</div>' +
+            // 유효 승인 카운트 바 (승인자가 있을 때만)
+            (approvedApps.length ? (
+              '<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                '<div style="display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:3px 10px;">' +
+                  '<span style="font-size:12px;font-weight:800;color:#166534;">유효 ' + validCnt + '명</span>' +
+                  '<span style="font-size:10px;color:#6b7280;">= 승인 ' + approvedApps.length + '명</span>' +
+                  (excludedCnt ? '<span style="font-size:10px;color:#dc2626;font-weight:600;">− 제외 ' + excludedCnt + '명</span>' : '') +
+                '</div>' +
+                (noshowCnt    ? '<span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:99px;padding:1px 7px;font-weight:600;">🚫 노쇼 ' + noshowCnt + '명</span>' : '') +
+                (noUploadCnt  ? '<span style="font-size:10px;background:#fce7f3;color:#9d174d;border:1px solid #fbcfe8;border-radius:99px;padding:1px 7px;font-weight:600;">📵 영상미업 ' + noUploadCnt + '명</span>' : '') +
+              '</div>'
+            ) : '') +
           '</div>' +
-          '<span style="background:' + (noApps?'#f3f4f6':'#fef3c7') + ';color:' + (noApps?'#9ca3af':'#92400e') + ';border:1px solid ' + (noApps?'#e5e7eb':'#fcd34d') + ';border-radius:99px;padding:3px 11px;font-size:11px;font-weight:700;white-space:nowrap;">총 ' + apps.length + '명</span>' +
+          '<span style="background:' + (noApps?'#f3f4f6':'#f0fdf4') + ';color:' + (noApps?'#9ca3af':'#166534') + ';border:1px solid ' + (noApps?'#e5e7eb':'#bbf7d0') + ';border-radius:99px;padding:3px 11px;font-size:11px;font-weight:700;white-space:nowrap;">유효 ' + validCnt + '명</span>' +
         '</div>' +
         // ── 신청자 테이블
         (noApps
