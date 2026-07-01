@@ -2821,13 +2821,13 @@ document.getElementById('editCampForm').addEventListener('submit', async e => {
 
   btn.textContent = '저장 중…'
   const newPw = document.getElementById('ec_clinic_pw').value.trim()
-  const body: any = {
+  const body = {
     title:         document.getElementById('ec_title').value.trim(),
     category:      document.getElementById('ec_category').value,
     description:   descVal,
     benefits:      benVal,
     requirements:  reqVal,
-    min_followers: parseInt((document.getElementById('ec_min_followers') as HTMLInputElement).value) || 0,
+    min_followers: parseInt(document.getElementById('ec_min_followers').value) || 0,
   }
   if (newPw) body.clinic_password = newPw
 
