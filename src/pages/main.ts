@@ -516,7 +516,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '      <div style="background:#fafaf9;border-left:3px solid #c9a035;border-radius:0 10px 10px 0;padding:11px 14px;margin-bottom:16px;">\n' +
 '        <p style="font-size:13px;color:#374151;line-height:1.7;margin:0;">\n' +
 '          A program for <strong>Instagram creators</strong> traveling in Seoul.<br>\n' +
-'          Enjoy <strong style="color:#c9a035;">complimentary K-beauty treatments</strong> at plastic surgery clinics, skin care centers, and more — in exchange for an Instagram review video.\n' +
+'          Enjoy <strong style="color:#c9a035;">complimentary K-beauty treatments</strong> at top K-beauty clinics and more — in exchange for an Instagram review video.\n' +
 '        </p>\n' +
 '      </div>\n' +
 '\n' +
