@@ -205,7 +205,7 @@ app.get('/api/places/photo', async (c) => {
 app.post('/api/apply', async (c) => {
   try {
     const body = await c.req.json()
-    const { campaign_id, applicant_name, nationality, email, phone, instagram, preferred_dates, message, selected_benefit } = body
+    const { campaign_id, applicant_name, nationality, email, phone, instagram, preferred_dates, message, selected_benefit, follower_count } = body
     if (!campaign_id || !applicant_name || !nationality || !instagram)
       return c.json({ success: false, error: 'Please fill in all required fields.' }, 400)
 
@@ -220,9 +220,15 @@ app.post('/api/apply', async (c) => {
     if (campaign.current_participants >= campaign.max_participants)
       return c.json({ success: false, error: 'This campaign is now full.' }, 400)
 
+    // 최소 팔로워 체크
+    const minF = campaign.min_followers || 0
+    const fCount = parseInt(follower_count) || 0
+    if (minF > 0 && fCount < minF)
+      return c.json({ success: false, error: `This campaign requires a minimum of ${minF.toLocaleString()} Instagram followers. (Your entry: ${fCount.toLocaleString()})` }, 400)
+
     await dbRun(
-      `INSERT INTO applications (campaign_id,campaign_title,place_name,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-      [campaign_id, campaign.title, campaign.place_name, applicant_name, nationality, email, phone||'', instagram, preferred_dates, message||'', selected_benefit||'']
+      `INSERT INTO applications (campaign_id,campaign_title,place_name,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,follower_count) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [campaign_id, campaign.title, campaign.place_name, applicant_name, nationality, email, phone||'', instagram, preferred_dates, message||'', selected_benefit||'', fCount||null]
     )
     const updResult = await dbRun(
       'UPDATE campaigns SET current_participants = current_participants + 1 WHERE id = ? AND current_participants < max_participants',
@@ -270,7 +276,7 @@ app.post('/api/clinic/verify', async (c) => {
       return c.json({ success: false, error: '비밀번호가 올바르지 않습니다.' }, 401)
 
     const apps = await dbAll(
-      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,status,scheduled_date,settlement,clinic_memo,visit_status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
+      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,follower_count,status,scheduled_date,settlement,clinic_memo,visit_status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
       [campaign.id]
     )
     return c.json({ success: true, campaign_id: campaign.id, campaign: sanitize(campaign), applications: sanitize(apps) })
@@ -321,7 +327,7 @@ app.get('/api/clinic/dashboard', async (c) => {
     const campaign = await isClinic(c)
     if (!campaign) return c.json({ success: false, error: '세션이 만료되었습니다. 다시 로그인해주세요.' }, 401)
     const apps = await dbAll(
-      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,status,scheduled_date,settlement,clinic_memo,visit_status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
+      'SELECT id,applicant_name,nationality,email,phone,instagram,preferred_dates,message,selected_benefit,follower_count,status,scheduled_date,settlement,clinic_memo,visit_status,created_at FROM applications WHERE campaign_id = ? ORDER BY created_at DESC',
       [campaign.id]
     )
     return c.json({ success: true, campaign: sanitize(campaign), applications: sanitize(apps) })
@@ -525,7 +531,7 @@ app.patch('/api/admin/applications/:id/visit-status', async (c) => {
 app.get('/api/admin/campaigns', async (c) => {
   if (!await isAdmin(c)) return c.json({ success: false, error: 'Unauthorized' }, 401)
   try {
-    const rows = await dbAll(`SELECT id,title,description,place_id,place_name,place_name_ko,place_address,place_photo_ref,place_rating,category,max_participants,current_participants,deadline,benefits,requirements,status,created_at,share_token,clinic_password,clinic_password_plain FROM campaigns ORDER BY created_at DESC`)
+    const rows = await dbAll(`SELECT id,title,description,place_id,place_name,place_name_ko,place_address,place_photo_ref,place_rating,category,max_participants,current_participants,deadline,benefits,requirements,min_followers,status,created_at,share_token,clinic_password,clinic_password_plain FROM campaigns ORDER BY created_at DESC`)
     const safeRows = rows.map((r: any) => ({
       ...r,
       clinic_password: r.clinic_password ? true : false,
@@ -545,8 +551,8 @@ app.post('/api/admin/campaigns', async (c) => {
     const rawPw        = genClinicPassword()
     const hashedPw     = sha256(rawPw)
     const r = await dbRun(
-      `INSERT INTO campaigns (title,description,place_id,place_name,place_address,place_photo_ref,place_rating,category,max_participants,deadline,benefits,requirements,share_token,clinic_password,clinic_password_plain) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [title, b.description||'', b.place_id, placeName, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||9999, b.deadline||'', b.benefits||'', b.requirements||'', shareToken, hashedPw, rawPw]
+      `INSERT INTO campaigns (title,description,place_id,place_name,place_address,place_photo_ref,place_rating,category,max_participants,deadline,benefits,requirements,min_followers,share_token,clinic_password,clinic_password_plain) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [title, b.description||'', b.place_id, placeName, b.place_address||'', b.place_photo_ref||'', b.place_rating||0, b.category||'Clinic', b.max_participants||9999, b.deadline||'', b.benefits||'', b.requirements||'', b.min_followers||0, shareToken, hashedPw, rawPw]
     )
     return c.json({ success: true, id: Number(r.lastInsertRowid), clinic_password: rawPw })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
@@ -557,7 +563,7 @@ app.patch('/api/admin/campaigns/:id', async (c) => {
   try {
     const b = await c.req.json()
     const fields: string[] = [], vals: any[] = []
-    const allowed = ['title','description','benefits','requirements','category','place_name','deadline','max_participants','status','clinic_password','clinic_password_plain']
+    const allowed = ['title','description','benefits','requirements','category','place_name','deadline','max_participants','min_followers','status','clinic_password','clinic_password_plain']
     for (const key of allowed) {
       if (key in b) {
         let v: any = b[key]

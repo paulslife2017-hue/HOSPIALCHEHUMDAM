@@ -229,6 +229,7 @@ function renderList() {
       // 연락처 행
       '<div class="flex flex-wrap gap-2 mb-3">' +
         (a.instagram ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" class="inline-flex items-center gap-1 text-xs font-semibold text-pink-500 hover:text-pink-600 bg-pink-50 hover:bg-pink-100 px-2.5 py-1 rounded-lg transition"><i class="fab fa-instagram"></i>@' + a.instagram + '</a>' : '') +
+        (a.follower_count ? '<span class="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg"><i class="fas fa-users text-gray-400" style="font-size:10px;"></i>' + Number(a.follower_count).toLocaleString() + '</span>' : '') +
         (a.phone    ? '<a href="https://wa.me/' + a.phone.replace(/[^0-9]/g,'') + '" target="_blank" class="inline-flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-lg transition"><i class="fab fa-whatsapp"></i>' + a.phone + '</a>' : '') +
         '<a href="mailto:' + (a.email||'') + '" class="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition"><i class="fas fa-envelope"></i>' + (a.email||'') + '</a>' +
       '</div>' +

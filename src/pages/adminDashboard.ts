@@ -646,6 +646,17 @@ TELEGRAM_CHAT_ID=123456789</pre>
         <input type="hidden" id="ec_req_final">
       </div>
 
+      <!-- 최소 팔로워 -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+          <i class="fas fa-users mr-1 text-amber-500"></i>최소 팔로워 수
+          <span class="text-gray-300 font-normal normal-case ml-1">(0 = 제한 없음)</span>
+        </label>
+        <input id="ec_min_followers" type="number" min="0" step="100" placeholder="예: 3000"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm">
+        <p class="text-xs text-gray-400 mt-1">설정 시 신청자가 팔로워 수를 입력해야 하며, 미달 시 신청이 거부됩니다.</p>
+      </div>
+
       <!-- 업체 로그인 비밀번호 -->
       <div class="border-t border-stone-100 pt-4">
         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
@@ -1520,6 +1531,10 @@ async function loadApproved() {
         var instaLink = a.instagram
           ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="margin-right:2px;"></i>@' + a.instagram + '</a>'
           : '<span style="color:#d1d5db;font-size:11px;">—</span>'
+        // 팔로워 수 표시
+        var followerChip = a.follower_count
+          ? '<div style="margin-top:3px;"><span style="font-size:10px;background:#f3f4f6;color:#6b7280;border-radius:5px;padding:1px 6px;"><i class="fas fa-users" style="font-size:9px;margin-right:2px;"></i>' + Number(a.follower_count).toLocaleString() + '</span></div>'
+          : ''
         var dateChip = a.scheduled_date
           ? '<span style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:6px;padding:1px 7px;font-size:10px;font-weight:600;"><i class="fas fa-calendar-check" style="font-size:9px;margin-right:2px;"></i>' + a.scheduled_date + '</span>'
           : '<span style="color:#d1d5db;font-size:10px;">—</span>'
@@ -1553,7 +1568,7 @@ async function loadApproved() {
             '<p style="font-size:10px;color:#9ca3af;margin:2px 0 0;">' + (a.nationality||'') + '</p>' +
           '</td>' +
           '<td style="padding:9px 10px;">' + createdChip + '</td>' +
-          '<td style="padding:9px 10px;">' + instaLink + '</td>' +
+          '<td style="padding:9px 10px;">' + instaLink + followerChip + '</td>' +
           '<td style="padding:9px 10px;">' + dateChip + '</td>' +
           '<td style="padding:9px 10px;text-align:right;white-space:nowrap;">' + actionBtns + '</td>' +
         '</tr>'
@@ -2577,6 +2592,8 @@ function openEditCamp(c) {
   document.getElementById('ec_pw_status').textContent = c.clinic_password_plain
     ? '현재: ' + c.clinic_password_plain
     : (c.clinic_password ? '✅ 설정됨 (평문 미확인)' : '❌ 미설정')
+  // 최소 팔로워
+  document.getElementById('ec_min_followers').value = c.min_followers || 0
   document.getElementById('editCampModal').classList.add('open')
 }
 
@@ -2804,12 +2821,13 @@ document.getElementById('editCampForm').addEventListener('submit', async e => {
 
   btn.textContent = '저장 중…'
   const newPw = document.getElementById('ec_clinic_pw').value.trim()
-  const body = {
-    title:        document.getElementById('ec_title').value.trim(),
-    category:     document.getElementById('ec_category').value,
-    description:  descVal,
-    benefits:     benVal,
-    requirements: reqVal,
+  const body: any = {
+    title:         document.getElementById('ec_title').value.trim(),
+    category:      document.getElementById('ec_category').value,
+    description:   descVal,
+    benefits:      benVal,
+    requirements:  reqVal,
+    min_followers: parseInt((document.getElementById('ec_min_followers') as HTMLInputElement).value) || 0,
   }
   if (newPw) body.clinic_password = newPw
 

@@ -382,6 +382,7 @@ function renderList() {
     // ── 인스타그램
     var instaLink = a.instagram
       ? '<a href="https://instagram.com/' + a.instagram + '" target="_blank" style="color:#ec4899;font-size:11px;font-weight:600;text-decoration:none;"><i class="fab fa-instagram" style="margin-right:2px;"></i>@' + a.instagram + '</a>'
+      + (a.follower_count ? '<span style="font-size:10px;background:#f3f4f6;color:#6b7280;border-radius:5px;padding:1px 6px;margin-left:5px;"><i class="fas fa-users" style="font-size:9px;margin-right:2px;"></i>' + Number(a.follower_count).toLocaleString() + '</span>' : '')
       : '<span style="color:#d1d5db;font-size:11px;">—</span>'
 
     // ── 승인된 사람: 확정날짜 + 정산여부 인라인 표시

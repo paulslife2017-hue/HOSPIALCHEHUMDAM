@@ -467,7 +467,14 @@ export function mainPageHTML(campaigns: any[]): string {
 '          <input id="fInsta" type="text" placeholder="your_handle" style="flex:1;padding:10px 12px;font-size:14px;border:none;outline:none;font-family:inherit" required>\n' +
 '        </div>\n' +
 '      </div>\n' +
-'      <!-- 시술 선택 (혜택 2개 이상일 때만 표시) -->\n' +
+'      <!-- 팔로워 수 -->\n' +
+'      <div id="followerWrap">\n' +
+'        <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Instagram Followers <span style="color:#f87171">*</span></label>\n' +
+'        <div style="display:flex;align-items:center;gap:8px;">\n' +
+'          <input id="fFollowers" type="number" min="0" placeholder="e.g. 5000" style="width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:11px 13px;font-size:15px;font-family:inherit" required>\n' +
+'        </div>\n' +
+'        <p id="followerHint" style="font-size:11px;color:#b0b8c1;margin-top:5px;">Enter your current Instagram follower count.</p>\n' +
+'      </div>\n' +
 '      <div id="benefitPicker" style="display:none">\n' +
 '        <label style="display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Select Treatment <span style="color:#f87171">*</span></label>\n' +
 '        <div id="benefitRadios" style="display:flex;flex-direction:column;gap:7px;"></div>\n' +
@@ -735,6 +742,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '      (c.description ? \'<p style="font-size:14px;color:#4b5563;line-height:1.8;margin:0">\' + c.description + \'</p>\' : "") +\n' +
 '      benefitHtml +\n' +
 '      (c.requirements ? \'<div class="req-box"><span class="box-icon" style="color:#9ca3af">&#x2713;</span><div><div class="box-label">Requirements</div><div class="box-text">\' + c.requirements + \'</div></div></div>\' : "") +\n' +
+'      (c.min_followers > 0 ? \'<div class="req-box" style="border-color:#fcd34d;background:#fffbef;"><span class="box-icon">&#x1F4F8;</span><div><div class="box-label" style="color:#92400e;">Follower Requirement</div><div class="box-text" style="color:#92400e;font-weight:600;">Minimum \' + Number(c.min_followers).toLocaleString() + \' Instagram followers required</div></div></div>\' : "") +\n' +
 '      \'<p style="font-size:12px;color:#9ca3af;display:flex;align-items:center;gap:6px;margin:0">&#x1F4C5; Deadline: <span style="font-weight:500;color:#374151">\' + dlText + \'</span></p>\' +\n' +
 '      ctaHtml +\n' +
 '      \'<div style="height:8px"></div>\' +\n' +
@@ -776,6 +784,17 @@ export function mainPageHTML(campaigns: any[]): string {
 '    if (firstLabel) { firstLabel.style.borderColor="#c9a035"; firstLabel.style.background="#fffbef"; }\n' +
 '    picker.style.display = "block";\n' +
 '  } else { picker.style.display = "none"; radios.innerHTML = ""; }\n' +
+'  // 최소 팔로워 힌트 동적 표시\n' +
+'  var minF = c.min_followers || 0;\n' +
+'  var hint = document.getElementById("followerHint");\n' +
+'  var fInput = document.getElementById("fFollowers");\n' +
+'  if (minF > 0) {\n' +
+'    hint.innerHTML = "<span style=\\"color:#f59e0b;font-weight:700;\\">⚠️ Minimum " + minF.toLocaleString() + " followers required.</span>";\n' +
+'    fInput.setAttribute("min", String(minF));\n' +
+'  } else {\n' +
+'    hint.textContent = "Enter your current Instagram follower count.";\n' +
+'    fInput.setAttribute("min", "0");\n' +
+'  }\n' +
 
 '  document.getElementById("applyModal").classList.add("open");\n' +
 '}\n' +
@@ -796,6 +815,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '    preferred_dates: document.getElementById("fDates").value,\n' +
 '    message:         document.getElementById("fMsg").value.trim(),\n' +
 '    selected_benefit: (function(){ var r = document.querySelector("input[name=selectedBenefit]:checked"); return r ? r.value : ""; })(),\n' +
+'    follower_count:  parseInt(document.getElementById("fFollowers").value) || 0,\n' +
 '  };\n' +
 '  var btn = e.target.querySelector("button[type=submit]");\n' +
 '  btn.disabled = true; btn.textContent = "Submitting\u2026";\n' +
