@@ -499,84 +499,84 @@ export function mainPageHTML(campaigns: any[]): string {
 '  </div>\n' +
 '</div>\n' +
 '\n' +
-'<!-- ═══ 웰컴 안내 팝업 ═══ -->\n' +
+'<!-- ═══ Welcome Popup ═══ -->\n' +
 '<div id="welcomePopup" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px;">\n' +
 '  <div style="background:#fff;border-radius:24px;max-width:420px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.35);position:relative;animation:popIn .4s cubic-bezier(.34,1.56,.64,1);">\n' +
-'    <!-- 상단 골드 헤더 -->\n' +
+'    <!-- Gold Header -->\n' +
 '    <div style="background:linear-gradient(135deg,#b8860b,#c9a035,#e8c16a);border-radius:24px 24px 0 0;padding:26px 24px 20px;text-align:center;position:relative;">\n' +
 '      <button onclick="closeWelcomePopup()" style="position:absolute;top:12px;right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">×</button>\n' +
 '      <div style="font-size:36px;margin-bottom:6px;">🌟</div>\n' +
 '      <h2 style="font-size:18px;font-weight:900;color:#fff;margin:0 0 4px;letter-spacing:-.2px;">Seoul Beauty Trip</h2>\n' +
 '      <p style="font-size:12px;color:rgba(255,255,255,.9);margin:0;font-weight:500;">Free K-Beauty Experience for Travel Creators</p>\n' +
 '    </div>\n' +
-'    <!-- 본문 -->\n' +
+'    <!-- Body -->\n' +
 '    <div style="padding:20px 20px 22px;">\n' +
 '\n' +
-'      <!-- 한줄 소개 -->\n' +
+'      <!-- Intro -->\n' +
 '      <div style="background:#fafaf9;border-left:3px solid #c9a035;border-radius:0 10px 10px 0;padding:11px 14px;margin-bottom:16px;">\n' +
 '        <p style="font-size:13px;color:#374151;line-height:1.7;margin:0;">\n' +
-'          서울을 여행하는 <strong>인스타그램 크리에이터</strong>를 위한 프로그램입니다.<br>\n' +
-'          성형·피부·한의원 등에서 <strong style="color:#c9a035;">무료로 시술을 체험</strong>하고, 인스타그램에 영상 리뷰를 올려주시면 됩니다.\n' +
+'          A program for <strong>Instagram creators</strong> traveling in Seoul.<br>\n' +
+'          Enjoy <strong style="color:#c9a035;">complimentary K-beauty treatments</strong> at plastic surgery clinics, skin care centers, and more — in exchange for an Instagram review video.\n' +
 '        </p>\n' +
 '      </div>\n' +
 '\n' +
-'      <!-- 지원 자격 -->\n' +
-'      <p style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px;">✅ 지원 자격</p>\n' +
+'      <!-- Requirements -->\n' +
+'      <p style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px;">✅ Requirements</p>\n' +
 '      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">\n' +
 '        <div style="display:flex;align-items:flex-start;gap:10px;background:#fffbef;border:1px solid #fcd34d;border-radius:12px;padding:11px 13px;">\n' +
 '          <span style="font-size:20px;flex-shrink:0;margin-top:1px;">📸</span>\n' +
 '          <div>\n' +
-'            <p style="font-size:13px;font-weight:700;color:#92400e;margin:0 0 1px;">인스타그램 팔로워 최소 3,000명 이상</p>\n' +
-'            <p style="font-size:11px;color:#a16207;margin:0;line-height:1.5;">팔로워 수가 3,000명 미만이면 신청이 어렵습니다</p>\n' +
+'            <p style="font-size:13px;font-weight:700;color:#92400e;margin:0 0 1px;">Minimum 3,000 Instagram followers</p>\n' +
+'            <p style="font-size:11px;color:#a16207;margin:0;line-height:1.5;">Applications with fewer than 3,000 followers may not be accepted.</p>\n' +
 '          </div>\n' +
 '        </div>\n' +
 '        <div style="display:flex;align-items:flex-start;gap:10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:11px 13px;">\n' +
 '          <span style="font-size:20px;flex-shrink:0;margin-top:1px;">🎬</span>\n' +
 '          <div>\n' +
-'            <p style="font-size:13px;font-weight:700;color:#166534;margin:0 0 1px;">방문 후 인스타그램 리뷰 영상 업로드 필수</p>\n' +
-'            <p style="font-size:11px;color:#15803d;margin:0;line-height:1.5;">체험 후 반드시 릴스 또는 영상 리뷰를 올려주셔야 합니다.<br>업로드하지 않으면 이후 프로그램 참여가 제한될 수 있습니다.</p>\n' +
+'            <p style="font-size:13px;font-weight:700;color:#166534;margin:0 0 1px;">Review video upload is mandatory</p>\n' +
+'            <p style="font-size:11px;color:#15803d;margin:0;line-height:1.5;">You must post a Reels or video review on Instagram after your visit.<br>Failure to upload may result in being excluded from future programs.</p>\n' +
 '          </div>\n' +
 '        </div>\n' +
 '        <div style="display:flex;align-items:flex-start;gap:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:11px 13px;">\n' +
 '          <span style="font-size:20px;flex-shrink:0;margin-top:1px;">📅</span>\n' +
 '          <div>\n' +
-'            <p style="font-size:13px;font-weight:700;color:#991b1b;margin:0 0 1px;">확정된 예약 날짜 반드시 지켜주세요</p>\n' +
-'            <p style="font-size:11px;color:#b91c1c;margin:0;line-height:1.5;">노쇼(무단불참) 또는 날짜 미준수 시 향후 모든 프로그램 참여가 어렵습니다.</p>\n' +
+'            <p style="font-size:13px;font-weight:700;color:#991b1b;margin:0 0 1px;">Please honor your confirmed appointment</p>\n' +
+'            <p style="font-size:11px;color:#b91c1c;margin:0;line-height:1.5;">No-shows or missed dates will result in being banned from all future programs.</p>\n' +
 '          </div>\n' +
 '        </div>\n' +
 '      </div>\n' +
 '\n' +
-'      <!-- 진행 방식 -->\n' +
-'      <p style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px;">📋 진행 방식</p>\n' +
+'      <!-- How it works -->\n' +
+'      <p style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px;">📋 How It Works</p>\n' +
 '      <div style="display:flex;flex-direction:column;gap:0;margin-bottom:18px;">\n' +
 '        <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #f3f4f6;">\n' +
 '          <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>\n' +
-'          <p style="font-size:12px;color:#374151;margin:0;line-height:1.6;padding-top:2px;"><strong>신청서 제출</strong> — 원하는 업체에 신청 버튼을 눌러 지원</p>\n' +
+'          <p style="font-size:12px;color:#374151;margin:0;line-height:1.6;padding-top:2px;"><strong>Submit your application</strong> — Click the Apply button on any clinic you like</p>\n' +
 '        </div>\n' +
 '        <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #f3f4f6;">\n' +
 '          <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>\n' +
-'          <p style="font-size:12px;color:#374151;margin:0;line-height:1.6;padding-top:2px;"><strong>업체 검토</strong> — 업체에서 인스타그램 프로필을 확인합니다</p>\n' +
+'          <p style="font-size:12px;color:#374151;margin:0;line-height:1.6;padding-top:2px;"><strong>Clinic review</strong> — The clinic checks your Instagram profile</p>\n' +
 '        </div>\n' +
 '        <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #f3f4f6;">\n' +
 '          <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>\n' +
-'          <p style="font-size:12px;color:#374151;margin:0;line-height:1.6;padding-top:2px;"><strong>Instagram DM으로 연락</strong> — 선정되면 <span style="color:#ec4899;font-weight:600;">@seoulbeautytrip_en</span> 에서 DM을 드립니다</p>\n' +
+'          <p style="font-size:12px;color:#374151;margin:0;line-height:1.6;padding-top:2px;"><strong>Contact via Instagram DM</strong> — If selected, the clinic will reach out to you directly via DM</p>\n' +
 '        </div>\n' +
 '        <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #f3f4f6;">\n' +
 '          <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">4</div>\n' +
-'          <p style="font-size:12px;color:#374151;margin:0;line-height:1.6;padding-top:2px;"><strong>예약 확정 후 방문</strong> — 날짜와 시간을 맞춰 업체를 방문합니다</p>\n' +
+'          <p style="font-size:12px;color:#374151;margin:0;line-height:1.6;padding-top:2px;"><strong>Visit the clinic</strong> — Confirm your appointment date and time, then visit</p>\n' +
 '        </div>\n' +
 '        <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;">\n' +
 '          <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">5</div>\n' +
-'          <p style="font-size:12px;color:#374151;margin:0;line-height:1.6;padding-top:2px;"><strong>리뷰 영상 업로드</strong> — 방문 후 인스타그램에 체험 영상을 올려주세요</p>\n' +
+'          <p style="font-size:12px;color:#374151;margin:0;line-height:1.6;padding-top:2px;"><strong>Upload your review</strong> — Post your experience as a Reels or video on Instagram</p>\n' +
 '        </div>\n' +
 '      </div>\n' +
 '\n' +
-'      <!-- 확인 버튼 -->\n' +
+'      <!-- CTA Button -->\n' +
 '      <button onclick="closeWelcomePopup()" style="width:100%;padding:15px;background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;box-shadow:0 4px 14px rgba(201,160,53,.35);">\n' +
-'        내용 확인했어요, 신청하러 가기 🙋\n' +
+'        Got it — Let\'s Apply! 🙋\n' +
 '      </button>\n' +
 '      <div style="text-align:center;margin-top:10px;">\n' +
-'        <button onclick="closeWelcomePopupForever()" style="background:none;border:none;font-size:11px;color:#9ca3af;cursor:pointer;text-decoration:underline;">오늘 하루 다시 보지 않기</button>\n' +
+'        <button onclick="closeWelcomePopupForever()" style="background:none;border:none;font-size:11px;color:#9ca3af;cursor:pointer;text-decoration:underline;">Don\'t show again today</button>\n' +
 '      </div>\n' +
 '    </div>\n' +
 '  </div>\n' +
@@ -593,7 +593,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '    <p style="font-size:14px;color:#6b7280;line-height:1.7;margin:0 0 20px;">\n' +
 '      Thank you for applying!<br>\n' +
 '      The clinic will review your profile and<br>\n' +
-'      <strong style="color:#111827;">contact you via Instagram DM</strong> if selected.\n' +
+'      <strong style="color:#111827;">contact you directly via Instagram DM</strong> if selected.\n' +
 '    </p>\n' +
 '    <!-- 구분선 -->\n' +
 '    <div style="border-top:1px solid #f3f4f6;margin:0 0 16px;"></div>\n' +
@@ -613,7 +613,7 @@ export function mainPageHTML(campaigns: any[]): string {
 '    <button onclick="closeSuccessPopup()" style="width:100%;padding:14px;background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;">\n' +
 '      Got it! 👍\n' +
 '    </button>\n' +
-'    <p style="font-size:11px;color:#d1d5db;margin:10px 0 0;">We will reach out within a few days via Instagram DM.</p>\n' +
+'    <p style="font-size:11px;color:#d1d5db;margin:10px 0 0;">The clinic will reach out within a few days via Instagram DM.</p>\n' +
 '  </div>\n' +
 '</div>\n' +
 '\n' +
