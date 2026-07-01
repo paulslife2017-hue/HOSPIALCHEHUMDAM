@@ -73,6 +73,8 @@ export function mainPageHTML(campaigns: any[]): string {
 '    .hero-badge{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(201,160,53,.35);background:rgba(201,160,53,.08);border-radius:99px;padding:5px 13px;font-size:11px;font-weight:500;color:#fcd34d;margin-bottom:16px;}\n' +
 '    .hero-badge span{width:6px;height:6px;border-radius:50%;background:#fbbf24;animation:pulse 2s infinite;flex-shrink:0;}\n' +
 '    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}\n' +
+'    @keyframes popIn{from{opacity:0;transform:scale(.85) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}\n' +
+'    @keyframes bounce{from{transform:translateY(0);}to{transform:translateY(-8px);}}\n' +
 '    .hero-title{font-family:"Cormorant Garamond",Georgia,serif;font-size:32px;font-weight:600;line-height:1.12;margin-bottom:14px;}\n' +
 '    @media(min-width:1024px){.hero-title{font-size:58px;}}\n' +
 '    .gold-text{background:linear-gradient(90deg,var(--gold),#f0d585);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}\n' +
@@ -497,6 +499,41 @@ export function mainPageHTML(campaigns: any[]): string {
 '  </div>\n' +
 '</div>\n' +
 '\n' +
+'<!-- ═══ 신청 완료 팝업 ═══ -->\n' +
+'<div id="successPopup" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px;">\n' +
+'  <div style="background:#fff;border-radius:24px;max-width:380px;width:100%;padding:36px 28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.25);position:relative;animation:popIn .35s cubic-bezier(.34,1.56,.64,1);">\n' +
+'    <!-- 닫기 버튼 -->\n' +
+'    <button onclick="closeSuccessPopup()" style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;line-height:1;">&times;</button>\n' +
+'    <!-- 이모지 애니메이션 -->\n' +
+'    <div style="font-size:56px;margin-bottom:12px;animation:bounce .6s ease infinite alternate;">🎉</div>\n' +
+'    <h2 style="font-size:20px;font-weight:800;color:#111827;margin:0 0 8px;">Application Submitted!</h2>\n' +
+'    <p style="font-size:14px;color:#6b7280;line-height:1.7;margin:0 0 20px;">\n' +
+'      Thank you for applying!<br>\n' +
+'      The clinic will review your profile and<br>\n' +
+'      <strong style="color:#111827;">contact you via Instagram DM</strong> if selected.\n' +
+'    </p>\n' +
+'    <!-- 구분선 -->\n' +
+'    <div style="border-top:1px solid #f3f4f6;margin:0 0 16px;"></div>\n' +
+'    <!-- 안내 박스 -->\n' +
+'    <div style="background:#fffbef;border:1px solid #fcd34d;border-radius:14px;padding:14px 16px;text-align:left;margin-bottom:20px;">\n' +
+'      <p style="font-size:12px;font-weight:700;color:#92400e;margin:0 0 8px;">📋 Requirements reminder</p>\n' +
+'      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;">\n' +
+'        <span style="font-size:14px;flex-shrink:0;">📸</span>\n' +
+'        <span style="font-size:12px;color:#78350f;line-height:1.5;">Minimum <strong>3,000+ Instagram followers</strong> required to be selected</span>\n' +
+'      </div>\n' +
+'      <div style="display:flex;align-items:flex-start;gap:8px;">\n' +
+'        <span style="font-size:14px;flex-shrink:0;">🎬</span>\n' +
+'        <span style="font-size:12px;color:#78350f;line-height:1.5;">You must post a <strong>review video/reel</strong> on Instagram after your visit</span>\n' +
+'      </div>\n' +
+'    </div>\n' +
+'    <!-- 확인 버튼 -->\n' +
+'    <button onclick="closeSuccessPopup()" style="width:100%;padding:14px;background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;">\n' +
+'      Got it! 👍\n' +
+'    </button>\n' +
+'    <p style="font-size:11px;color:#d1d5db;margin:10px 0 0;">We will reach out within a few days via Instagram DM.</p>\n' +
+'  </div>\n' +
+'</div>\n' +
+'\n' +
 '<!-- ═══ DETAIL MODAL ═══ -->\n' +
 '<div id="detailModal" class="modal-bg">\n' +
 '  <div class="sheet" style="max-width:680px">\n' +
@@ -799,6 +836,13 @@ export function mainPageHTML(campaigns: any[]): string {
 '  document.getElementById("applyModal").classList.add("open");\n' +
 '}\n' +
 'function closeApply(){ document.getElementById("applyModal").classList.remove("open"); }\n' +
+'function closeSuccessPopup(){\n' +
+'  document.getElementById("successPopup").style.display = "none";\n' +
+'}\n' +
+'// successPopup 배경 클릭 시 닫기\n' +
+'document.getElementById("successPopup").addEventListener("click", function(e){\n' +
+'  if (e.target === this) closeSuccessPopup();\n' +
+'});\n' +
 '\n' +
 'document.getElementById("applyForm").addEventListener("submit", async function(e) {\n' +
 '  e.preventDefault();\n' +
@@ -823,11 +867,12 @@ export function mainPageHTML(campaigns: any[]): string {
 '    var res  = await fetch("/api/apply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});\n' +
 '    var data = await res.json();\n' +
 '    if (data.success) {\n' +
-'      okEl.innerHTML = "\u2705 " + data.message; okEl.style.display = "block";\n' +
-'      btn.textContent = "Done!";\n' +
+'      closeApply();\n' +
+'      var popup = document.getElementById("successPopup");\n' +
+'      popup.style.display = "flex";\n' +
 '      var idx = allCampaigns.findIndex(function(x){ return x.id == body.campaign_id; });\n' +
 '      if (idx >= 0) allCampaigns[idx].current_participants = (allCampaigns[idx].current_participants || 0) + 1;\n' +
-'      setTimeout(function(){ closeApply(); render(allCampaigns); }, 2200);\n' +
+'      render(allCampaigns);\n' +
 '    } else {\n' +
 '      errEl.textContent = data.error; errEl.style.display = "block";\n' +
 '      btn.disabled = false; btn.textContent = "Submit Application";\n' +
