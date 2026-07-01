@@ -499,6 +499,56 @@ export function mainPageHTML(campaigns: any[]): string {
 '  </div>\n' +
 '</div>\n' +
 '\n' +
+'<!-- ═══ 웰컴 안내 팝업 ═══ -->\n' +
+'<div id="welcomePopup" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;">\n' +
+'  <div style="background:#fff;border-radius:24px;max-width:400px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.3);position:relative;animation:popIn .4s cubic-bezier(.34,1.56,.64,1);">\n' +
+'    <!-- 상단 골드 배너 -->\n' +
+'    <div style="background:linear-gradient(135deg,#c9a035,#e8c16a);border-radius:24px 24px 0 0;padding:28px 24px 22px;text-align:center;">\n' +
+'      <div style="font-size:42px;margin-bottom:8px;">✨</div>\n' +
+'      <h2 style="font-size:19px;font-weight:800;color:#fff;margin:0 0 4px;letter-spacing:-.3px;">Seoul Beauty Trip</h2>\n' +
+'      <p style="font-size:12px;color:rgba(255,255,255,.85);margin:0;">Free K-Beauty experience for travel creators</p>\n' +
+'    </div>\n' +
+'    <!-- 본문 -->\n' +
+'    <div style="padding:22px 22px 24px;">\n' +
+'      <!-- 어떤 서비스인지 -->\n' +
+'      <p style="font-size:14px;color:#374151;line-height:1.75;margin:0 0 18px;">\n' +
+'        서울 뷰티 여행 크리에이터를 위한 <strong style="color:#c9a035;">무료 K-뷰티 체험</strong> 프로그램입니다.<br>\n' +
+'        성형·피부과·한의원 등 다양한 업체에서 <strong>무료로 시술을 받고</strong>, 인스타그램에 리뷰 영상을 올려주시면 됩니다.\n' +
+'      </p>\n' +
+'      <!-- 조건 카드들 -->\n' +
+'      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">\n' +
+'        <div style="display:flex;align-items:flex-start;gap:12px;background:#fffbef;border:1px solid #fcd34d;border-radius:14px;padding:12px 14px;">\n' +
+'          <span style="font-size:22px;flex-shrink:0;">📸</span>\n' +
+'          <div>\n' +
+'            <p style="font-size:13px;font-weight:700;color:#92400e;margin:0 0 2px;">인스타그램 팔로워 3,000명 이상</p>\n' +
+'            <p style="font-size:11px;color:#a16207;margin:0;">팔로워 수가 최소 3,000명 이상이어야 신청 가능합니다</p>\n' +
+'          </div>\n' +
+'        </div>\n' +
+'        <div style="display:flex;align-items:flex-start;gap:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:12px 14px;">\n' +
+'          <span style="font-size:22px;flex-shrink:0;">🎬</span>\n' +
+'          <div>\n' +
+'            <p style="font-size:13px;font-weight:700;color:#166534;margin:0 0 2px;">방문 후 리뷰 영상 업로드 필수</p>\n' +
+'            <p style="font-size:11px;color:#15803d;margin:0;">방문 후 인스타그램에 릴스/영상 리뷰를 올려주셔야 합니다</p>\n' +
+'          </div>\n' +
+'        </div>\n' +
+'        <div style="display:flex;align-items:flex-start;gap:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:12px 14px;">\n' +
+'          <span style="font-size:22px;flex-shrink:0;">💬</span>\n' +
+'          <div>\n' +
+'            <p style="font-size:13px;font-weight:700;color:#1e40af;margin:0 0 2px;">신청 후 Instagram DM으로 연락</p>\n' +
+'            <p style="font-size:11px;color:#1d4ed8;margin:0;">업체에서 프로필 확인 후 선정되면 인스타 DM으로 연락드립니다</p>\n' +
+'          </div>\n' +
+'        </div>\n' +
+'      </div>\n' +
+'      <!-- 확인 버튼 -->\n' +
+'      <button id="welcomeOkBtn" onclick="closeWelcomePopup()" style="width:100%;padding:15px;background:linear-gradient(135deg,#c9a035,#e8c16a);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;box-shadow:0 4px 14px rgba(201,160,53,.4);">\n' +
+'        알겠어요, 신청해볼게요! 🙋\n' +
+'      </button>\n' +
+'      <p style="text-align:center;font-size:11px;color:#d1d5db;margin:10px 0 0;">오늘 하루 다시 보지 않기를 누르면 24시간 동안 표시되지 않습니다</p>\n' +
+'      <button onclick="closeWelcomePopupForever()" style="display:block;margin:6px auto 0;background:none;border:none;font-size:11px;color:#9ca3af;cursor:pointer;text-decoration:underline;">오늘 하루 다시 보지 않기</button>\n' +
+'    </div>\n' +
+'  </div>\n' +
+'</div>\n' +
+'\n' +
 '<!-- ═══ 신청 완료 팝업 ═══ -->\n' +
 '<div id="successPopup" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px;">\n' +
 '  <div style="background:#fff;border-radius:24px;max-width:380px;width:100%;padding:36px 28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.25);position:relative;animation:popIn .35s cubic-bezier(.34,1.56,.64,1);">\n' +
@@ -895,6 +945,26 @@ export function mainPageHTML(campaigns: any[]): string {
 '\n' +
 '// 초기 렌더링\n' +
 'render(allCampaigns);\n' +
+'\n' +
+'// 웰컴 팝업 — localStorage로 24시간 이내 재방문 시 비표시\n' +
+'(function() {\n' +
+'  var key = "sbt_welcome_hidden_until";\n' +
+'  var hiddenUntil = parseInt(localStorage.getItem(key) || "0");\n' +
+'  if (Date.now() > hiddenUntil) {\n' +
+'    var popup = document.getElementById("welcomePopup");\n' +
+'    popup.style.display = "flex";\n' +
+'  }\n' +
+'})();\n' +
+'function closeWelcomePopup() {\n' +
+'  document.getElementById("welcomePopup").style.display = "none";\n' +
+'}\n' +
+'function closeWelcomePopupForever() {\n' +
+'  localStorage.setItem("sbt_welcome_hidden_until", String(Date.now() + 24*60*60*1000));\n' +
+'  document.getElementById("welcomePopup").style.display = "none";\n' +
+'}\n' +
+'document.getElementById("welcomePopup").addEventListener("click", function(e){\n' +
+'  if (e.target === this) closeWelcomePopup();\n' +
+'});\n' +
 '</script>\n' +
 '<!-- Instagram DM 플로팅 버튼 -->\n' +
 '<a href="https://ig.me/m/seoulbeautytrip_en" target="_blank" rel="noopener"\n' +
